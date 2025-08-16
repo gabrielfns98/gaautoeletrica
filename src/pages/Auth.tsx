@@ -21,8 +21,7 @@ const Auth = () => {
   const [signUpData, setSignUpData] = useState({ 
     email: "", 
     password: "", 
-    confirmPassword: "", 
-    fullName: "" 
+    confirmPassword: "" 
   });
 
   if (loading) {
@@ -83,7 +82,7 @@ const Auth = () => {
     }
 
     try {
-      const { error } = await signUp(signUpData.email, signUpData.password, signUpData.fullName);
+      const { error } = await signUp(signUpData.email, signUpData.password);
       
       if (error) {
         if (error.message.includes("User already registered")) {
@@ -170,17 +169,6 @@ const Auth = () => {
               
               <TabsContent value="signup" className="space-y-4 mt-4">
                 <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome Completo</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      value={signUpData.fullName}
-                      onChange={(e) => setSignUpData(prev => ({ ...prev, fullName: e.target.value }))}
-                      required
-                    />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input

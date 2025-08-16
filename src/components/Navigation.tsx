@@ -7,7 +7,7 @@ import logo from "@/assets/logo.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
   const scrollToSection = (id: string) => {
@@ -49,11 +49,6 @@ const Navigation = () => {
             {user && (
               <Button variant="ghost" onClick={() => scrollToSection("tracking")}>
                 Meus Veículos
-              </Button>
-            )}
-            {user && isAdmin && (
-              <Button variant="ghost" onClick={() => scrollToSection("inventory")}>
-                Estoque
               </Button>
             )}
             <Button variant="ghost" onClick={() => scrollToSection("support")}>
@@ -117,15 +112,6 @@ const Navigation = () => {
                 onClick={() => scrollToSection("tracking")}
               >
                 Meus Veículos
-              </Button>
-            )}
-            {user && isAdmin && (
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start"
-                onClick={() => scrollToSection("inventory")}
-              >
-                Estoque
               </Button>
             )}
             <Button 

@@ -3,11 +3,10 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireAdmin?: boolean;
 }
 
-const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, loading, isAdmin } = useAuth();
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -19,17 +18,6 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
 
   if (!user) {
     return <Navigate to="/auth" replace />;
-  }
-
-  if (requireAdmin && !isAdmin) {
-    return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
-        <div className="text-center text-primary-foreground">
-          <h1 className="text-2xl font-bold mb-2">Acesso Negado</h1>
-          <p>Você não tem permissão para acessar esta página.</p>
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;
