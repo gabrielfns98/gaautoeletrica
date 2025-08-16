@@ -35,25 +35,25 @@ const Navigation = () => {
             <Button variant="ghost" onClick={() => scrollToSection("inventory")}>
               Estoque
             </Button>
-            <Button variant="ghost" onClick={() => scrollToSection("contact")}>
-              Contato
+            <Button variant="ghost" onClick={() => scrollToSection("support")}>
+              Suporte
             </Button>
             <Button 
               className="bg-gradient-primary shadow-glow hover:shadow-lg transition-all duration-smooth"
-              onClick={() => scrollToSection("schedule")}
+              onClick={() => scrollToSection("support")}
             >
-              Agendar Serviço
+              Contatar Suporte
             </Button>
           </div>
 
           {/* Contact Info Desktop */}
           <div className="hidden lg:flex items-center space-x-6 text-sm">
             <div className="flex items-center space-x-2">
-              <Phone size={16} className="text-primary" />
-              <span>(11) 9999-9999</span>
+              <Phone size={16} className="text-accent" />
+              <span>(34) 9 9866-7638</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Clock size={16} className="text-primary" />
+              <Clock size={16} className="text-accent" />
               <span>Seg-Sex: 8h-18h</span>
             </div>
           </div>
@@ -96,23 +96,23 @@ const Navigation = () => {
             <Button 
               variant="ghost" 
               className="w-full justify-start"
-              onClick={() => scrollToSection("contact")}
+              onClick={() => scrollToSection("support")}
             >
-              Contato
+              Suporte
             </Button>
             <Button 
               className="w-full bg-gradient-primary shadow-glow"
-              onClick={() => scrollToSection("schedule")}
+              onClick={() => scrollToSection("support")}
             >
-              Agendar Serviço
+              Contatar Suporte
             </Button>
             <div className="pt-4 space-y-2 border-t border-border">
               <div className="flex items-center space-x-2 text-sm">
-                <Phone size={16} className="text-primary" />
-                <span>(11) 9999-9999</span>
+                <Phone size={16} className="text-accent" />
+                <span>(34) 9 9866-7638</span>
               </div>
               <div className="flex items-center space-x-2 text-sm">
-                <Clock size={16} className="text-primary" />
+                <Clock size={16} className="text-accent" />
                 <span>Seg-Sex: 8h às 18h</span>
               </div>
             </div>

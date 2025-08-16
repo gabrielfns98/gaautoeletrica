@@ -96,9 +96,9 @@ const Footer = () => {
               <li>
                 <button 
                   className="hover:text-primary transition-colors"
-                  onClick={() => document.getElementById("schedule")?.scrollIntoView({ behavior: "smooth" })}
+                  onClick={() => document.getElementById("support")?.scrollIntoView({ behavior: "smooth" })}
                 >
-                  Agendamento IA
+                  Suporte ao Cliente
                 </button>
               </li>
               <li>
@@ -131,24 +131,24 @@ const Footer = () => {
             <h4 className="font-semibold text-lg mb-6 text-primary">Contato</h4>
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
-                <MapPin size={20} className="text-primary mt-1" />
+                <MapPin size={20} className="text-accent mt-1" />
                 <div>
                   <p className="font-medium">Endereço</p>
                   <p className="text-sm text-muted-foreground">
-                    Rua das Oficinas, 123<br />
-                    Vila Auto, São Paulo - SP<br />
-                    CEP: 01234-567
+                    Rua Carlos Finholdt Júnior, 156<br />
+                    Res. Guilherme Borges de Oliveira<br />
+                    CEP: 38035-280
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start space-x-3">
-                <Phone size={20} className="text-primary mt-1" />
+                <Phone size={20} className="text-accent mt-1" />
                 <div>
                   <p className="font-medium">Telefones</p>
                   <p className="text-sm text-muted-foreground">
-                    (11) 3333-4444<br />
-                    (11) 99999-9999
+                    (34) 9 9866-7638<br />
+                    (34) 9 9763-0033
                   </p>
                 </div>
               </div>
@@ -164,13 +164,12 @@ const Footer = () => {
               </div>
 
               <div className="flex items-start space-x-3">
-                <Clock size={20} className="text-primary mt-1" />
+                <Clock size={20} className="text-accent mt-1" />
                 <div>
                   <p className="font-medium">Horário de Funcionamento</p>
                   <p className="text-sm text-muted-foreground">
                     Segunda a Sexta: 8h às 18h<br />
-                    Sábado: 8h às 12h<br />
-                    <span className="text-accent font-medium">IA disponível 24/7</span>
+                    <span className="text-accent font-medium">Suporte ao Cliente 24/7</span>
                   </p>
                 </div>
               </div>
@@ -178,7 +177,7 @@ const Footer = () => {
 
             <Button 
               className="w-full mt-6 bg-gradient-primary shadow-glow hover:shadow-lg transition-all duration-smooth"
-              onClick={() => window.open("https://wa.me/5511999999999")}
+              onClick={() => window.open("https://wa.me/553499866638")}
             >
               <MessageCircle size={16} className="mr-2" />
               WhatsApp
