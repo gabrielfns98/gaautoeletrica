@@ -1,14 +1,31 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Phone, Clock, MapPin } from "lucide-react";
+import { Menu, X, Phone, Clock, User, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut, isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     setIsMenuOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const handleAuthClick = () => {
+    if (user) {
+      handleSignOut();
+    } else {
+      navigate('/auth');
+    }
   };
 
   return (
@@ -29,20 +46,34 @@ const Navigation = () => {
             <Button variant="ghost" onClick={() => scrollToSection("services")}>
               Serviços
             </Button>
-            <Button variant="ghost" onClick={() => scrollToSection("tracking")}>
-              Acompanhamento
-            </Button>
-            <Button variant="ghost" onClick={() => scrollToSection("inventory")}>
-              Estoque
-            </Button>
+            {user && (
+              <Button variant="ghost" onClick={() => scrollToSection("tracking")}>
+                Meus Veículos
+              </Button>
+            )}
+            {user && isAdmin && (
+              <Button variant="ghost" onClick={() => scrollToSection("inventory")}>
+                Estoque
+              </Button>
+            )}
             <Button variant="ghost" onClick={() => scrollToSection("support")}>
               Suporte
             </Button>
             <Button 
               className="bg-gradient-primary shadow-glow hover:shadow-lg transition-all duration-smooth"
-              onClick={() => scrollToSection("support")}
+              onClick={handleAuthClick}
             >
-              Contatar Suporte
+              {user ? (
+                <>
+                  <LogOut size={16} className="mr-2" />
+                  Sair
+                </>
+              ) : (
+                <>
+                  <User size={16} className="mr-2" />
+                  Entrar
+                </>
+              )}
             </Button>
           </div>
 
@@ -79,20 +110,24 @@ const Navigation = () => {
             >
               Serviços
             </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => scrollToSection("tracking")}
-            >
-              Acompanhamento
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => scrollToSection("inventory")}
-            >
-              Estoque
-            </Button>
+            {user && (
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={() => scrollToSection("tracking")}
+              >
+                Meus Veículos
+              </Button>
+            )}
+            {user && isAdmin && (
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={() => scrollToSection("inventory")}
+              >
+                Estoque
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               className="w-full justify-start"
@@ -102,9 +137,19 @@ const Navigation = () => {
             </Button>
             <Button 
               className="w-full bg-gradient-primary shadow-glow"
-              onClick={() => scrollToSection("support")}
+              onClick={handleAuthClick}
             >
-              Contatar Suporte
+              {user ? (
+                <>
+                  <LogOut size={16} className="mr-2" />
+                  Sair
+                </>
+              ) : (
+                <>
+                  <User size={16} className="mr-2" />
+                  Entrar
+                </>
+              )}
             </Button>
             <div className="pt-4 space-y-2 border-t border-border">
               <div className="flex items-center space-x-2 text-sm">
