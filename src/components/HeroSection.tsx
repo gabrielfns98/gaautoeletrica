@@ -59,10 +59,10 @@ const HeroSection = () => {
             <Button 
               size="lg"
               className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-smooth transform hover:scale-105"
-              onClick={() => scrollToSection("schedule")}
+              onClick={() => scrollToSection("customer-support")}
             >
               <Bot className="mr-2" size={20} />
-              Fale com Nossa IA Agora
+              Suporte ao Cliente
             </Button>
             
             <Button 
