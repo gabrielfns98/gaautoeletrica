@@ -19,7 +19,6 @@ const ServicesSection = () => {
       title: "Sistema Elétrico Completo",
       description: "Diagnóstico e reparo completo do sistema elétrico automotivo",
       features: ["Diagnóstico por scanner", "Reparo de chicotes", "Instalação de acessórios"],
-      price: "A partir de R$ 120",
       rating: 4.9,
       color: "text-accent"
     },
@@ -28,7 +27,6 @@ const ServicesSection = () => {
       title: "Bateria e Alternador",
       description: "Teste, manutenção e substituição de baterias e alternadores",
       features: ["Teste de carga", "Limpeza de terminais", "Troca de alternador"],
-      price: "A partir de R$ 80",
       rating: 4.8,
       color: "text-primary"
     },
@@ -37,7 +35,6 @@ const ServicesSection = () => {
       title: "Injeção Eletrônica",
       description: "Diagnóstico e reparo de sistemas de injeção eletrônica",
       features: ["Scanner automotivo", "Limpeza de bicos", "Reprogramação ECU"],
-      price: "A partir de R$ 150",
       rating: 4.9,
       color: "text-success"
     },
@@ -46,7 +43,6 @@ const ServicesSection = () => {
       title: "Sistema de Ignição",
       description: "Manutenção completa do sistema de ignição do veículo",
       features: ["Troca de velas", "Bobinas de ignição", "Cabos de vela"],
-      price: "A partir de R$ 90",
       rating: 4.7,
       color: "text-warning"
     },
@@ -55,7 +51,6 @@ const ServicesSection = () => {
       title: "Alarmes e Travas",
       description: "Instalação e manutenção de sistemas de segurança",
       features: ["Alarmes automotivos", "Travas elétricas", "Vidros elétricos"],
-      price: "A partir de R$ 200",
       rating: 4.8,
       color: "text-destructive"
     },
@@ -64,7 +59,6 @@ const ServicesSection = () => {
       title: "Manutenção Preventiva",
       description: "Check-up completo dos sistemas elétricos do veículo",
       features: ["Inspeção geral", "Limpeza de componentes", "Relatório detalhado"],
-      price: "A partir de R$ 60",
       rating: 4.9,
       color: "text-muted-foreground"
     }
@@ -122,20 +116,17 @@ const ServicesSection = () => {
                       ))}
                     </ul>
                     <div className="pt-4 border-t border-border flex items-center justify-between">
-                      <div>
-                        <p className="text-lg font-bold text-primary">{service.price}</p>
-                        <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                          <Clock size={14} />
-                          <span>Agendamento rápido</span>
-                        </div>
+                      <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                        <Clock size={14} />
+                        <span>Agendamento rápido</span>
                       </div>
                       <Button 
                         size="sm" 
                         variant="outline"
                         className="hover:bg-primary hover:text-primary-foreground"
-                        onClick={() => document.getElementById("schedule")?.scrollIntoView({ behavior: "smooth" })}
+                        onClick={() => document.getElementById("support")?.scrollIntoView({ behavior: "smooth" })}
                       >
-                        Agendar
+                        Solicitar Orçamento
                       </Button>
                     </div>
                   </div>
