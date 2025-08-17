@@ -27,29 +27,46 @@ const CustomerSupport = () => {
     message: "",
     priority: "normal"
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showResponse, setShowResponse] = useState(false);
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const generateSupportResponse = () => {
-    const responses = [
-      {
-        message: `Olá ${formData.name}! Recebemos sua solicitação sobre ${formData.subject.toLowerCase()}. Nossa equipe de suporte técnico entrará em contato em breve para ajudá-lo da melhor forma.`,
-        responseTime: "15-30 minutos",
-        ticketId: `#SUP${Math.random().toString().substr(2, 6)}`
-      },
-      {
-        message: `Prezado(a) ${formData.name}, obrigado por entrar em contato! Sua questão sobre ${formData.subject.toLowerCase()} foi registrada e será tratada com prioridade. Você receberá retorno em breve.`,
-        responseTime: "10-20 minutos",
-        ticketId: `#SUP${Math.random().toString().substr(2, 6)}`
-      }
-    ];
+  const sendToWhatsApp = () => {
+    const message = `*Nova Solicitação de Suporte*
     
-    return responses[Math.floor(Math.random() * responses.length)];
+*Nome:* ${formData.name}
+*Telefone:* ${formData.phone}
+${formData.email ? `*Email:* ${formData.email}` : ''}
+${formData.vehicle ? `*Veículo:* ${formData.vehicle}` : ''}
+*Assunto:* ${formData.subject}
+*Prioridade:* ${formData.priority === 'low' ? 'Baixa' : formData.priority === 'normal' ? 'Normal' : formData.priority === 'high' ? 'Alta' : 'Urgente'}
+*Mensagem:* ${formData.message}
+
+Enviado pelo site G.A Auto Elétrica`;
+
+    const whatsappNumber = "5534998866638";
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "Redirecionando para WhatsApp ✅",
+      description: "Sua mensagem será enviada via WhatsApp.",
+    });
+
+    // Reset form
+    setFormData({
+      name: "",
+      phone: "",
+      email: "",
+      vehicle: "",
+      subject: "",
+      message: "",
+      priority: "normal"
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,20 +80,10 @@ const CustomerSupport = () => {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // Simulate support processing
-    setTimeout(() => {
-      setShowResponse(true);
-      setIsSubmitting(false);
-      toast({
-        title: "Solicitação enviada com sucesso! ✅",
-        description: "Nossa equipe entrará em contato em breve.",
-      });
-    }, 1500);
+    sendToWhatsApp();
   };
 
-  const supportResponse = showResponse ? generateSupportResponse() : null;
+  
 
   return (
     <section id="support" className="py-20 bg-gradient-to-br from-primary/5 to-accent/5">
@@ -88,7 +95,7 @@ const CustomerSupport = () => {
           </Badge>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="text-foreground">Suporte </span>
-            <span className="text-primary">Especializado</span>
+            <span className="text-primary">Online</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Nossa equipe de especialistas está pronta para ajudar você com qualquer 
@@ -224,107 +231,74 @@ const CustomerSupport = () => {
 
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gradient-primary shadow-glow hover:shadow-lg transition-all duration-smooth py-6"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg py-6"
                   >
-                    {isSubmitting ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Enviando solicitação...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <MessageCircle size={20} />
-                        <span>Enviar Solicitação</span>
-                      </div>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      <Phone size={20} />
+                      <span>Enviar via WhatsApp</span>
+                    </div>
                   </Button>
                 </form>
               </CardContent>
             </Card>
 
-            {/* Resposta do Suporte */}
-            <Card className={`bg-gradient-glass border-accent/20 transition-all duration-slow ${showResponse ? 'opacity-100 scale-100' : 'opacity-30 scale-95'}`}>
+            {/* Informações de Contato */}
+            <Card className="bg-gradient-glass border-accent/20">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Headphones className="text-accent" />
-                  <span>Resposta do Suporte</span>
-                  {showResponse && <CheckCircle className="text-success" size={20} />}
+                  <span>Suporte Online</span>
                 </CardTitle>
                 <CardDescription>
-                  Status da sua solicitação de suporte
+                  Nossos canais de atendimento
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {showResponse && supportResponse ? (
-                  <div className="space-y-6">
-                    <div className="p-4 bg-accent/10 rounded-lg border-l-4 border-accent">
-                      <p className="text-sm leading-relaxed">{supportResponse.message}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2 text-muted-foreground">
-                          <Clock size={14} />
-                          <span>Tempo de resposta</span>
-                        </div>
-                        <p className="font-semibold">{supportResponse.responseTime}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2 text-muted-foreground">
-                          <span>🎫</span>
-                          <span>Número do ticket</span>
-                        </div>
-                        <p className="font-semibold text-accent">{supportResponse.ticketId}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <Button 
-                        className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-                        onClick={() => window.open(`https://wa.me/553499866638?text=Olá! Preciso de suporte. Ticket: ${supportResponse.ticketId}`)}
-                      >
-                        <Phone size={16} className="mr-2" />
-                        Contato Direto via WhatsApp
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                          setShowResponse(false);
-                          setFormData({
-                            name: "",
-                            phone: "",
-                            email: "",
-                            vehicle: "",
-                            subject: "",
-                            message: "",
-                            priority: "normal"
-                          });
-                        }}
-                      >
-                        Nova Solicitação
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 space-y-4">
-                    <Headphones size={48} className="text-muted-foreground/50 mx-auto" />
-                    <p className="text-muted-foreground">
-                      Preencha o formulário para receber suporte especializado
+                <div className="space-y-6">
+                  <div className="text-center py-4">
+                    <Headphones size={48} className="text-accent mx-auto mb-4" />
+                    <p className="text-foreground mb-2">
+                      Atendimento personalizado via WhatsApp
                     </p>
-                    <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Phone size={14} className="text-accent" />
-                        <span>Suporte via WhatsApp</span>
+                    <p className="text-sm text-muted-foreground">
+                      Resposta rápida e suporte especializado
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3 p-3 bg-accent/10 rounded-lg">
+                      <Phone size={20} className="text-accent" />
+                      <div>
+                        <p className="font-medium">WhatsApp</p>
+                        <p className="text-sm text-muted-foreground">(34) 9 9886-6638</p>
                       </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <Clock size={14} className="text-accent" />
-                        <span>Resposta rápida garantida</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-accent/10 rounded-lg">
+                      <Clock size={20} className="text-accent" />
+                      <div>
+                        <p className="font-medium">Horário de Atendimento</p>
+                        <p className="text-sm text-muted-foreground">Segunda a Sexta: 8h às 18h</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-3 bg-accent/10 rounded-lg">
+                      <CheckCircle size={20} className="text-accent" />
+                      <div>
+                        <p className="font-medium">Resposta Rápida</p>
+                        <p className="text-sm text-muted-foreground">Até 30 minutos</p>
                       </div>
                     </div>
                   </div>
-                )}
+
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => window.open('https://wa.me/5534998866638?text=Olá! Preciso de suporte da G.A Auto Elétrica.')}
+                  >
+                    <Phone size={16} className="mr-2" />
+                    Contato Direto via WhatsApp
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
