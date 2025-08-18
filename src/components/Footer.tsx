@@ -29,18 +29,14 @@ const Footer = () => {
                 <p className="text-sm text-muted-foreground">Especialistas em Auto Elétrica</p>
               </div>
             </div>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
-              Mais de 15 anos oferecendo soluções completas em sistemas elétricos automotivos 
-              com tecnologia de ponta e atendimento personalizado.
-            </p>
             <div className="flex items-center space-x-2 mb-4">
               <Badge variant="secondary" className="bg-accent/10 text-accent">
                 <Bot size={14} className="mr-1" />
-                IA 24/7
+                Suporte Online 24/7
               </Badge>
               <Badge variant="secondary" className="bg-success/10 text-success">
                 <Zap size={14} className="mr-1" />
-                Diagnóstico Avançado
+                Diagnóstico Especializado
               </Badge>
             </div>
             <div className="flex space-x-3">

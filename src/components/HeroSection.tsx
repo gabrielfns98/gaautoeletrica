@@ -25,7 +25,7 @@ const HeroSection = () => {
           <div className="flex items-center justify-center space-x-2 mb-6">
             <Zap className="text-accent" size={32} />
             <span className="text-accent font-semibold text-lg">
-              Atendimento IA 24/7
+              Suporte Online 24/7
             </span>
             <Bot className="text-accent" size={28} />
           </div>
@@ -37,13 +37,13 @@ const HeroSection = () => {
           
           <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
             Tecnologia de ponta em serviços automotivos com acompanhamento em tempo real 
-            e atendimento inteligente por IA
+            e suporte especializado
           </p>
           
           <div className="grid md:grid-cols-3 gap-4 mb-10 max-w-3xl mx-auto">
             <div className="flex items-center justify-center space-x-2 bg-white/10 backdrop-blur-sm rounded-lg p-4">
               <CheckCircle className="text-success" size={20} />
-              <span className="text-white font-medium">Diagnóstico IA</span>
+              <span className="text-white font-medium">Diagnóstico Especializado</span>
             </div>
             <div className="flex items-center justify-center space-x-2 bg-white/10 backdrop-blur-sm rounded-lg p-4">
               <Calendar className="text-accent" size={20} />
