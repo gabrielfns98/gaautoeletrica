@@ -136,15 +136,6 @@ const ServicesSection = () => {
           })}
         </div>
 
-        <div className="text-center mt-12">
-          <Button 
-            size="lg"
-            className="bg-gradient-primary shadow-glow hover:shadow-lg transition-all duration-smooth"
-            onClick={() => document.getElementById("schedule")?.scrollIntoView({ behavior: "smooth" })}
-          >
-            Agendar Todos os Serviços
-          </Button>
-        </div>
       </div>
     </section>
   );
