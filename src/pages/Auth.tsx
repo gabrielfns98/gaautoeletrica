@@ -93,7 +93,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu email para confirmar sua conta.",
+          description: "Você já pode fazer login com sua conta.",
         });
       }
     } catch (error) {
