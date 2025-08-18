@@ -19,63 +19,7 @@ const Footer = () => {
   return (
     <footer className="bg-gradient-to-br from-primary/5 to-primary/10 border-t border-border/50">
       <div className="container mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Informações da empresa */}
-          <div className="lg:col-span-1">
-            <div className="flex items-center space-x-3 mb-6">
-              <img src={logo} alt="G.A Auto Elétrica" className="h-12 w-12" />
-              <div>
-                <h3 className="font-bold text-xl text-primary">G.A Auto Elétrica</h3>
-                <p className="text-sm text-muted-foreground">Especialistas em Auto Elétrica</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2 mb-4">
-              <Badge variant="secondary" className="bg-accent/10 text-accent">
-                <Bot size={14} className="mr-1" />
-                Suporte Online 24/7
-              </Badge>
-              <Badge variant="secondary" className="bg-success/10 text-success">
-                <Zap size={14} className="mr-1" />
-                Diagnóstico Especializado
-              </Badge>
-            </div>
-            <div className="flex space-x-3">
-              <Button size="sm" variant="outline" className="p-2">
-                <Facebook size={16} />
-              </Button>
-              <Button size="sm" variant="outline" className="p-2">
-                <Instagram size={16} />
-              </Button>
-              <Button size="sm" variant="outline" className="p-2">
-                <MessageCircle size={16} />
-              </Button>
-            </div>
-          </div>
-
-          {/* Serviços */}
-          <div>
-            <h4 className="font-semibold text-lg mb-6 text-primary">Nossos Serviços</h4>
-            <ul className="space-y-3 text-muted-foreground">
-              <li className="hover:text-primary transition-colors cursor-pointer">
-                Sistema Elétrico Completo
-              </li>
-              <li className="hover:text-primary transition-colors cursor-pointer">
-                Bateria e Alternador
-              </li>
-              <li className="hover:text-primary transition-colors cursor-pointer">
-                Injeção Eletrônica
-              </li>
-              <li className="hover:text-primary transition-colors cursor-pointer">
-                Sistema de Ignição
-              </li>
-              <li className="hover:text-primary transition-colors cursor-pointer">
-                Alarmes e Travas
-              </li>
-              <li className="hover:text-primary transition-colors cursor-pointer">
-                Manutenção Preventiva
-              </li>
-            </ul>
-          </div>
+        <div className="grid md:grid-cols-2 gap-8">
 
           {/* Links úteis */}
           <div>
@@ -186,7 +130,7 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
             <div className="flex items-center space-x-4">
               <p className="text-sm text-muted-foreground">
-                © {currentYear} G.A Auto Elétrica. Todos os direitos reservados.
+                © {currentYear} Auto Elétrica. Todos os direitos reservados.
               </p>
             </div>
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
