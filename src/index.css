@@ -2,144 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
-/* G.A Auto Elétrica Design System - Based on Logo Theme */
+/* ============================================================
+   G.A Auto Elétrica — Design System
+   Espelha design/tokens.json. Valores em HSL para o Tailwind.
+   6 cores: ink, slate, mist, volt, signal, alert.
+   ============================================================ */
 
 @layer base {
   :root {
-    /* Base colors - Dark automotive theme from logo */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 15%;
-
-    /* Card system */
+    /* --- Superfícies --- */
+    --background: 220 13% 96%;      /* mist  #F2F3F5 */
+    --foreground: 225 11% 7%;       /* ink   #101114 */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 15%;
-
-    /* Glass effect cards */
-    --glass: 0 0% 100% / 0.8;
-    --glass-foreground: 0 0% 15%;
-
-    /* Popover system */
+    --card-foreground: 225 11% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 15%;
+    --popover-foreground: 225 11% 7%;
+    --glass: 0 0% 100%;
+    --glass-foreground: 225 11% 7%;
 
-    /* Primary - White from logo text */
-    --primary: 0 0% 15%;
+    /* --- Ação primária: ink --- */
+    --primary: 225 11% 7%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 0 0% 25%;
-    --primary-dark: 0 0% 5%;
+    --primary-light: 220 9% 20%;
+    --primary-dark: 225 14% 4%;
 
-    /* Secondary - Light grey */
-    --secondary: 0 0% 95%;
-    --secondary-foreground: 0 0% 15%;
+    /* --- Neutros --- */
+    --secondary: 220 13% 93%;
+    --secondary-foreground: 225 11% 7%;
+    --muted: 220 13% 93%;
+    --muted-foreground: 217 7% 38%;  /* slate #5B6068 — 6.3:1 sobre branco */
 
-    /* Muted tones */
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 45%;
+    /* --- Acento da marca: volt (sempre com texto ink) --- */
+    --accent: 46 100% 50%;           /* volt #FFC400 */
+    --accent-foreground: 225 11% 7%;
 
-    /* Accent - Yellow from logo phone strip and lightning */
-    --accent: 45 100% 50%;
-    --accent-foreground: 0 0% 15%;
-
-    /* Success - Green for status */
-    --success: 142 76% 48%;
+    /* --- Semânticos --- */
+    --success: 150 82% 26%;          /* signal #0C7A42 */
     --success-foreground: 0 0% 100%;
-
-    /* Warning - Amber for alerts */
-    --warning: 43 89% 55%;
-    --warning-foreground: 0 0% 15%;
-
-    /* Destructive states */
-    --destructive: 0 84% 60%;
+    --warning: 46 100% 50%;          /* volt, com texto ink */
+    --warning-foreground: 225 11% 7%;
+    --destructive: 2 64% 47%;        /* alert #C4302B */
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders and inputs */
-    --border: 0 0% 88%;
-    --input: 0 0% 95%;
-    --ring: 45 100% 50%;
+    /* --- Bordas, campos e foco --- */
+    --border: 220 12% 90%;
+    --input: 220 12% 90%;
+    --ring: 225 11% 7%;              /* anel escuro sobre superfície clara */
 
-    /* Border radius system */
-    --radius: 12px;
+    /* --- Raios: 3 tamanhos --- */
+    --radius: 14px;                  /* md */
     --radius-sm: 8px;
-    --radius-lg: 16px;
+    --radius-lg: 24px;
     --radius-xl: 24px;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 15%), hsl(0 0% 5%));
-    --gradient-hero: linear-gradient(135deg, hsl(0 0% 15%) 0%, hsl(0 0% 5%) 50%, hsl(45 100% 50%) 100%);
-    --gradient-glass: linear-gradient(145deg, hsl(0 0% 100% / 0.9), hsl(0 0% 98% / 0.8));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    /* --- Sombras: 2 níveis --- */
+    --shadow-sm: 0 1px 2px hsl(225 11% 7% / 0.06), 0 2px 8px hsl(225 11% 7% / 0.06);
+    --shadow: 0 1px 2px hsl(225 11% 7% / 0.06), 0 2px 8px hsl(225 11% 7% / 0.06);
+    --shadow-lg: 0 2px 6px hsl(225 11% 7% / 0.08), 0 8px 24px hsl(225 11% 7% / 0.12);
+    --shadow-glow: 0 2px 6px hsl(225 11% 7% / 0.08), 0 8px 24px hsl(225 11% 7% / 0.12);
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px hsl(0 0% 15% / 0.08);
-    --shadow: 0 4px 12px hsl(0 0% 15% / 0.12);
-    --shadow-lg: 0 12px 24px hsl(0 0% 15% / 0.18);
-    --shadow-glow: 0 0 0 1px hsl(45 100% 50% / 0.2), 0 8px 16px hsl(45 100% 50% / 0.3);
+    /* --- Movimento: 120–240ms --- */
+    --transition-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    --transition-smooth: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    --transition-slow: 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 
-    /* Animation timings */
-    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    /* --- Gradientes (usados só em superfícies escuras) --- */
+    --gradient-primary: linear-gradient(180deg, hsl(225 11% 10%), hsl(225 11% 7%));
+    --gradient-hero: linear-gradient(160deg, hsl(225 11% 7%) 0%, hsl(222 12% 12%) 62%, hsl(225 11% 7%) 100%);
+    --gradient-glass: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 100%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 100%));
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* --- Sidebar (shadcn) --- */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 217 7% 38%;
+    --sidebar-primary: 225 11% 7%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 13% 93%;
+    --sidebar-accent-foreground: 225 11% 7%;
+    --sidebar-border: 220 12% 90%;
+    --sidebar-ring: 225 11% 7%;
   }
 
+  /* Superfície escura: qualquer bloco com .surface-ink reescreve os tokens,
+     então os componentes dentro dele continuam atingindo AA sem variantes novas. */
+  .surface-ink,
   .dark {
-    /* Dark mode - Based on logo's black background */
-    --background: 0 0% 8%;
-    --foreground: 0 0% 98%;
+    --background: 225 11% 7%;
+    --foreground: 0 0% 100%;
+    --card: 222 10% 11%;
+    --card-foreground: 0 0% 100%;
+    --popover: 222 10% 11%;
+    --popover-foreground: 0 0% 100%;
 
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 98%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 225 11% 7%;
+    --primary-light: 0 0% 90%;
+    --primary-dark: 0 0% 100%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 98%;
+    --secondary: 222 9% 16%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 222 9% 16%;
+    --muted-foreground: 220 9% 72%;   /* 7.1:1 sobre ink */
 
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 8%;
+    --accent: 46 100% 50%;
+    --accent-foreground: 225 11% 7%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
+    --success: 150 60% 45%;
+    --success-foreground: 225 11% 7%;
+    --warning: 46 100% 50%;
+    --warning-foreground: 225 11% 7%;
+    --destructive: 2 75% 62%;
+    --destructive-foreground: 225 11% 7%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 65%;
+    --border: 220 8% 22%;
+    --input: 220 8% 22%;
+    --ring: 46 100% 50%;              /* anel volt sobre superfície escura */
 
-    --accent: 45 100% 50%;
-    --accent-foreground: 0 0% 8%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 20%;
-    --input: 0 0% 15%;
-    --ring: 45 100% 50%;
-
-    /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 98%), hsl(0 0% 85%));
-    --gradient-hero: linear-gradient(135deg, hsl(0 0% 8%) 0%, hsl(0 0% 15%) 50%, hsl(45 100% 50%) 100%);
-    --gradient-glass: linear-gradient(145deg, hsl(0 0% 15% / 0.8), hsl(0 0% 12% / 0.6));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 12%), hsl(0 0% 8%));
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --gradient-primary: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 94%));
+    --gradient-card: linear-gradient(180deg, hsl(222 10% 12%), hsl(222 10% 10%));
   }
 }
 
@@ -148,7 +128,57 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    min-width: 360px;
+  }
+
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+
+  /* Foco visível em todo controle focável, nos dois tipos de superfície. */
+  :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Alvo de toque mínimo em controles compactos no mobile. */
+  @media (pointer: coarse) {
+    button, a[role="button"], [role="tab"] {
+      min-height: 44px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Link "pular para o conteúdo" — primeiro item na ordem de tabulação. */
+  .skip-link {
+    @apply sr-only;
+  }
+  .skip-link:focus-visible {
+    @apply not-sr-only fixed left-4 top-4 z-[100] rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background;
+  }
+
+  /* Placa de veículo — padrão Mercosul, legível em 360px. */
+  .plate {
+    @apply inline-flex items-center rounded-sm border border-border bg-card px-2 py-0.5 font-display text-sm font-bold uppercase tracking-wider text-foreground;
+    font-variant-numeric: tabular-nums;
   }
 }

@@ -1,27 +1,80 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Entrada from "./pages/Entrada";
+import Entrar from "./pages/Entrar";
+import Painel from "./pages/Painel";
+import NovaOrdem from "./pages/NovaOrdem";
+import Ordem from "./pages/Ordem";
+import Conta from "./pages/Conta";
+import Oficina from "./pages/Oficina";
+import NaoEncontrado from "./pages/NaoEncontrado";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, staleTime: 30_000, refetchOnWindowFocus: true },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+            {/* Público */}
+            <Route path="/" element={<Entrada />} />
+            <Route path="/entrar" element={<Entrar />} />
+
+            {/* Área do cliente */}
+            <Route
+              path="/painel"
+              element={
+                <ProtectedRoute>
+                  <Painel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/painel/nova"
+              element={
+                <ProtectedRoute>
+                  <NovaOrdem />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/painel/os/:id"
+              element={
+                <ProtectedRoute>
+                  <Ordem />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/conta"
+              element={
+                <ProtectedRoute>
+                  <Conta />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Área da oficina */}
+            <Route
+              path="/oficina"
+              element={
+                <ProtectedRoute>
+                  <Oficina />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="*" element={<NaoEncontrado />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
