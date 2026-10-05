@@ -702,120 +702,131 @@
 .hc-signoff__mark > hr { justify-self: stretch; width: 100%; }
 
 /* ============================================================
-   FILME — a home é uma sala limpa e cada rolagem desce um cômodo
+   DOBRA — site, com o cômodo limpo ao fundo
    ============================================================ */
-.hc-film { position: relative; background: #000; }
-.hc-film__sticky { position: sticky; top: 0; height: 100svh; overflow: hidden; background: #000; }
-
-.hc-film__panel { position: absolute; inset: 0; overflow: hidden; will-change: transform; }
-.hc-film__panel img { width: 100%; height: 100%; object-fit: cover; will-change: transform; }
-
-/* gradação de cor, como num still de cinema */
-.hc-film__grade {
-  position: absolute; inset: 0; pointer-events: none;
+.hc-hero { text-align: left; position: relative; min-height: min(88svh, 820px); display: grid; align-items: center; overflow: hidden; padding: clamp(8rem, 16vh, 11rem) 0 clamp(3rem, 6vw, 5rem); }
+.hc-hero__bg { position: absolute; inset: 0; z-index: 0; }
+.hc-hero__bg img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.03); }
+.hc-hero__bg::after {
+  content: ''; position: absolute; inset: 0;
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.1) 26%, rgba(0, 0, 0, 0.18) 55%, rgba(0, 0, 0, 0.88) 100%),
-    linear-gradient(92deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.12) 42%, rgba(0, 0, 0, 0) 72%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.42) 38%, rgba(0, 0, 0, 0.72) 78%, #000 100%),
+    linear-gradient(96deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 48%, rgba(0, 0, 0, 0.05) 76%);
 }
-/* escurece o cômodo que ficou para trás */
-.hc-film__shade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
-
-/* tarjas de cinema */
-.hc-bar { position: absolute; left: 0; right: 0; height: clamp(1.6rem, 4.2svh, 3.2rem); background: #000; z-index: 45; pointer-events: none; }
-.hc-bar--top { top: 0; }
-.hc-bar--bottom { bottom: 0; }
-
-/* granulado de película */
-.hc-grain {
-  position: absolute; inset: -60px; z-index: 44; pointer-events: none; opacity: 0.2;
-  background-image: url('../assets/clean/grain.svg'); background-size: 240px 240px;
-  mix-blend-mode: overlay; animation: hc-flicker 0.9s steps(4) infinite;
+.hc-hero__inner { position: relative; z-index: 2; display: grid; gap: 1.3rem; max-width: 44rem; }
+.hc-hero__inner h1 { font-size: clamp(2.3rem, 5.2vw, 4.2rem); }
+.hc-hero__cta { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.7rem; }
+.hc-hero__trust { display: flex; flex-wrap: wrap; gap: 0.6rem 2rem; margin-top: 1.6rem; padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.hc-hero__trust span { font-size: 0.78rem; color: var(--stone); }
+.hc-hero__trust b { color: var(--ink); font-weight: 600; }
+.hc-hero__scroll {
+  position: absolute; z-index: 2; left: 50%; transform: translateX(-50%); bottom: clamp(1.5rem, 4vh, 2.5rem);
+  display: grid; justify-items: center; gap: 0.5rem; color: var(--stone);
+  font-size: 0.64rem; letter-spacing: 0.26em; text-transform: uppercase;
 }
-@keyframes hc-flicker {
-  0% { transform: translate3d(0, 0, 0); }
-  25% { transform: translate3d(-18px, 12px, 0); }
-  50% { transform: translate3d(14px, -16px, 0); }
-  75% { transform: translate3d(-9px, -7px, 0); }
-  100% { transform: translate3d(12px, 9px, 0); }
-}
-
-/* legendas do cômodo */
-.hc-film__cap {
-  position: absolute; z-index: 40; left: max(1.75rem, calc((100vw - 1340px) / 2));
-  right: 1.75rem; bottom: clamp(4.5rem, 11svh, 7rem); max-width: 38rem;
-  display: grid; gap: 0.9rem; color: var(--ink);
-}
-.hc-film__slate { display: flex; align-items: center; gap: 0.9rem; }
-.hc-film__slate span { font-size: 0.7rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--stone); }
-.hc-film__slate i { display: block; width: 2.4rem; height: 1px; background: var(--accent-2); }
-.hc-film__cap h2 { font-size: clamp(2.1rem, 5vw, 3.9rem); font-weight: 600; letter-spacing: -0.035em; }
-.hc-film__cap p { max-width: 30rem; color: var(--ink-2); font-size: clamp(0.95rem, 1.4vw, 1.1rem); line-height: 1.6; }
-
-/* marca sobre o filme */
-.hc-film__brand {
-  position: absolute; z-index: 46; top: clamp(2.6rem, 6.5svh, 4.2rem);
-  left: max(1.75rem, calc((100vw - 1340px) / 2)); color: var(--ink);
-  font-weight: 600; font-size: 1.12rem; letter-spacing: -0.03em;
-}
-
-/* contador de cenas */
-.hc-film__reel {
-  position: absolute; z-index: 46; right: clamp(1.25rem, 2.4vw, 2.2rem); top: 50%;
-  transform: translateY(-50%); display: grid; gap: 0.55rem; justify-items: end;
-}
-.hc-film__frame { width: 1.1rem; height: 2px; background: rgba(255, 255, 255, 0.32); transition: all 0.6s var(--ease); }
-.hc-film__frame.is-on { width: 2.6rem; background: var(--ink); }
-
-.hc-film__cue {
-  position: absolute; z-index: 46; left: 50%; transform: translateX(-50%);
-  bottom: clamp(1.8rem, 5.5svh, 3rem); display: grid; justify-items: center; gap: 0.6rem;
-  color: var(--stone); font-size: 0.66rem; letter-spacing: 0.26em; text-transform: uppercase;
-  opacity: var(--cue, 1); transition: opacity 0.5s linear;
-}
-.hc-film__cue i { display: block; width: 1px; height: 2.2rem; background: linear-gradient(180deg, var(--ink), transparent); animation: hc-drop-line 2s var(--ease) infinite; }
-@keyframes hc-drop-line { 0% { transform: scaleY(0); transform-origin: top; } 55% { transform: scaleY(1); transform-origin: top; } 56% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
-
-@media (max-width: 900px) {
-  .hc-film__cap { left: 1.25rem; right: 1.25rem; }
-  .hc-film__brand { left: 1.25rem; }
+.hc-hero__scroll i { display: block; width: 1px; height: 2rem; background: linear-gradient(180deg, var(--ink), transparent); animation: hc-drop-line 2.2s var(--ease) infinite; }
+@keyframes hc-drop-line {
+  0% { transform: scaleY(0); transform-origin: top; }
+  55% { transform: scaleY(1); transform-origin: top; }
+  56% { transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
 }
 
 /* ============================================================
-   FECHO — o rodo limpa o vidro embaçado e revela a marca
+   PERCURSO — desce um cômodo por rolagem, dentro de um quadro
+   ============================================================ */
+.hc-tour { position: relative; background: #000; }
+.hc-tour__sticky {
+  position: sticky; top: 0; height: 100svh;
+  display: flex; flex-direction: column; justify-content: center; gap: clamp(1.2rem, 2.6vw, 2rem);
+  padding: clamp(5rem, 11svh, 7rem) 0 clamp(2rem, 5svh, 3.5rem);
+}
+.hc-tour__head { text-align: center; display: grid; gap: 0.7rem; justify-items: center; }
+.hc-tour__head h2 { font-size: clamp(1.7rem, 3.2vw, 2.7rem); }
+.hc-tour__head p { color: var(--stone); font-size: 0.95rem; max-width: 34rem; }
+
+.hc-tour__stage {
+  position: relative; flex: 1; min-height: 0; max-height: 620px;
+  width: min(1340px, 100% - 3.5rem); margin-inline: auto;
+  border-radius: var(--radius); overflow: hidden; background: #0a0a0c;
+  box-shadow: 0 50px 110px -60px rgba(125, 92, 255, 0.5);
+}
+@media (max-width: 760px) { .hc-tour__stage { width: min(1340px, 100% - 2.25rem); } }
+
+.hc-tour__panel { position: absolute; inset: 0; overflow: hidden; will-change: transform; }
+.hc-tour__panel img { width: 100%; height: 100%; object-fit: cover; will-change: transform; }
+.hc-tour__grade {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.05) 28%, rgba(0, 0, 0, 0.3) 58%, rgba(0, 0, 0, 0.88) 100%),
+    linear-gradient(94deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.18) 46%, rgba(0, 0, 0, 0) 74%);
+}
+.hc-tour__shade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+
+.hc-tour__cap {
+  position: absolute; z-index: 12; pointer-events: none; left: clamp(1.25rem, 3vw, 2.6rem); right: clamp(1.25rem, 3vw, 2.6rem);
+  bottom: clamp(1.4rem, 3.4vw, 2.4rem); max-width: 34rem; display: grid; gap: 0.7rem; color: var(--ink);
+}
+.hc-tour__slate { display: flex; align-items: center; gap: 0.8rem; }
+.hc-tour__slate i { display: block; width: 2rem; height: 1px; background: var(--accent-2); }
+.hc-tour__slate span { font-size: 0.68rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--stone); }
+.hc-tour__cap h3 { font-size: clamp(1.4rem, 3vw, 2.3rem); font-weight: 600; letter-spacing: -0.03em; }
+.hc-tour__cap p { color: var(--ink-2); font-size: clamp(0.88rem, 1.2vw, 1rem); line-height: 1.6; max-width: 28rem; }
+.hc-tour__tags { display: flex; flex-wrap: wrap; gap: 0 1.2rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
+.hc-tour__tags span { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); }
+.hc-tour__capInner { display: grid; gap: 0.7rem; animation: hc-cap-in 0.7s var(--ease) both; }
+@keyframes hc-cap-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@media (max-width: 620px) { .hc-tour__cap p { display: none; } }
+
+/* abas dos cômodos — leitura de site, não de filme */
+.hc-tour__tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; }
+.hc-tour__tab {
+  padding: 0.5rem 0.95rem; border-radius: 999px; border: 1px solid var(--line);
+  background: none; color: var(--stone); cursor: pointer; font-family: var(--sans);
+  font-size: 0.68rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+  transition: color 0.4s var(--ease), border-color 0.4s var(--ease), background 0.4s var(--ease);
+}
+.hc-tour__tab:hover { color: var(--ink); border-color: rgba(255, 255, 255, 0.3); }
+.hc-tour__tab[aria-current="true"] { background: var(--ink); color: #000; border-color: var(--ink); }
+
+/* ============================================================
+   CHAMADA FINAL — o rodo limpa o vidro e revela a marca
    ============================================================ */
 .hc-reveal-scene { position: relative; background: #000; }
-.hc-reveal-scene__sticky { position: sticky; top: 0; height: 100svh; overflow: hidden; display: grid; place-items: center; }
+.hc-reveal-scene__sticky { position: sticky; top: 0; height: 100svh; display: grid; align-items: center; padding: clamp(5rem, 10svh, 7rem) 0; }
+.hc-reveal-scene__frame {
+  position: relative; width: min(1340px, 100% - 3.5rem); margin-inline: auto;
+  aspect-ratio: 16 / 7.5; max-height: 560px; border-radius: var(--radius); overflow: hidden; background: #000;
+  box-shadow: 0 50px 110px -60px rgba(125, 92, 255, 0.5);
+}
+@media (max-width: 760px) {
+  .hc-reveal-scene__frame { width: min(1340px, 100% - 2.25rem); aspect-ratio: 4 / 4.6; }
+}
+.hc-reveal-scene__clean { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; text-align: center; padding: 1.5rem; }
+.hc-reveal-scene__word { font-size: clamp(2rem, 6.5vw, 4.6rem); font-weight: 600; letter-spacing: -0.045em; line-height: 1; color: var(--ink); }
+.hc-reveal-scene__sub { margin-top: 0.9rem; font-size: 0.66rem; letter-spacing: 0.38em; text-transform: uppercase; color: var(--stone); padding-left: 0.4em; }
+.hc-reveal-scene__tag { margin-top: 1.3rem; font-size: clamp(0.95rem, 1.4vw, 1.15rem); color: var(--ink-2); }
+.hc-reveal-scene__cta { margin-top: 1.8rem; display: flex; flex-wrap: wrap; gap: 0.7rem; justify-content: center; }
 
-.hc-reveal-scene__clean { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 0 1.5rem; }
-.hc-reveal-scene__word { font-size: clamp(2.6rem, 9vw, 7rem); font-weight: 600; letter-spacing: -0.05em; line-height: 1; color: var(--ink); }
-.hc-reveal-scene__sub { margin-top: 1.2rem; font-size: 0.7rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--stone); padding-left: 0.4em; }
-.hc-reveal-scene__tag { margin-top: 1.8rem; font-size: clamp(1rem, 1.6vw, 1.25rem); color: var(--ink-2); }
-.hc-reveal-scene__cta { margin-top: 2.2rem; display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
-
-/* o vidro sujo que some conforme o rodo passa */
 .hc-fog { position: absolute; inset: 0; z-index: 5; will-change: clip-path; }
-.hc-fog img { width: 100%; height: 100%; object-fit: cover; filter: blur(18px) saturate(0.5) brightness(0.8); transform: scale(1.1); }
+.hc-fog img { width: 100%; height: 100%; object-fit: cover; filter: blur(16px) saturate(0.5) brightness(0.85); transform: scale(1.12); }
 .hc-fog__haze {
   position: absolute; inset: 0;
   background:
-    radial-gradient(60% 50% at 30% 35%, rgba(210, 214, 206, 0.3), transparent 70%),
-    radial-gradient(50% 45% at 72% 62%, rgba(186, 190, 182, 0.26), transparent 72%),
-    linear-gradient(160deg, rgba(228, 230, 224, 0.26), rgba(120, 124, 118, 0.3));
+    radial-gradient(60% 50% at 30% 35%, rgba(212, 216, 208, 0.32), transparent 70%),
+    radial-gradient(50% 45% at 72% 62%, rgba(186, 190, 182, 0.28), transparent 72%),
+    linear-gradient(160deg, rgba(228, 230, 224, 0.28), rgba(118, 122, 116, 0.32));
 }
 .hc-fog__grain { position: absolute; inset: 0; background-image: url('../assets/clean/grain.svg'); background-size: 200px 200px; opacity: 0.3; mix-blend-mode: multiply; }
-
 .hc-fog__blade {
-  position: absolute; top: -10%; bottom: -10%; width: 2px; z-index: 8;
+  position: absolute; top: -4%; bottom: -4%; width: 2px; z-index: 8;
   background: linear-gradient(180deg, transparent, #fff 14%, var(--accent-2) 50%, #fff 86%, transparent);
-  box-shadow: 0 0 34px 6px rgba(167, 139, 250, 0.5); will-change: left;
+  box-shadow: 0 0 30px 5px rgba(167, 139, 250, 0.5); will-change: left;
 }
-.hc-fog__drips { position: absolute; top: 0; bottom: 0; width: 5rem; z-index: 7; transform: translateX(-100%); will-change: left; }
+.hc-fog__drips { position: absolute; top: 0; bottom: 0; width: 4.5rem; z-index: 7; transform: translateX(-100%); will-change: left; }
 .hc-fog__drips i {
-  position: absolute; width: 1px; border-radius: 999px;
+  position: absolute; width: 1px; border-radius: 999px; filter: blur(0.4px);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08) 60%, transparent);
-  filter: blur(0.4px);
 }
-@media (max-width: 900px) {
-  /* no celular a legenda não pode encostar na chamada de rolagem */
-  .hc-film__cap { bottom: clamp(6rem, 15svh, 8.5rem); }
-}
+/* a dobra usa duas linhas: a comum em cinza, a virada em branco */
+.hc-hero__inner h1 .hc-mask:first-child > * { color: var(--stone); }

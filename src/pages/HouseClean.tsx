@@ -3,7 +3,8 @@ import { MessageCircle } from "lucide-react";
 import "@/styles/clean.css";
 
 import CleanNav from "@/components/clean/CleanNav";
-import FilmRooms from "@/components/clean/FilmRooms";
+import CleanHero from "@/components/clean/CleanHero";
+import RoomTour from "@/components/clean/RoomTour";
 import Finale from "@/components/clean/Finale";
 import { Services, Process, Plans, Testimonials, Faq } from "@/components/clean/Sections";
 import Contact from "@/components/clean/Contact";
@@ -42,14 +43,14 @@ export default function HouseClean() {
       <CleanNav />
 
       <main>
-        <span id="topo" />
-        <FilmRooms />
-        <Finale />
+        <CleanHero />
+        <RoomTour />
         <Services />
         <Process />
         <Plans />
         <Testimonials />
         <Faq />
+        <Finale />
         <Contact />
       </main>
 

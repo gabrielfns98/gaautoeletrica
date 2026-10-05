@@ -43,7 +43,8 @@ export const navLinks = [
 ];
 
 export const hero = {
-  /* estrutura do promo de referência: a frase comum em cinza, a virada em branco */
+  label: "Limpeza residencial e corporativa — São Paulo",
+  /* a frase comum em cinza, a virada em branco */
   over: "Todo mundo passa um pano.",
   title: "A gente devolve a casa nova.",
   lede:

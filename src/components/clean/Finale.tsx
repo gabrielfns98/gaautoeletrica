@@ -44,7 +44,7 @@ export default function Finale() {
       const span = rect.height - (sticky.clientHeight || window.innerHeight);
       const p = span > 0 ? clamp01(-rect.top / span) : 0;
       // a passada acontece no miolo da seção, com folga antes e depois
-      const w = clamp01((p - 0.12) / 0.62) * 100;
+      const w = clamp01((p - 0.1) / 0.72) * 100;
 
       fogRef.current.style.clipPath = `inset(0 0 0 ${w.toFixed(2)}%)`;
       const edge = w > 0.5 && w < 99.5 ? 1 : 0;
@@ -73,10 +73,11 @@ export default function Finale() {
     <section
       ref={wrapRef}
       className="hc-reveal-scene"
-      style={{ height: reduced ? undefined : "240svh" }}
+      style={{ height: reduced ? undefined : "165svh" }}
       aria-label="Encerramento"
     >
       <div ref={stickyRef} className="hc-reveal-scene__sticky">
+       <div className="hc-reveal-scene__frame">
         <div className="hc-reveal-scene__clean">
           <div>
             <div className="hc-reveal-scene__word">{signoff.word}</div>
@@ -110,8 +111,7 @@ export default function Finale() {
         </div>
         <span className="hc-fog__blade" ref={bladeRef} aria-hidden="true" />
 
-        <span className="hc-bar hc-bar--top" />
-        <span className="hc-bar hc-bar--bottom" />
+       </div>
       </div>
     </section>
   );
