@@ -3,10 +3,8 @@ import { MessageCircle } from "lucide-react";
 import "@/styles/clean.css";
 
 import CleanNav from "@/components/clean/CleanNav";
-import CleanHero from "@/components/clean/CleanHero";
-import IndexStrip from "@/components/clean/IndexStrip";
-import ScrollRooms from "@/components/clean/ScrollRooms";
-import BeforeAfter from "@/components/clean/BeforeAfter";
+import FilmRooms from "@/components/clean/FilmRooms";
+import Finale from "@/components/clean/Finale";
 import { Services, Process, Plans, Testimonials, Faq } from "@/components/clean/Sections";
 import Contact from "@/components/clean/Contact";
 import CleanFooter from "@/components/clean/CleanFooter";
@@ -44,11 +42,10 @@ export default function HouseClean() {
       <CleanNav />
 
       <main>
-        <CleanHero />
-        <IndexStrip />
-        <ScrollRooms />
+        <span id="topo" />
+        <FilmRooms />
+        <Finale />
         <Services />
-        <BeforeAfter />
         <Process />
         <Plans />
         <Testimonials />
