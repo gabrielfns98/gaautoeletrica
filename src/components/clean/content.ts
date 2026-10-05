@@ -26,6 +26,8 @@ export const brand = {
   email: "contato@houseclean.com.br",
   region: "São Paulo e região metropolitana",
   instagram: "https://www.instagram.com/house_cleang",
+  instagramHandle: "@house_cleang",
+  city: "São Paulo-SP",
   hours: "Seg a sáb · 7h às 19h",
 };
 
@@ -41,11 +43,9 @@ export const navLinks = [
 ];
 
 export const hero = {
-  label: "Limpeza residencial e corporativa — São Paulo",
-  title: [
-    { text: "Sua casa limpa" },
-    { text: "de verdade.", italic: true },
-  ],
+  /* estrutura do promo de referência: a frase comum em cinza, a virada em branco */
+  over: "Todo mundo passa um pano.",
+  title: "A gente devolve a casa nova.",
   lede:
     "Equipe treinada, produtos que não agridem a sua casa e um checklist de 42 itens conferido antes de ir embora — até o último canto.",
   primary: "Pedir orçamento",
@@ -56,6 +56,13 @@ export const hero = {
     { label: "Garantia", value: "48h" },
   ],
   caption: ["Sala de estar · Pinheiros", "Limpeza profunda, 4h"],
+};
+
+/** Cartão de fecho, no espírito do final do vídeo. */
+export const signoff = {
+  word: "House Clean",
+  sub: "Limpeza · São Paulo",
+  tagline: "Casa limpa de verdade, do jeito House Clean.",
 };
 
 /** Faixa de credenciais logo abaixo da dobra. */
