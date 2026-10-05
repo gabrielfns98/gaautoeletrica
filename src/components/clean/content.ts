@@ -41,28 +41,29 @@ export const navLinks = [
 ];
 
 export const hero = {
-  badge: "Agenda aberta para esta semana",
-  title: { lead: "Sua casa limpa", accent: "de verdade — até o último canto" },
-  lede:
-    "Equipe treinada, produtos que não agridem a sua casa e um checklist de 42 itens conferido antes de ir embora. Você volta e sente a diferença no primeiro passo.",
-  primary: "Pedir orçamento no WhatsApp",
-  secondary: "Ver ambientes",
-  chips: [
-    { title: "Checklist de 42 itens", note: "Conferido em cada visita" },
-    { title: "4,9 de 5", note: "Mais de 300 avaliações" },
-    { title: "Produtos eco", note: "Seguros para pets e crianças" },
+  label: "Limpeza residencial e corporativa — São Paulo",
+  title: [
+    { text: "Sua casa limpa" },
+    { text: "de verdade.", italic: true },
   ],
+  lede:
+    "Equipe treinada, produtos que não agridem a sua casa e um checklist de 42 itens conferido antes de ir embora — até o último canto.",
+  primary: "Pedir orçamento",
+  secondary: "Ver ambientes",
+  facts: [
+    { label: "Famílias por mês", value: "+300" },
+    { label: "Nota média", value: "4,9" },
+    { label: "Garantia", value: "48h" },
+  ],
+  caption: ["Sala de estar · Pinheiros", "Limpeza profunda, 4h"],
 };
 
-export const marquee = [
-  "Equipe uniformizada",
-  "Produtos biodegradáveis",
-  "Profissionais verificados",
-  "Orçamento em 5 minutos",
-  "Garantia de 48 horas",
-  "Seguro contra danos",
-  "Atendimento aos sábados",
-  "Sem taxa de deslocamento",
+/** Faixa de credenciais logo abaixo da dobra. */
+export const indexStrip = [
+  { label: "Cobertura", value: "SP e região" },
+  { label: "Resposta", value: "Em até 1 hora" },
+  { label: "Garantia", value: "48 horas" },
+  { label: "Produtos", value: "Biodegradáveis" },
 ];
 
 /** Cenas do bloco que cresce e troca conforme o scroll. */

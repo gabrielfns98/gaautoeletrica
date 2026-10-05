@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { MessageCircle, Phone, Mail, MapPin, Clock, Send } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { brand, waLink, propertyTypes, frequencies } from "./content";
-import { BubbleField, Reveal } from "./fx";
+import { Fade, Mask } from "./fx";
 
 const EMPTY = { nome: "", zap: "", tipo: propertyTypes[0], area: "", freq: frequencies[2], obs: "" };
 
@@ -36,30 +36,23 @@ export default function Contact() {
 
   return (
     <section id="orcamento" className="hc-section hc-contact">
-      <BubbleField count={16} seed={41} tone="ink" peak={0.45} />
       <div className="hc-shell hc-contact__grid">
-        <Reveal>
-          <div>
-            <span className="hc-eyebrow">Orçamento em 5 minutos</span>
-            <h2 className="hc-title" style={{ color: "#f4fdff", marginTop: "1.1rem" }}>
-              Conta o que precisa.<br />
-              <span className="hc-grad">A gente responde hoje.</span>
-            </h2>
-            <p className="hc-lede" style={{ marginTop: "1.2rem", maxWidth: "30rem" }}>
-              Sem visita técnica e sem compromisso. Responde o formulário e já sai com o valor
-              fechado no WhatsApp.
-            </p>
+        <div className="hc-contact__left">
+          <span className="hc-label">Orçamento em 5 minutos</span>
+          <h2 className="hc-title" style={{ color: "var(--paper)", marginTop: "1.2rem" }}>
+            <Mask><span>Conta o que precisa.</span></Mask>
+            <Mask delay={110}><em>A gente responde hoje.</em></Mask>
+          </h2>
 
-            <ul className="hc-contact__list">
-              <li><span className="hc-ico" style={{ width: "2.5rem", height: "2.5rem" }}><Phone size={18} /></span> {brand.whatsappLabel}</li>
-              <li><span className="hc-ico" style={{ width: "2.5rem", height: "2.5rem" }}><Mail size={18} /></span> {brand.email}</li>
-              <li><span className="hc-ico" style={{ width: "2.5rem", height: "2.5rem" }}><MapPin size={18} /></span> {brand.region}</li>
-              <li><span className="hc-ico" style={{ width: "2.5rem", height: "2.5rem" }}><Clock size={18} /></span> {brand.hours}</li>
-            </ul>
-          </div>
-        </Reveal>
+          <ul className="hc-contact__list">
+            <li><span>WhatsApp</span><a href={waLink(`Oi, ${brand.name}!`)} target="_blank" rel="noreferrer">{brand.whatsappLabel}</a></li>
+            <li><span>E-mail</span><a href={`mailto:${brand.email}`}>{brand.email}</a></li>
+            <li><span>Atendimento</span>{brand.region}</li>
+            <li><span>Horário</span>{brand.hours}</li>
+          </ul>
+        </div>
 
-        <Reveal delay={140}>
+        <Fade delay={120} className="hc-contact__right">
           <form className="hc-form" onSubmit={submit}>
             <div className="hc-form__row">
               <div className="hc-field">
@@ -81,12 +74,12 @@ export default function Contact() {
               </div>
               <div className="hc-field">
                 <label htmlFor="hc-area">Metragem aproximada</label>
-                <input id="hc-area" value={form.area} onChange={set("area")} placeholder="80" inputMode="numeric" />
+                <input id="hc-area" value={form.area} onChange={set("area")} placeholder="80 m²" inputMode="numeric" />
               </div>
             </div>
 
             <div className="hc-field">
-              <label htmlFor="hc-freq">Com que frequência?</label>
+              <label htmlFor="hc-freq">Com que frequência</label>
               <select id="hc-freq" value={form.freq} onChange={set("freq")}>
                 {frequencies.map((f) => <option key={f}>{f}</option>)}
               </select>
@@ -97,14 +90,14 @@ export default function Contact() {
               <textarea id="hc-obs" value={form.obs} onChange={set("obs")} placeholder="Tenho dois gatos, o box está com calcário, prefiro produto sem cheiro…" />
             </div>
 
-            <button type="submit" className="hc-btn hc-btn--primary hc-btn--lg" style={{ width: "100%" }}>
-              <Send size={18} /> Receber meu orçamento
+            <button type="submit" className="hc-btn hc-btn--solid">
+              Receber meu orçamento <ArrowUpRight size={15} />
             </button>
             <p className="hc-form__note">
-              <MessageCircle size={13} style={{ display: "inline", verticalAlign: "-2px" }} /> Abre direto no WhatsApp com tudo preenchido — você só confere e envia.
+              Abre direto no WhatsApp com tudo preenchido — você só confere e envia.
             </p>
           </form>
-        </Reveal>
+        </Fade>
       </div>
     </section>
   );

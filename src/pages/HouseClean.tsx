@@ -4,7 +4,7 @@ import "@/styles/clean.css";
 
 import CleanNav from "@/components/clean/CleanNav";
 import CleanHero from "@/components/clean/CleanHero";
-import Marquee from "@/components/clean/Marquee";
+import IndexStrip from "@/components/clean/IndexStrip";
 import ScrollRooms from "@/components/clean/ScrollRooms";
 import BeforeAfter from "@/components/clean/BeforeAfter";
 import { Services, Process, Plans, Testimonials, Faq } from "@/components/clean/Sections";
@@ -45,7 +45,7 @@ export default function HouseClean() {
 
       <main>
         <CleanHero />
-        <Marquee />
+        <IndexStrip />
         <ScrollRooms />
         <Services />
         <BeforeAfter />
@@ -65,7 +65,7 @@ export default function HouseClean() {
         rel="noreferrer"
         aria-label="Falar no WhatsApp"
       >
-        <MessageCircle size={24} />
+        <MessageCircle size={16} /> <span>WhatsApp</span>
       </a>
     </div>
   );

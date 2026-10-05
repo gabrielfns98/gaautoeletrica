@@ -1,54 +1,42 @@
 import { useState } from "react";
-import {
-  Sparkles, Hammer, Sofa, AppWindow, Building2, KeyRound,
-  CheckCircle2, Star, Plus, MessageCircle, Route,
-} from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { services, steps, stats, plans, testimonials, faq, brand, waLink } from "./content";
-import { BubbleField, Reveal } from "./fx";
 import { useCountUp, useInView } from "./hooks";
-
-const SERVICE_ICONS: Record<string, typeof Sparkles> = {
-  sparkles: Sparkles, hammer: Hammer, sofa: Sofa,
-  glass: AppWindow, building: Building2, key: KeyRound,
-};
+import { Fade, Mask } from "./fx";
 
 /* ------------------------------------------------------------- SERVIÇOS */
 export function Services() {
   return (
-    <section id="servicos" className="hc-section hc-section--light">
+    <section id="servicos" className="hc-section">
       <div className="hc-shell">
-        <Reveal>
-          <div className="hc-head">
-            <span className="hc-eyebrow"><Sparkles size={14} /> O que fazemos</span>
-            <h2 className="hc-title">Um serviço para cada bagunça</h2>
-            <p className="hc-lede">
-              Da manutenção semanal ao pós-obra que ninguém quer encarar. Escolha o que precisa
-              hoje — a gente adapta o protocolo ao seu imóvel.
-            </p>
-          </div>
-        </Reveal>
+        <div className="hc-head">
+          <span className="hc-head__label hc-label">Serviços</span>
+          <h2 className="hc-head__title hc-title">
+            <Mask><span>Um serviço para cada bagunça</span></Mask>
+          </h2>
+          <p className="hc-head__text hc-body">
+            Da manutenção semanal ao pós-obra que ninguém quer encarar. Cada um tem
+            protocolo e tempo próprios, combinados antes.
+          </p>
+        </div>
 
-        <div className="hc-grid hc-grid--3 hc-mt">
-          {services.map((service, i) => {
-            const Icon = SERVICE_ICONS[service.icon] ?? Sparkles;
-            return (
-              <Reveal key={service.title} delay={(i % 3) * 110}>
-                <article className="hc-card hc-service">
-                  <span className="hc-ico"><Icon size={23} /></span>
-                  <h3>{service.title}</h3>
-                  <p>{service.text}</p>
-                  <ul>
-                    {service.items.map((item) => (
-                      <li key={item}><CheckCircle2 size={16} /> {item}</li>
-                    ))}
-                  </ul>
-                  <div className="hc-service__price">
-                    <b>{service.price}</b>
-                  </div>
-                </article>
-              </Reveal>
-            );
-          })}
+        <div className="hc-list" style={{ marginTop: "clamp(2.5rem, 5vw, 4rem)" }}>
+          {services.map((service, i) => (
+            <Fade key={service.title} delay={i * 60}>
+              <article className="hc-row">
+                <span className="hc-row__n">{String(i + 1).padStart(2, "0")}</span>
+                <h3>{service.title}</h3>
+                <div className="hc-row__text">
+                  <p className="hc-body">{service.text}</p>
+                  <p className="hc-row__items">{service.items.join(" · ")}</p>
+                </div>
+                <div className="hc-row__price">
+                  <span>{service.price.startsWith("a partir de") ? "A partir de" : "Valor"}</span>
+                  {service.price.replace("a partir de ", "")}
+                </div>
+              </article>
+            </Fade>
+          ))}
         </div>
       </div>
     </section>
@@ -57,7 +45,7 @@ export function Services() {
 
 /* ------------------------------------------------------- PROCESSO + NÚMEROS */
 function Stat({ value, suffix, decimals, label }: { value: number; suffix?: string; decimals?: number; label: string }) {
-  const { ref, inView } = useInView<HTMLDivElement>(0.4);
+  const { ref, inView } = useInView<HTMLDivElement>(0.35);
   const current = useCountUp(value, inView, decimals ?? 0);
   const shown = (decimals ?? 0) > 0
     ? current.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
@@ -72,33 +60,29 @@ function Stat({ value, suffix, decimals, label }: { value: number; suffix?: stri
 
 export function Process() {
   return (
-    <section className="hc-section hc-section--dark" style={{ position: "relative", overflow: "hidden" }}>
-      <BubbleField count={12} seed={23} tone="ink" peak={0.35} />
-      <div className="hc-shell" style={{ position: "relative", zIndex: 2 }}>
-        <Reveal>
-          <div className="hc-head">
-            <span className="hc-eyebrow"><Route size={14} /> Como funciona</span>
-            <h2 className="hc-title" style={{ color: "#f4fdff" }}>Quatro passos e pronto</h2>
-            <p className="hc-lede">Sem visita técnica, sem enrolação e sem surpresa no valor final.</p>
-          </div>
-        </Reveal>
+    <section className="hc-section hc-section--dark">
+      <div className="hc-shell">
+        <div className="hc-head">
+          <span className="hc-head__label hc-label">Como funciona</span>
+          <h2 className="hc-head__title hc-title" style={{ color: "var(--paper)" }}>
+            <Mask><span>Quatro passos e pronto</span></Mask>
+          </h2>
+          <p className="hc-head__text hc-body">
+            Sem visita técnica, sem enrolação e sem surpresa no valor final.
+          </p>
+        </div>
 
-        <div className="hc-steps hc-mt">
+        <div className="hc-steps" style={{ marginTop: "clamp(2.5rem, 5vw, 4rem)" }}>
           {steps.map((step, i) => (
-            <Reveal key={step.n} delay={i * 130}>
-              <div className="hc-step">
-                <span className="hc-step__n">{step.n}</span>
-                {i < steps.length - 1 && (
-                  <span className="hc-step__line" aria-hidden="true"><i style={{ ["--d" as string]: `${i * 130 + 260}ms` }} /></span>
-                )}
-                <h3>{step.title}</h3>
-                <p>{step.text}</p>
-              </div>
-            </Reveal>
+            <Fade key={step.n} delay={i * 90} className="hc-step">
+              <span className="hc-step__n">{step.n}</span>
+              <h3>{step.title}</h3>
+              <p className="hc-body">{step.text}</p>
+            </Fade>
           ))}
         </div>
 
-        <div className="hc-stats hc-mt">
+        <div className="hc-stats">
           {stats.map((stat) => <Stat key={stat.label} {...stat} />)}
         </div>
       </div>
@@ -109,49 +93,47 @@ export function Process() {
 /* ---------------------------------------------------------------- PLANOS */
 export function Plans() {
   return (
-    <section id="planos" className="hc-section hc-section--light">
+    <section id="planos" className="hc-section hc-section--paper2">
       <div className="hc-shell">
-        <Reveal>
-          <div className="hc-head hc-head--center">
-            <span className="hc-eyebrow">Planos</span>
-            <h2 className="hc-title">Preço fechado, combinado antes</h2>
-            <p className="hc-lede">
-              Valores de referência para apartamento padrão. O orçamento final sai em minutos,
-              por escrito, depois que você conta a metragem.
-            </p>
-          </div>
-        </Reveal>
+        <div className="hc-head">
+          <span className="hc-head__label hc-label">Planos</span>
+          <h2 className="hc-head__title hc-title">
+            <Mask><span>Preço fechado, combinado antes</span></Mask>
+          </h2>
+          <p className="hc-head__text hc-body">
+            Valores de referência para apartamento padrão. O orçamento final sai em
+            minutos, por escrito, depois que você conta a metragem.
+          </p>
+        </div>
 
-        <div className="hc-grid hc-grid--3 hc-mt">
+        <div className="hc-plans" style={{ marginTop: "clamp(2.5rem, 5vw, 4rem)" }}>
           {plans.map((plan, i) => (
-            <Reveal key={plan.name} delay={i * 120}>
-              <article className={`hc-card hc-plan${plan.featured ? " hc-plan--featured" : ""}`}>
-                {plan.flag && <span className="hc-plan__flag">{plan.flag}</span>}
-                <div className="hc-plan__top">
-                  <span className="hc-plan__name">{plan.name}</span>
-                  <span className="hc-plan__note">{plan.note}</span>
-                </div>
-                <div className="hc-plan__price">
-                  {plan.price === "sob medida"
-                    ? <b style={{ fontSize: "1.9rem" }}>Sob medida</b>
-                    : <><span>R$</span><b>{plan.price}</b><span>{plan.unit}</span></>}
-                </div>
-                <ul>
-                  {plan.items.map((item) => (
-                    <li key={item}><CheckCircle2 size={17} /> {item}</li>
-                  ))}
-                </ul>
-                <a
-                  className={`hc-btn ${plan.featured ? "hc-btn--primary" : "hc-btn--outline"}`}
-                  style={{ marginTop: "0.4rem" }}
-                  href={waLink(`Oi, ${brand.name}! Tenho interesse no plano ${plan.name}.`)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {plan.cta}
-                </a>
-              </article>
-            </Reveal>
+            <Fade key={plan.name} delay={i * 90} className={`hc-plan${plan.featured ? " hc-plan--featured" : ""}`}>
+              <div>
+                <span className="hc-label">{plan.flag ?? `0${i + 1}`}</span>
+                <h3 className="hc-plan__name" style={{ marginTop: "0.6rem" }}>{plan.name}</h3>
+                <p className="hc-body" style={{ marginTop: "0.4rem" }}>{plan.note}</p>
+              </div>
+
+              <div className="hc-plan__price">
+                {plan.price === "sob medida"
+                  ? <>Sob medida</>
+                  : <>R$ {plan.price}<small>{plan.unit}</small></>}
+              </div>
+
+              <ul>
+                {plan.items.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+
+              <a
+                className="hc-btn hc-btn--line"
+                href={waLink(`Oi, ${brand.name}! Tenho interesse no plano ${plan.name}.`)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {plan.cta} <ArrowUpRight size={14} />
+              </a>
+            </Fade>
           ))}
         </div>
       </div>
@@ -160,42 +142,28 @@ export function Plans() {
 }
 
 /* ----------------------------------------------------------- DEPOIMENTOS */
-const AV_BG = [
-  "linear-gradient(140deg,#5eead4,#19c6da)",
-  "linear-gradient(140deg,#c7e86f,#5eead4)",
-  "linear-gradient(140deg,#19c6da,#067d96)",
-];
-
 export function Testimonials() {
   return (
-    <section className="hc-section hc-section--foam">
+    <section className="hc-section">
       <div className="hc-shell">
-        <Reveal>
-          <div className="hc-head hc-head--center">
-            <span className="hc-eyebrow"><Star size={14} /> Quem já contratou</span>
-            <h2 className="hc-title">A prova real é a porta abrindo</h2>
-          </div>
-        </Reveal>
+        <div className="hc-head">
+          <span className="hc-head__label hc-label">Quem já contratou</span>
+          <h2 className="hc-head__title hc-title">
+            <Mask><span>A prova real é a porta abrindo</span></Mask>
+          </h2>
+        </div>
 
-        <div className="hc-grid hc-grid--3 hc-mt">
+        <div className="hc-quotes" style={{ marginTop: "clamp(2.5rem, 5vw, 4rem)" }}>
           {testimonials.map((item, i) => (
-            <Reveal key={item.name} delay={i * 120}>
-              <article className="hc-card hc-quote">
-                <div className="hc-quote__stars">
-                  {Array.from({ length: 5 }, (_, s) => <Star key={s} size={17} fill="currentColor" />)}
-                </div>
-                <p>“{item.text}”</p>
-                <div className="hc-quote__who">
-                  <span className="hc-quote__av" style={{ background: AV_BG[i % AV_BG.length] }}>
-                    {item.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
-                  </span>
-                  <span>
-                    <b>{item.name}</b>
-                    <span>{item.role}</span>
-                  </span>
-                </div>
-              </article>
-            </Reveal>
+            <Fade key={item.name} delay={i * 90} className="hc-quote">
+              <figure style={{ margin: 0, display: "grid", gap: "1.6rem" }}>
+                <blockquote>“{item.text}”</blockquote>
+                <figcaption>
+                  <b>{item.name}</b>
+                  <span className="hc-label" style={{ marginTop: "0.35rem" }}>{item.role}</span>
+                </figcaption>
+              </figure>
+            </Fade>
           ))}
         </div>
       </div>
@@ -207,49 +175,44 @@ export function Testimonials() {
 export function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="duvidas" className="hc-section hc-section--light">
+    <section id="duvidas" className="hc-section hc-section--paper2">
       <div className="hc-shell">
-        <Reveal>
-          <div className="hc-head hc-head--center">
-            <span className="hc-eyebrow">Dúvidas frequentes</span>
-            <h2 className="hc-title">O que todo mundo pergunta antes</h2>
-          </div>
-        </Reveal>
-
-        <div className="hc-faq hc-mt">
-          {faq.map((item, i) => (
-            <Reveal key={item.q} delay={i * 70}>
-              <div className={`hc-faq__item${open === i ? " is-open" : ""}`}>
-                <button
-                  type="button"
-                  className="hc-faq__btn"
-                  aria-expanded={open === i}
-                  onClick={() => setOpen(open === i ? null : i)}
-                >
-                  {item.q}
-                  <span className="hc-faq__sign" aria-hidden="true"><Plus size={17} /></span>
-                </button>
-                <div className="hc-faq__panel">
-                  <div><p>{item.a}</p></div>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-
-        <Reveal delay={200}>
-          <p style={{ textAlign: "center", marginTop: "2.5rem", color: "var(--hc-muted)" }}>
-            Ficou outra dúvida?{" "}
+        <div className="hc-head">
+          <span className="hc-head__label hc-label">Dúvidas</span>
+          <h2 className="hc-head__title hc-title">
+            <Mask><span>O que todo mundo pergunta antes</span></Mask>
+          </h2>
+          <p className="hc-head__text hc-body">
+            Ficou outra?{" "}
             <a
               href={waLink(`Oi, ${brand.name}! Tenho uma dúvida sobre o serviço.`)}
               target="_blank"
               rel="noreferrer"
-              style={{ color: "var(--hc-brand-3)", fontWeight: 600 }}
+              style={{ color: "var(--ink)", textUnderlineOffset: "4px" }}
             >
-              <MessageCircle size={15} style={{ display: "inline", verticalAlign: "-2px" }} /> Chama no WhatsApp
+              Chama no WhatsApp.
             </a>
           </p>
-        </Reveal>
+        </div>
+
+        <div className="hc-faq" style={{ marginTop: "clamp(2.5rem, 5vw, 4rem)" }}>
+          {faq.map((item, i) => (
+            <div key={item.q} className={`hc-faq__item${open === i ? " is-open" : ""}`}>
+              <button
+                type="button"
+                className="hc-faq__btn"
+                aria-expanded={open === i}
+                onClick={() => setOpen(open === i ? null : i)}
+              >
+                {item.q}
+                <span className="hc-faq__sign" aria-hidden="true" />
+              </button>
+              <div className="hc-faq__panel">
+                <div><p className="hc-body">{item.a}</p></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

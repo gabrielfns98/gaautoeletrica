@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Menu, X, MessageCircle } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { brand, navLinks, waLink } from "./content";
 import { Logo } from "./fx";
 
@@ -8,7 +8,7 @@ export default function CleanNav() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setStuck(window.scrollY > 24);
+    const onScroll = () => setStuck(window.scrollY > 32);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -33,14 +33,13 @@ export default function CleanNav() {
           </div>
 
           <div className="hc-nav__actions">
-            <a className="hc-btn hc-btn--ghost" href="#orcamento">Orçamento grátis</a>
             <a
-              className="hc-btn hc-btn--primary"
+              className="hc-btn hc-btn--solid"
               href={waLink(`Oi, ${brand.name}! Quero um orçamento de limpeza.`)}
               target="_blank"
               rel="noreferrer"
             >
-              <MessageCircle size={17} /> WhatsApp
+              Orçamento
             </a>
             <button
               type="button"
@@ -49,7 +48,7 @@ export default function CleanNav() {
               aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
             >
-              {open ? <X size={20} /> : <Menu size={20} />}
+              {open ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </nav>
@@ -59,14 +58,14 @@ export default function CleanNav() {
             {navLinks.map((link) => (
               <a key={link.href} href={link.href} onClick={() => setOpen(false)}>{link.label}</a>
             ))}
-            <a href="#orcamento" onClick={() => setOpen(false)}>Orçamento grátis</a>
+            <a href="#orcamento" onClick={() => setOpen(false)}>Pedir orçamento</a>
             <a
               href={waLink(`Oi, ${brand.name}! Quero um orçamento de limpeza.`)}
               target="_blank"
               rel="noreferrer"
               onClick={() => setOpen(false)}
             >
-              Chamar no WhatsApp
+              WhatsApp
             </a>
           </div>
         )}
