@@ -1,3 +1,7 @@
+/* Design system do módulo Bancada (sistema de gestão laboratorial).
+   O @import precisa vir antes de qualquer regra. */
+@import "./lims/styles/bancada.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
