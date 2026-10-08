@@ -23,7 +23,7 @@ import type {
   GrupoAnalise, Interacao, ItemEstoque, Laudo, LeituraPh, LoteReagente,
   LoteRecepcao, Modulo, MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento,
   Papel, Parametro, Permissao, PontoCalibracao, RegistroAuditoria, RegistroCQ,
-  StatusAmostra, StatusEnsaio, TabelaPreco, Titulo, Unidade, Usuario, UUID,
+  StatusAmostra, StatusEnsaio, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario, UUID,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -35,6 +35,7 @@ export interface EstadoBancada {
   usuarioAtualId: UUID;
   papeis: Papel[];
   grupos: GrupoAnalise[];
+  tiposAnalise: TipoAnalise[];
   parametros: Parametro[];
   clientes: Cliente[];
   contatos: Contato[];
@@ -67,6 +68,7 @@ function estadoInicial(): EstadoBancada {
     usuarioAtualId: seed.usuarioAtual.id,
     papeis: PAPEIS_PADRAO,
     grupos: seed.grupos,
+    tiposAnalise: seed.tiposAnalise,
     parametros: seed.parametros,
     clientes: seed.clientes,
     contatos: seed.contatos,
@@ -100,6 +102,7 @@ type Acao =
   | { tipo: 'registrar-leitura'; leitura: LeituraPh; valor: number }
   | { tipo: 'salvar-calibracao'; calibracao: Calibracao }
   | { tipo: 'atualizar-ensaio'; ensaioId: UUID; dados: Partial<Ensaio> }
+  | { tipo: 'lancar-resultados'; entradas: Array<{ ensaioId: UUID; valor: number }>; analistaId: UUID }
   | { tipo: 'atualizar-amostra'; amostraId: UUID; dados: Partial<Amostra> }
   | { tipo: 'criar-recepcao'; lote: LoteRecepcao; amostras: Amostra[]; ensaios: Ensaio[] }
   | { tipo: 'atualizar-laudo'; laudoId: UUID; dados: Partial<Laudo> }
@@ -164,6 +167,37 @@ function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
 
     case 'atualizar-ensaio':
       return { ...estado, ensaios: mesclar(estado.ensaios, acao.ensaioId, acao.dados) };
+
+    case 'lancar-resultados': {
+      const agora = new Date().toISOString();
+      const porEnsaio = new Map(acao.entradas.map((e) => [e.ensaioId, e.valor]));
+      const tocadas = new Set<UUID>();
+
+      const ensaios = estado.ensaios.map((e) => {
+        if (!porEnsaio.has(e.id)) return e;
+        const valor = porEnsaio.get(e.id)!;
+        const param = estado.parametros.find((p) => p.id === e.parametroId);
+        tocadas.add(e.amostraId);
+        return {
+          ...e,
+          status: 'lido' as const,
+          valor: Number(valor.toFixed(param?.casasDecimais ?? 2)),
+          analistaId: acao.analistaId,
+          dataLeitura: agora,
+          foraDeFaixa:
+            param?.limiteInferior !== undefined &&
+            (valor < param.limiteInferior || valor > (param.limiteSuperior ?? Infinity)),
+        };
+      });
+
+      // a amostra que recebeu resultado sai da recepção e entra em análise
+      const amostras = estado.amostras.map((a) =>
+        tocadas.has(a.id) && (a.status === 'recebida' || a.status === 'preparo')
+          ? { ...a, status: 'em-analise' as const }
+          : a);
+
+      return { ...estado, ensaios, amostras };
+    }
 
     case 'atualizar-amostra':
       return { ...estado, amostras: mesclar(estado.amostras, acao.amostraId, acao.dados) };
@@ -355,6 +389,7 @@ export function useIndices() {
     usuarioPorId: new Map(estado.usuarios.map((u) => [u.id, u])),
     parametroPorId: new Map(estado.parametros.map((p) => [p.id, p])),
     grupoPorId: new Map(estado.grupos.map((g) => [g.id, g])),
+    tipoAnalisePorId: new Map(estado.tiposAnalise.map((t) => [t.id, t])),
     amostraPorId: new Map(estado.amostras.map((a) => [a.id, a])),
     equipamentoPorId: new Map(estado.equipamentos.map((e) => [e.id, e])),
     loteRecepcaoPorId: new Map(estado.lotesRecepcao.map((l) => [l.id, l])),
@@ -425,6 +460,16 @@ export function useAcoes() {
       `${pontos.length} pontos · slope ${r.slopePercentual.toFixed(1)}% · offset ${r.offsetMv.toFixed(1)} mV`,
     );
     return calibracao;
+  }, [despachar, usuario.id, auditar]);
+
+  /** Lançamento em lote da bancada: várias amostras, vários elementos, uma gravação. */
+  const lancarResultados = useCallback((entradas: Array<{ ensaioId: UUID; valor: number }>) => {
+    if (entradas.length === 0) return;
+    despachar({ tipo: 'lancar-resultados', entradas, analistaId: usuario.id });
+    auditar(
+      'Lançou resultados', 'Ensaio', `${entradas.length} ensaios`,
+      `Lançamento em lote de ${entradas.length} ${entradas.length === 1 ? 'resultado' : 'resultados'}`,
+    );
   }, [despachar, usuario.id, auditar]);
 
   const aprovarEnsaio = useCallback((ensaioId: UUID) => {
@@ -610,7 +655,7 @@ export function useAcoes() {
   }, [despachar]);
 
   return {
-    registrarLeitura, salvarCalibracao, aprovarEnsaio, repetirEnsaio,
+    registrarLeitura, salvarCalibracao, lancarResultados, aprovarEnsaio, repetirEnsaio,
     mudarStatusAmostra, registrarCQ, emitirLaudo, emitirNota, baixarTitulo,
     moverOportunidade, movimentarEstoque, salvarUsuario, salvarPapel,
     salvarCliente, criarRecepcao, trocarUsuario, trocarUnidade,

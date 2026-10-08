@@ -106,6 +106,25 @@ export interface Parametro {
   proporcao?: string;          // "1:2,5"
 }
 
+/**
+ * Pacote de ensaios vendido como unidade — o "Tipo de Análise" do
+ * laboratório. O cliente não pede "pH em água"; pede o pacote
+ * "SOL GP FERTILIDADE", que carrega os elementos dentro.
+ *
+ * Hierarquia: Análise (grupo) → Tipo de Análise (pacote) → Elemento (analito).
+ */
+export interface TipoAnalise {
+  id: UUID;
+  codigo: string;              // "SOL GP FERTILIDADE"
+  nome: string;
+  grupoId: GrupoAnaliseId;     // a Análise a que pertence
+  parametroIds: UUID[];        // os Elementos que compõem o pacote
+  prazoDias: number;
+  /** preço do pacote; vazio soma o preço dos elementos */
+  preco?: number;
+  ativo: boolean;
+}
+
 /* ---------------- Clientes / CRM ---------------- */
 
 export type TipoPessoa = 'PJ' | 'PF';
@@ -186,7 +205,9 @@ export interface Amostra {
   grupoId: GrupoAnaliseId;
   unidadeId: UUID;
   identificacaoCampo: string;   // identificação dada pelo cliente
-  fazenda?: string;
+  /** pacote contratado para esta amostra */
+  tipoAnaliseId?: UUID;
+  fazenda?: string;             // "Propriedade", no vocabulário do laboratório
   talhao?: string;
   profundidade?: string;        // "0-20 cm"
   cultura?: string;
@@ -526,4 +547,105 @@ export interface RegistroAuditoria {
   entidadeId: string;
   detalhe: string;
   ip?: string;
+}
+
+/* ============================================================
+   AQUISIÇÃO GENÉRICA DE MEDIÇÕES
+   O pH é um instrumento, não o molde. Tudo que um aparelho de
+   bancada produz entra por aqui, no mesmo envelope, venha de
+   cabo serial, de arquivo, de API ou da mão do analista.
+   ============================================================ */
+
+/** Grandeza física que um instrumento entrega. */
+export type Grandeza =
+  | 'ph' | 'potencial' | 'temperatura' | 'massa' | 'absorbancia'
+  | 'condutividade' | 'volume' | 'concentracao' | 'intensidade'
+  | 'umidade' | 'turbidez';
+
+export interface Medicao {
+  grandeza: Grandeza;
+  valor: number;
+  unidade: string;
+}
+
+export type TipoInstrumento =
+  | 'phmetro' | 'balanca' | 'espectrofotometro' | 'fotometro-chama'
+  | 'absorcao-atomica' | 'titulador' | 'destilador' | 'condutivimetro'
+  | 'turbidimetro' | 'cromatografo' | 'estufa' | 'agitador' | 'outro';
+
+export type Transporte = 'serial' | 'arquivo' | 'api' | 'manual';
+
+export interface ConfigSerial {
+  baudRate: number;
+  dataBits?: 7 | 8;
+  stopBits?: 1 | 2;
+  parity?: 'none' | 'even' | 'odd';
+}
+
+/** Extração de uma grandeza da linha emitida pelo instrumento. */
+export interface CampoPerfil {
+  grandeza: Grandeza;
+  /** expressão regular com um grupo de captura para o número */
+  padrao: string;
+  /** unidade assumida quando a linha não a declara */
+  unidade?: string;
+  /** multiplicador aplicado ao valor extraído (ex.: mg para g) */
+  fator?: number;
+}
+
+/**
+ * Perfil de instrumento — o driver vive como CADASTRO, não como código.
+ * Suportar um aparelho novo num cliente novo passa a ser preencher um
+ * formulário, não publicar uma versão do sistema.
+ */
+export interface PerfilInstrumento {
+  id: string;
+  nome: string;
+  fabricante: string;
+  modelo: string;
+  tipoInstrumento: TipoInstrumento;
+  transporte: Transporte;
+  serial?: ConfigSerial;
+  /** extração por expressão regular, campo a campo */
+  campos: CampoPerfil[];
+  /** formato tabular: a ordem das grandezas nas colunas */
+  colunas?: { separador: string; ordem: Array<Grandeza | null> };
+  /** quando casa, o instrumento sinalizou que a leitura estabilizou */
+  padraoEstavel?: string;
+  /** a grandeza que vira o resultado do ensaio */
+  grandezaPrincipal: Grandeza;
+  /** linha real do aparelho, usada para conferir o perfil no cadastro */
+  exemplo: string;
+  /** perfis de fábrica não podem ser excluídos, só desativados */
+  sistema: boolean;
+  ativo: boolean;
+  observacao?: string;
+}
+
+export type OrigemMedicao = 'instrumento' | 'agente' | 'api' | 'importacao' | 'manual';
+
+/**
+ * Envelope único de ingestão. Todo adaptador entrega nisto, e é sobre
+ * isto que a validação, a auditoria e a correção acontecem — uma vez só,
+ * independentemente de o número ter vindo de um cabo ou de um teclado.
+ */
+export interface EnvelopeMedicao {
+  /** impede que um reenvio depois de queda de rede duplique a leitura */
+  idempotencia: string;
+  instrumento: { tag: string; numeroSerie?: string };
+  amostra: { protocolo?: string; identificacaoCampo?: string };
+  /** código do parâmetro; ausente, resolve-se pela grandeza principal */
+  parametroCodigo?: string;
+  /** a medição que vira resultado */
+  principal: Medicao;
+  /** temperatura, potencial e o que mais o aparelho tiver mandado */
+  auxiliares: Medicao[];
+  /** horário do instrumento, não o do servidor */
+  instante: ISODate;
+  calibracaoId?: string;
+  operadorId?: string;
+  origem: OrigemMedicao;
+  /** a linha crua, guardada para sempre: é o que prova a rastreabilidade */
+  linha?: string;
+  perfilId?: string;
 }

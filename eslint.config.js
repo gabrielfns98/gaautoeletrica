@@ -24,6 +24,23 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      // O transformador de desenvolvimento do Lovable injeta atributos nas tags
+      // JSX e não consegue analisar argumentos de tipo explícitos: `npm run build`
+      // passa e `npm run dev` quebra com erro de sintaxe. Deixe o tipo ser
+      // inferido (os componentes genéricos usam NoInfer para isso).
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXOpeningElement[typeArguments]",
+          message:
+            "Não use argumento de tipo explícito em JSX (<Comp<Tipo> …>): quebra o dev server do Lovable. Deixe o TypeScript inferir.",
+        },
+        {
+          selector: "JSXOpeningElement[typeParameters]",
+          message:
+            "Não use argumento de tipo explícito em JSX (<Comp<Tipo> …>): quebra o dev server do Lovable. Deixe o TypeScript inferir.",
+        },
+      ],
     },
   }
 );

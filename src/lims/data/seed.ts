@@ -13,7 +13,7 @@ import type {
   GrupoAnalise, GrupoAnaliseId, Interacao, ItemEstoque, Laudo, LeituraPh,
   LoteReagente, LoteRecepcao, MovimentoEstoque, NotaFiscal, Oportunidade,
   Orcamento, Papel, Parametro, PontoTrace, RegistroAuditoria, RegistroCQ,
-  StatusAmostra, TabelaPreco, Titulo, Unidade, Usuario,
+  StatusAmostra, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario,
 } from '../types';
 
 /* ---------------- PRNG determinístico (mulberry32) ---------------- */
@@ -134,6 +134,109 @@ export const parametros: Parametro[] = [
 ];
 
 export const parametrosPh = parametros.filter((p) => p.ehPh);
+
+/* ---------------- Tipos de análise (pacotes vendidos) ---------------- */
+
+const por = (grupo: GrupoAnaliseId, ...codigos: string[]) =>
+  codigos
+    .map((c) => parametros.find((p) => p.codigo === c && p.grupoId === grupo)?.id)
+    .filter((x): x is string => Boolean(x));
+
+const todosDo = (grupo: GrupoAnaliseId) =>
+  parametros.filter((p) => p.grupoId === grupo && p.preco > 0).map((p) => p.id);
+
+const TIPOS_ANALISE: TipoAnalise[] = [
+  {
+    id: 'tpa-sol-fert', codigo: 'SOL GP FERTILIDADE', nome: 'Fertilidade completa',
+    grupoId: 'solo', prazoDias: 7, ativo: true,
+    parametroIds: por('solo', 'PH-H2O', 'PH-SMP', 'MO', 'P-MEL', 'K', 'CA', 'MG', 'H+AL', 'AL', 'CTC', 'V'),
+  },
+  {
+    id: 'tpa-sol-acidez', codigo: 'SOL GP ACIDEZ', nome: 'Acidez ativa e potencial',
+    grupoId: 'solo', prazoDias: 5, ativo: true,
+    parametroIds: por('solo', 'PH-H2O', 'PH-CACL2', 'PH-SMP', 'H+AL', 'AL'),
+  },
+  {
+    id: 'tpa-sol-textura', codigo: 'SOL GP TEXTURA', nome: 'Granulometria',
+    grupoId: 'solo', prazoDias: 10, ativo: true,
+    parametroIds: por('solo', 'ARG'),
+  },
+  {
+    id: 'tpa-fol-completa', codigo: 'FOL GP COMPLETA', nome: 'Diagnose foliar completa',
+    grupoId: 'foliar', prazoDias: 8, ativo: true,
+    parametroIds: todosDo('foliar'),
+  },
+  {
+    id: 'tpa-agua-conama', codigo: 'AGU GP CONAMA 430', nome: 'Lançamento de efluente',
+    grupoId: 'agua-efluentes', prazoDias: 7, ativo: true,
+    parametroIds: todosDo('agua-efluentes'),
+  },
+  {
+    id: 'tpa-agua-irrig', codigo: 'AGU GP IRRIGAÇÃO', nome: 'Água para irrigação',
+    grupoId: 'agua-efluentes', prazoDias: 7, ativo: true,
+    parametroIds: por('agua-efluentes', 'PH-AGUA', 'CE', 'TURB'),
+  },
+  {
+    id: 'tpa-cor-prnt', codigo: 'COR GP PRNT', nome: 'Caracterização de corretivo',
+    grupoId: 'corretivos-agricolas', prazoDias: 8, ativo: true,
+    parametroIds: todosDo('corretivos-agricolas'),
+  },
+  {
+    id: 'tpa-fer-garantia', codigo: 'FER GP GARANTIA', nome: 'Garantias do fertilizante',
+    grupoId: 'fertilizantes', prazoDias: 10, ativo: true,
+    parametroIds: todosDo('fertilizantes'),
+  },
+  {
+    id: 'tpa-bro-nitro', codigo: 'BR GP NITROGÊNIO', nome: 'Nitrogênio e proteína bruta',
+    grupoId: 'bromatologia', prazoDias: 10, ativo: true,
+    parametroIds: todosDo('bromatologia'),
+  },
+  {
+    id: 'tpa-cana-consecana', codigo: 'DCA GP CONSECANA', nome: 'Pagamento CONSECANA',
+    grupoId: 'derivados-cana', prazoDias: 6, ativo: true,
+    parametroIds: todosDo('derivados-cana'),
+  },
+  {
+    id: 'tpa-cpo-organico', codigo: 'CPO GP ORGÂNICO', nome: 'Composto orgânico',
+    grupoId: 'compostos-organicos', prazoDias: 12, ativo: true,
+    parametroIds: todosDo('compostos-organicos'),
+  },
+  {
+    id: 'tpa-sei-nutri', codigo: 'SEI GP NUTRICIONAL', nome: 'Seiva — manejo nutricional',
+    grupoId: 'seiva', prazoDias: 4, ativo: true,
+    parametroIds: todosDo('seiva'),
+  },
+  {
+    id: 'tpa-sem-germ', codigo: 'SEM GP GERMINAÇÃO', nome: 'Germinação e vigor',
+    grupoId: 'sementes', prazoDias: 20, ativo: true,
+    parametroIds: todosDo('sementes'),
+  },
+  {
+    id: 'tpa-nem-contagem', codigo: 'NEM GP CONTAGEM', nome: 'Contagem de fitonematoides',
+    grupoId: 'nematoides', prazoDias: 7, ativo: true,
+    parametroIds: todosDo('nematoides'),
+  },
+  {
+    id: 'tpa-ges-agricola', codigo: 'GES GP AGRÍCOLA', nome: 'Gesso agrícola',
+    grupoId: 'gesso', prazoDias: 8, ativo: true,
+    parametroIds: todosDo('gesso'),
+  },
+  {
+    id: 'tpa-bio-ufc', codigo: 'BIO GP UFC', nome: 'Contagem de UFC',
+    grupoId: 'produtos-biologicos', prazoDias: 14, ativo: true,
+    parametroIds: todosDo('produtos-biologicos'),
+  },
+];
+
+/** Um pacote sem elementos resolvidos não entra no catálogo. */
+export const tiposAnalise: TipoAnalise[] = TIPOS_ANALISE.filter((t) => t.parametroIds.length > 0);
+
+const tiposPorGrupo = new Map<GrupoAnaliseId, TipoAnalise[]>();
+for (const t of tiposAnalise) {
+  const lista = tiposPorGrupo.get(t.grupoId) ?? [];
+  lista.push(t);
+  tiposPorGrupo.set(t.grupoId, lista);
+}
 
 /* ---------------- Papéis e usuários ---------------- */
 
@@ -530,10 +633,15 @@ for (let l = 0; l < 120; l++) {
     }
     amostras.push(amostra);
 
-    // --- Ensaios da amostra ---
+    // --- Ensaios da amostra: vêm do pacote contratado ---
+    const pacotes = tiposPorGrupo.get(grupoLote) ?? [];
+    const pacote = pacotes.length ? escolher(pacotes) : undefined;
+    amostra.tipoAnaliseId = pacote?.id;
+
     const doGrupo = parametros.filter((p) => p.grupoId === grupoLote);
-    const selecionados = doGrupo.length <= 4 ? doGrupo
-      : [...doGrupo.filter((p) => p.ehPh), ...doGrupo.filter((p) => !p.ehPh).slice(0, inteiro(2, 6))];
+    const selecionados = pacote
+      ? pacote.parametroIds.map((id) => parametros.find((p) => p.id === id)!).filter(Boolean)
+      : doGrupo;
 
     for (const par of selecionados) {
       const statusEnsaio: Ensaio['status'] =

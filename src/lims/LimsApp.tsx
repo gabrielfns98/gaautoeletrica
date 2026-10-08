@@ -18,6 +18,7 @@ import Painel from './pages/Painel';
 import Recepcao from './pages/Recepcao';
 import Amostras from './pages/Amostras';
 import EstacaoPh from './pages/ph';
+import Resultados from './pages/Resultados';
 import Ensaios from './pages/Ensaios';
 import Laudos from './pages/Laudos';
 import Crm from './pages/Crm';
@@ -53,6 +54,7 @@ export default function LimsApp() {
           <Route path="recepcao" element={<Protegido modulo="recepcao"><Recepcao /></Protegido>} />
           <Route path="amostras" element={<Protegido modulo="amostras"><Amostras /></Protegido>} />
           <Route path="ph" element={<Protegido modulo="ph"><EstacaoPh /></Protegido>} />
+          <Route path="resultados" element={<Protegido modulo="analises"><Resultados /></Protegido>} />
           <Route path="ensaios" element={<Protegido modulo="analises"><Ensaios /></Protegido>} />
           <Route path="laudos" element={<Protegido modulo="laudos"><Laudos /></Protegido>} />
           <Route path="crm" element={<Protegido modulo="crm"><Crm /></Protegido>} />
