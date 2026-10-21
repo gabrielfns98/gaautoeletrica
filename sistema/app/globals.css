@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cor-primaria: #1d4ed8;
+}
+
+body {
+  -webkit-text-size-adjust: 100%;
+}
