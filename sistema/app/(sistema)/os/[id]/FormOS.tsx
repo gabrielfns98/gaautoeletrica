@@ -3,9 +3,7 @@
 import { useActionState } from "react";
 import { salvarOS, type ResultadoAction } from "@/app/actions";
 import { STATUS_LABEL, PRIORIDADE_LABEL } from "@/lib/status";
-
-const campo = "mt-1 w-full rounded border border-slate-300 px-3 py-2 text-base";
-const rotulo = "block text-sm font-medium text-slate-700";
+import { BOTAO_PRIMARIO, CAMPO as campo, CARTAO_PAD, ROTULO as rotulo } from "@/lib/ui";
 
 type OSForm = {
   id: string;
@@ -34,8 +32,8 @@ export default function FormOS({ os }: { os: OSForm }) {
     <form action={enviar} className="space-y-4">
       <input type="hidden" name="osId" value={os.id} />
 
-      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <legend className="px-1 text-sm font-bold text-slate-600">Serviço</legend>
+      <fieldset className={CARTAO_PAD}>
+        <legend className="px-1 text-sm font-bold text-slate-700">Serviço</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className={rotulo} htmlFor="problemaRelatado">
@@ -130,8 +128,8 @@ export default function FormOS({ os }: { os: OSForm }) {
         </div>
       </fieldset>
 
-      <fieldset className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <legend className="px-1 text-sm font-bold text-slate-600">Dados do orçamento</legend>
+      <fieldset className={CARTAO_PAD}>
+        <legend className="px-1 text-sm font-bold text-slate-700">Dados do orçamento</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className={rotulo} htmlFor="desconto">
@@ -181,7 +179,7 @@ export default function FormOS({ os }: { os: OSForm }) {
       <button
         type="submit"
         disabled={enviando}
-        className="w-full rounded-lg bg-slate-800 px-4 py-3 text-base font-bold text-white disabled:opacity-60 sm:w-auto"
+        className={`${BOTAO_PRIMARIO} w-full py-3 text-base sm:w-auto`}
       >
         {enviando ? "Salvando..." : "Salvar OS"}
       </button>

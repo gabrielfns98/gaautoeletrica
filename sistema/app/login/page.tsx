@@ -11,13 +11,26 @@ export default function LoginPage() {
   );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
-      <form action={enviar} className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow">
-        <h1 className="text-lg font-bold" style={{ color: OFICINA.corPrimaria }}>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <form
+        action={enviar}
+        className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-7 shadow-lg"
+      >
+        <div
+          className="mx-auto grid h-12 w-12 place-items-center rounded-xl text-xl font-black text-white"
+          style={{ backgroundColor: OFICINA.corPrimaria }}
+        >
+          {OFICINA.nome.slice(0, 1).toUpperCase()}
+        </div>
+        <h1 className="mt-4 text-center text-xl font-bold tracking-tight text-slate-900">
           {OFICINA.nome}
         </h1>
-        <div>
-          <label className="block text-sm font-medium" htmlFor="senha">
+        <p className="mt-1 text-center text-sm text-slate-500">
+          Fila de trabalho, OS e orçamentos
+        </p>
+
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-slate-700" htmlFor="senha">
             Senha da oficina
           </label>
           <input
@@ -25,15 +38,22 @@ export default function LoginPage() {
             name="senha"
             type="password"
             required
+            autoFocus
             autoComplete="current-password"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-3 text-base"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-3 text-base outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
           />
         </div>
-        {estado?.erro && <p className="text-sm font-medium text-red-600">{estado.erro}</p>}
+
+        {estado?.erro && (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            {estado.erro}
+          </p>
+        )}
+
         <button
           type="submit"
           disabled={enviando}
-          className="w-full rounded px-4 py-3 text-base font-semibold text-white disabled:opacity-60"
+          className="mt-4 w-full rounded-lg px-4 py-3 text-base font-bold text-white shadow-sm transition hover:brightness-110 disabled:opacity-60"
           style={{ backgroundColor: OFICINA.corPrimaria }}
         >
           {enviando ? "Entrando..." : "Entrar"}

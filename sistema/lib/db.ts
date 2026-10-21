@@ -2,7 +2,15 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { get, put } from "@vercel/blob";
-import type { Cliente, ItemOS, OS, OSCompleta, Van } from "@/lib/tipos";
+import type {
+  Cliente,
+  Despesa,
+  ItemOS,
+  OS,
+  OSCompleta,
+  Pagamento,
+  Van,
+} from "@/lib/tipos";
 
 const ARQUIVO = "oficina/dados.json";
 
@@ -15,11 +23,29 @@ export type Banco = {
   vans: Van[];
   oss: OS[];
   itens: ItemOS[];
+  pagamentos: Pagamento[];
+  despesas: Despesa[];
   proximoNumero: number;
 };
 
 function vazio(): Banco {
-  return { clientes: [], vans: [], oss: [], itens: [], proximoNumero: 1 };
+  return {
+    clientes: [],
+    vans: [],
+    oss: [],
+    itens: [],
+    pagamentos: [],
+    despesas: [],
+    proximoNumero: 1,
+  };
+}
+
+/** Completa o que versões antigas do JSON não tinham, para não quebrar as telas. */
+function normalizar(banco: Banco): Banco {
+  for (const item of banco.itens) {
+    if (typeof item.custoUnitarioCentavos !== "number") item.custoUnitarioCentavos = 0;
+  }
+  return banco;
 }
 
 /**
@@ -28,7 +54,10 @@ function vazio(): Banco {
 export async function lerBanco(): Promise<Banco> {
   if (LOCAL) {
     try {
-      return { ...vazio(), ...JSON.parse(await fs.readFile(ARQUIVO_LOCAL, "utf8")) };
+      return normalizar({
+        ...vazio(),
+        ...JSON.parse(await fs.readFile(ARQUIVO_LOCAL, "utf8")),
+      });
     } catch {
       return vazio();
     }
@@ -38,7 +67,7 @@ export async function lerBanco(): Promise<Banco> {
     if (!resultado || resultado.statusCode !== 200) return vazio();
     const texto = await new Response(resultado.stream).text();
     if (!texto.trim()) return vazio();
-    return { ...vazio(), ...(JSON.parse(texto) as Partial<Banco>) };
+    return normalizar({ ...vazio(), ...(JSON.parse(texto) as Partial<Banco>) });
   } catch {
     // primeira execução: o arquivo ainda não foi criado
     return vazio();
@@ -89,6 +118,9 @@ export function montarOS(banco: Banco, os: OS): OSCompleta | null {
     itens: banco.itens
       .filter((i) => i.osId === os.id)
       .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm)),
+    pagamentos: banco.pagamentos
+      .filter((p) => p.osId === os.id)
+      .sort((a, b) => a.data.localeCompare(b.data)),
   };
 }
 
@@ -120,4 +152,18 @@ export async function buscarVanPorPlaca(
     .filter((os): os is OSCompleta => os !== null)
     .sort((a, b) => b.dataEntrada.localeCompare(a.dataEntrada));
   return { van, cliente, oss };
+}
+
+/** Todas as OS, inclusive as entregues. Usado pelo financeiro. */
+export async function listarTodasOS(): Promise<{
+  oss: OSCompleta[];
+  despesas: Despesa[];
+}> {
+  const banco = await lerBanco();
+  const oss = banco.oss
+    .map((os) => montarOS(banco, os))
+    .filter((os): os is OSCompleta => os !== null)
+    .sort((a, b) => b.dataEntrada.localeCompare(a.dataEntrada));
+  const despesas = [...banco.despesas].sort((a, b) => b.data.localeCompare(a.data));
+  return { oss, despesas };
 }

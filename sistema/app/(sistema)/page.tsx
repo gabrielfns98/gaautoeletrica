@@ -1,14 +1,32 @@
 import Link from "next/link";
 import { listarOSAbertas } from "@/lib/db";
 import { ordenarFila, estaAtrasada } from "@/lib/fila";
-import { dataBR, diasNaOficina, resumir } from "@/lib/format";
+import { dataBR, diasNaOficina, reais, resumir } from "@/lib/format";
+import { financeiroDaOS } from "@/lib/financeiro";
 import { formatarPlaca, normalizarPlaca } from "@/lib/placa";
 import { OFICINA } from "@/lib/oficina";
-import { STATUS_CLASSE, STATUS_LABEL } from "@/lib/status";
+import { STATUS_LABEL } from "@/lib/status";
+import {
+  BORDA_STATUS,
+  BOTAO_FANTASMA,
+  BOTAO_PRIMARIO,
+  BOTAO_SECUNDARIO,
+  CAMPO,
+  CARTAO,
+  TITULO_SECAO,
+} from "@/lib/ui";
 import { alternarFixada, mudarStatus } from "@/app/actions";
-import type { OSCompleta } from "@/lib/tipos";
+import type { OSCompleta, StatusOS } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
+
+/** O próximo passo natural de cada status: um botão só, sem pensar. */
+const PROXIMO: Partial<Record<StatusOS, { status: StatusOS; label: string }>> = {
+  na_fila: { status: "em_servico", label: "Iniciar serviço" },
+  em_servico: { status: "pronta", label: "Marcar pronta" },
+  aguardando_peca: { status: "em_servico", label: "Peça chegou, retomar" },
+  pronta: { status: "entregue", label: "Cliente retirou" },
+};
 
 export default async function Painel({
   searchParams,
@@ -40,23 +58,24 @@ export default async function Painel({
   const prontas = ordenarFila(oss.filter((o) => o.status === "pronta"));
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Link
           href="/nova"
-          className="rounded-lg px-4 py-3 text-center text-base font-bold text-white shadow"
+          className="flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-base font-bold text-white shadow-sm transition hover:brightness-110"
           style={{ backgroundColor: OFICINA.corPrimaria }}
         >
-          + Nova entrada
+          <span className="text-lg leading-none">+</span> Nova entrada
         </Link>
         <form className="flex flex-1 gap-2" action="/">
           <input
             name="q"
             defaultValue={busca}
             placeholder="Buscar placa, nome ou telefone"
-            className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-3 text-base"
+            aria-label="Buscar"
+            className={`${CAMPO} mt-0 min-w-0 flex-1 py-3`}
           />
-          <button type="submit" className="rounded-lg bg-slate-800 px-4 py-3 text-white">
+          <button type="submit" className={`${BOTAO_SECUNDARIO} px-4`}>
             Buscar
           </button>
         </form>
@@ -64,15 +83,20 @@ export default async function Painel({
 
       {busca && (
         <p className="text-sm text-slate-600">
-          Resultados para <strong>{busca}</strong>.{" "}
-          <Link href="/" className="text-blue-700 underline">
-            limpar busca
+          {oss.length} {oss.length === 1 ? "resultado" : "resultados"} para{" "}
+          <strong>{busca}</strong> ·{" "}
+          <Link href="/" className="font-medium text-slate-900 underline">
+            limpar
           </Link>
         </p>
       )}
 
       <Secao titulo="Fila de trabalho" vazio="Nenhuma van na fila." itens={fila} numerar />
-      <Secao titulo="Aguardando peça" vazio="Nenhuma van esperando peça." itens={aguardando} />
+      <Secao
+        titulo="Aguardando peça"
+        vazio="Nenhuma van esperando peça."
+        itens={aguardando}
+      />
       <Secao titulo="Prontas para retirada" vazio="Nenhuma van pronta." itens={prontas} />
     </div>
   );
@@ -91,15 +115,16 @@ function Secao({
 }) {
   return (
     <section>
-      <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">
-        {titulo} <span className="text-slate-400">({itens.length})</span>
-      </h2>
+      <div className="mb-2 flex items-baseline gap-2">
+        <h2 className={TITULO_SECAO}>{titulo}</h2>
+        <span className="text-xs font-semibold text-slate-400">{itens.length}</span>
+      </div>
       {itens.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500">
+        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-5 text-center text-sm text-slate-500">
           {vazio}
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {itens.map((os, i) => (
             <LinhaOS
               key={os.id}
@@ -125,121 +150,125 @@ function LinhaOS({
 }) {
   const atrasada = estaAtrasada(os.previsaoEntrega ? new Date(os.previsaoEntrega) : null);
   const dias = diasNaOficina(new Date(os.dataEntrada));
+  const fin = financeiroDaOS(os);
+  const proximo = PROXIMO[os.status];
 
   return (
-    <li
-      className={`rounded-lg bg-white p-3 shadow-sm ${
-        destaque ? "border-2" : "border border-slate-200"
-      }`}
-      style={destaque ? { borderColor: OFICINA.corPrimaria } : undefined}
-    >
-      {destaque && (
-        <p
-          className="mb-2 text-xs font-bold uppercase tracking-wide"
-          style={{ color: OFICINA.corPrimaria }}
-        >
-          ⬤ Próxima a mexer
-        </p>
-      )}
+    <li className={`relative flex overflow-hidden ${CARTAO}`}>
+      <span
+        aria-hidden
+        className={`w-1.5 shrink-0 ${BORDA_STATUS[os.status] ?? "bg-slate-300"}`}
+      />
 
-      <div className="flex items-start gap-3">
-        {posicao !== null && (
-          <span className="mt-0.5 shrink-0 text-lg font-black text-slate-400">{posicao}º</span>
+      <div className="min-w-0 flex-1 p-3.5 sm:p-4">
+        {destaque && (
+          <p
+            className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
+            style={{ backgroundColor: OFICINA.corPrimaria }}
+          >
+            Próxima a mexer
+          </p>
         )}
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/os/${os.id}`}
-              className="text-base font-bold text-slate-900 underline-offset-2 hover:underline"
-            >
-              {formatarPlaca(os.van.placa)}
-            </Link>
-            <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${STATUS_CLASSE[os.status]}`}>
-              {STATUS_LABEL[os.status]}
+        <div className="flex items-start gap-3">
+          {posicao !== null && (
+            <span className="mt-0.5 w-7 shrink-0 text-center text-lg font-black tabular-nums text-slate-300">
+              {posicao}
             </span>
-            {os.prioridade === "urgente" && (
-              <span className="rounded bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white">
-                URGENTE
+          )}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <Link
+                href={`/os/${os.id}`}
+                className="text-lg font-bold tracking-tight text-slate-900 hover:underline"
+              >
+                {formatarPlaca(os.van.placa)}
+              </Link>
+              <span className="text-xs font-medium text-slate-500">
+                {STATUS_LABEL[os.status]}
               </span>
-            )}
-            {os.fixada && <span className="text-xs font-medium text-amber-600">★ fixada</span>}
+              {os.prioridade === "urgente" && (
+                <span className="rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-bold uppercase text-red-700 ring-1 ring-red-200">
+                  Urgente
+                </span>
+              )}
+              {os.fixada && (
+                <span className="text-[11px] font-semibold text-amber-600">★ fixada</span>
+              )}
+            </div>
+
+            <p className="mt-0.5 truncate text-sm font-medium text-slate-700">
+              {os.van.modelo} · {os.van.cliente.nome}
+            </p>
+            <p className="text-sm text-slate-500">{resumir(os.problemaRelatado)}</p>
+
+            <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
+              <span>
+                {dias} {dias === 1 ? "dia" : "dias"} na oficina
+              </span>
+              <span className={atrasada ? "font-bold text-red-600" : ""}>
+                Previsão {dataBR(os.previsaoEntrega)}
+                {atrasada && " · atrasada"}
+              </span>
+              {fin.totalCentavos > 0 && (
+                <span>
+                  {reais(fin.totalCentavos)}
+                  {fin.saldoCentavos > 0 ? (
+                    <span className="text-amber-700">
+                      {" "}
+                      · falta {reais(fin.saldoCentavos)}
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700"> · pago</span>
+                  )}
+                </span>
+              )}
+            </p>
           </div>
 
-          <p className="text-sm text-slate-700">
-            {os.van.modelo} · {os.van.cliente.nome}
-          </p>
-          <p className="text-sm text-slate-600">{resumir(os.problemaRelatado)}</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Previsão:{" "}
-            <span className={atrasada ? "font-bold text-red-600" : ""}>
-              {dataBR(os.previsaoEntrega)}
-              {atrasada && " (atrasada)"}
-            </span>{" "}
-            · {dias} {dias === 1 ? "dia" : "dias"} na oficina
-          </p>
+          <form action={alternarFixada} className="shrink-0">
+            <input type="hidden" name="osId" value={os.id} />
+            <input type="hidden" name="fixada" value={os.fixada ? "false" : "true"} />
+            <button
+              type="submit"
+              title={os.fixada ? "Desafixar do topo" : "Fixar no topo"}
+              aria-label={os.fixada ? "Desafixar do topo" : "Fixar no topo"}
+              className={`rounded-lg px-2 py-1 text-xl leading-none transition ${
+                os.fixada
+                  ? "text-amber-500"
+                  : "text-slate-200 hover:bg-slate-100 hover:text-amber-400"
+              }`}
+            >
+              ★
+            </button>
+          </form>
         </div>
 
-        <form action={alternarFixada} className="shrink-0">
-          <input type="hidden" name="osId" value={os.id} />
-          <input type="hidden" name="fixada" value={os.fixada ? "false" : "true"} />
-          <button
-            type="submit"
-            title={os.fixada ? "Desafixar do topo" : "Fixar no topo"}
-            aria-label={os.fixada ? "Desafixar do topo" : "Fixar no topo"}
-            className={`rounded px-2 py-1 text-xl leading-none ${
-              os.fixada ? "text-amber-500" : "text-slate-300 hover:text-amber-400"
-            }`}
-          >
-            ★
-          </button>
-        </form>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <BotaoStatus osId={os.id} status="em_servico" label="Iniciar serviço" ativo={os.status === "em_servico"} />
-        <BotaoStatus osId={os.id} status="aguardando_peca" label="Aguardando peça" ativo={os.status === "aguardando_peca"} />
-        <BotaoStatus osId={os.id} status="pronta" label="Pronta" ativo={os.status === "pronta"} />
-        {os.status === "pronta" && (
-          <BotaoStatus osId={os.id} status="entregue" label="Entregue" ativo={false} />
-        )}
-        <Link
-          href={`/os/${os.id}`}
-          className="rounded border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700"
-        >
-          Abrir OS
-        </Link>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {proximo && (
+            <form action={mudarStatus}>
+              <input type="hidden" name="osId" value={os.id} />
+              <input type="hidden" name="status" value={proximo.status} />
+              <button type="submit" className={BOTAO_PRIMARIO}>
+                {proximo.label}
+              </button>
+            </form>
+          )}
+          {(os.status === "na_fila" || os.status === "em_servico") && (
+            <form action={mudarStatus}>
+              <input type="hidden" name="osId" value={os.id} />
+              <input type="hidden" name="status" value="aguardando_peca" />
+              <button type="submit" className={BOTAO_SECUNDARIO}>
+                Falta peça
+              </button>
+            </form>
+          )}
+          <Link href={`/os/${os.id}`} className={`${BOTAO_FANTASMA} ml-auto`}>
+            Abrir OS →
+          </Link>
+        </div>
       </div>
     </li>
-  );
-}
-
-function BotaoStatus({
-  osId,
-  status,
-  label,
-  ativo,
-}: {
-  osId: string;
-  status: string;
-  label: string;
-  ativo: boolean;
-}) {
-  return (
-    <form action={mudarStatus}>
-      <input type="hidden" name="osId" value={osId} />
-      <input type="hidden" name="status" value={status} />
-      <button
-        type="submit"
-        disabled={ativo}
-        className={`rounded px-3 py-2 text-sm font-semibold ${
-          ativo
-            ? "cursor-default bg-slate-100 text-slate-400"
-            : "bg-slate-800 text-white hover:bg-slate-700"
-        }`}
-      >
-        {label}
-      </button>
-    </form>
   );
 }

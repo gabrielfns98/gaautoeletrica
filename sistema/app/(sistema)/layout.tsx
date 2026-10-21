@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { OFICINA } from "@/lib/oficina";
 import { requireUser } from "@/lib/auth";
+import Navegacao from "./Navegacao";
 
 export default async function SistemaLayout({
   children,
@@ -11,25 +12,31 @@ export default async function SistemaLayout({
 
   return (
     <>
-      <header
-        className="sticky top-0 z-10 text-white shadow"
-        style={{ backgroundColor: OFICINA.corPrimaria }}
-      >
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-3 py-3 sm:px-4">
-          <Link href="/" className="text-sm font-bold leading-tight sm:text-lg">
-            {OFICINA.nome}
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-3 pt-3 sm:px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <span
+              className="grid h-8 w-8 place-items-center rounded-lg text-sm font-black text-white"
+              style={{ backgroundColor: OFICINA.corPrimaria }}
+            >
+              {OFICINA.nome.slice(0, 1).toUpperCase()}
+            </span>
+            <span className="text-base font-bold tracking-tight text-slate-900">
+              {OFICINA.nome}
+            </span>
           </Link>
           <form action="/api/sair" method="post">
             <button
               type="submit"
-              className="rounded border border-white/40 px-2 py-1 text-xs font-medium hover:bg-white/10"
+              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"
             >
               Sair
             </button>
           </form>
         </div>
+        <Navegacao />
       </header>
-      <main className="mx-auto max-w-4xl px-3 py-4 pb-24 sm:px-4">{children}</main>
+      <main className="mx-auto max-w-4xl px-3 py-5 pb-24 sm:px-4">{children}</main>
     </>
   );
 }

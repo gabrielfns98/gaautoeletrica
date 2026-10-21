@@ -250,6 +250,7 @@ const itemSchema = z.object({
     .refine((n) => Number.isFinite(n) && n >= 1, "Quantidade inválida.")
     .transform((n) => Math.round(n)),
   valorUnitario: z.string().trim().min(1, "Informe o valor unitário."),
+  custoUnitario: z.string().trim().optional(),
 });
 
 export async function adicionarItem(
@@ -272,6 +273,7 @@ export async function adicionarItem(
       descricao: d.descricao,
       quantidade: d.quantidade,
       valorUnitarioCentavos: paraCentavos(d.valorUnitario),
+      custoUnitarioCentavos: paraCentavos(d.custoUnitario ?? "0"),
       criadoEm: new Date().toISOString(),
     });
   });
@@ -293,4 +295,138 @@ export async function removerItem(formData: FormData) {
   });
 
   revalidatePath(`/os/${dados.data.osId}`);
+}
+
+/* -------------------------------- Financeiro ------------------------------- */
+
+const dataObrigatoria = z
+  .string()
+  .trim()
+  .min(1, "Informe a data.")
+  .transform((v) => new Date(`${v}T12:00:00`))
+  .refine((d) => !Number.isNaN(d.getTime()), "Data inválida.")
+  .transform((d) => d.toISOString());
+
+const valorSchema = z
+  .string()
+  .trim()
+  .min(1, "Informe o valor.")
+  .transform(paraCentavos)
+  .refine((c) => c > 0, "O valor precisa ser maior que zero.");
+
+const pagamentoSchema = z.object({
+  osId: z.string().min(1),
+  data: dataObrigatoria,
+  valor: valorSchema,
+  forma: z.enum([
+    "dinheiro",
+    "pix",
+    "cartao_debito",
+    "cartao_credito",
+    "transferencia",
+    "boleto",
+  ]),
+  obs: texto(300).optional(),
+});
+
+export async function registrarPagamento(
+  _anterior: ResultadoAction | null,
+  formData: FormData,
+): Promise<ResultadoAction> {
+  await requireUser();
+
+  const dados = pagamentoSchema.safeParse(Object.fromEntries(formData));
+  if (!dados.success) {
+    return { erro: dados.error.issues[0]?.message ?? "Pagamento inválido." };
+  }
+  const d = dados.data;
+
+  await alterarBanco((banco) => {
+    if (!banco.oss.some((o) => o.id === d.osId)) return;
+    banco.pagamentos.push({
+      id: novoId(),
+      osId: d.osId,
+      data: d.data,
+      valorCentavos: d.valor,
+      forma: d.forma,
+      obs: d.obs || null,
+      criadoEm: new Date().toISOString(),
+    });
+  });
+
+  revalidatePath(`/os/${d.osId}`);
+  revalidatePath("/financeiro");
+  return {};
+}
+
+export async function removerPagamento(formData: FormData) {
+  await requireUser();
+
+  const dados = z
+    .object({ pagamentoId: z.string().min(1), osId: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+
+  await alterarBanco((banco) => {
+    banco.pagamentos = banco.pagamentos.filter((p) => p.id !== dados.data.pagamentoId);
+  });
+
+  revalidatePath(`/os/${dados.data.osId}`);
+  revalidatePath("/financeiro");
+}
+
+const despesaSchema = z.object({
+  data: dataObrigatoria,
+  descricao: texto(200).min(2, "Descreva a despesa."),
+  categoria: z.enum([
+    "aluguel",
+    "salarios",
+    "ferramentas",
+    "energia_agua",
+    "impostos",
+    "outros",
+  ]),
+  valor: valorSchema,
+});
+
+export async function adicionarDespesa(
+  _anterior: ResultadoAction | null,
+  formData: FormData,
+): Promise<ResultadoAction> {
+  await requireUser();
+
+  const dados = despesaSchema.safeParse(Object.fromEntries(formData));
+  if (!dados.success) {
+    return { erro: dados.error.issues[0]?.message ?? "Despesa inválida." };
+  }
+  const d = dados.data;
+
+  await alterarBanco((banco) => {
+    banco.despesas.push({
+      id: novoId(),
+      data: d.data,
+      descricao: d.descricao,
+      categoria: d.categoria,
+      valorCentavos: d.valor,
+      criadoEm: new Date().toISOString(),
+    });
+  });
+
+  revalidatePath("/financeiro");
+  return {};
+}
+
+export async function removerDespesa(formData: FormData) {
+  await requireUser();
+
+  const dados = z
+    .object({ despesaId: z.string().min(1) })
+    .safeParse(Object.fromEntries(formData));
+  if (!dados.success) return;
+
+  await alterarBanco((banco) => {
+    banco.despesas = banco.despesas.filter((d) => d.id !== dados.data.despesaId);
+  });
+
+  revalidatePath("/financeiro");
 }

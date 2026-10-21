@@ -13,9 +13,30 @@ Stack: Next.js (App Router) + TypeScript, Tailwind, Zod, @react-pdf/renderer,
 | `/login`             | Senha única da oficina                                            |
 | `/`                  | Painel: fila ordenada, "Aguardando peça", "Prontas", busca        |
 | `/nova`              | Nova entrada (busca a placa, cadastra van + cliente se for nova)  |
-| `/os/[id]`           | Ficha da OS: diagnóstico, serviço, itens, dados do orçamento      |
+| `/os/[id]`           | Ficha da OS: diagnóstico, serviço, itens, pagamentos, orçamento   |
+| `/financeiro`        | Resumo do mês, a receber, pagamentos e despesas                   |
 | `/os/[id]/orcamento` | Preview do PDF, baixar e enviar por WhatsApp                      |
 | `/van/[placa]`       | Histórico completo da van                                         |
+
+## Financeiro
+
+Três números novos entram no sistema:
+
+- **Seu custo** em cada peça (campo opcional no lançamento do item). Fica só no sistema:
+  o orçamento do cliente nunca mostra custo nem margem.
+- **Pagamentos** da OS (valor, forma, data). Uma OS pode ter vários — entrada e resto.
+- **Despesas** da oficina (aluguel, salários, ferramentas…), sem ligação com OS.
+
+As contas ficam em `lib/financeiro.ts` (funções puras, com testes):
+
+| Número          | Como é calculado                                       |
+| --------------- | ------------------------------------------------------ |
+| Faturado        | soma das OS marcadas como **entregues** naquele mês     |
+| Custo de peças  | custo das peças dessas OS entregues                     |
+| Despesas        | despesas lançadas naquele mês                           |
+| Lucro           | faturado − custo − despesas                             |
+| Recebido no mês | pagamentos com data no mês, de qualquer OS              |
+| A receber       | saldo em aberto de **todas** as OS, de qualquer mês     |
 
 A ordem da fila está em `lib/fila.ts` (função pura, com testes): fixada → urgente →
 previsão de entrega mais próxima → entrada mais antiga.

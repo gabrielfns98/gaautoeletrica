@@ -3,9 +3,7 @@
 import { useActionState, useRef } from "react";
 import { adicionarItem, type ResultadoAction } from "@/app/actions";
 import { TIPO_ITEM_LABEL } from "@/lib/status";
-
-const campo = "mt-1 w-full rounded border border-slate-300 px-3 py-2 text-base";
-const rotulo = "block text-sm font-medium text-slate-700";
+import { BOTAO_PRIMARIO, CAMPO as campo, ROTULO as rotulo } from "@/lib/ui";
 
 export default function FormItem({ osId }: { osId: string }) {
   const form = useRef<HTMLFormElement>(null);
@@ -21,7 +19,7 @@ export default function FormItem({ osId }: { osId: string }) {
   return (
     <form ref={form} action={enviar} className="mt-4 border-t border-slate-200 pt-4">
       <input type="hidden" name="osId" value={osId} />
-      <p className="text-sm font-bold text-slate-600">Adicionar item</p>
+      <p className="text-sm font-bold text-slate-700">Adicionar peça ou serviço</p>
       <div className="mt-2 grid gap-3 sm:grid-cols-6">
         <div className="sm:col-span-2">
           <label className={rotulo} htmlFor="tipo">
@@ -55,7 +53,7 @@ export default function FormItem({ osId }: { osId: string }) {
         </div>
         <div className="sm:col-span-2">
           <label className={rotulo} htmlFor="valorUnitario">
-            Valor unitário (R$)
+            Preço ao cliente (R$)
           </label>
           <input
             id="valorUnitario"
@@ -66,11 +64,24 @@ export default function FormItem({ osId }: { osId: string }) {
             className={campo}
           />
         </div>
+        <div className="sm:col-span-2">
+          <label className={rotulo} htmlFor="custoUnitario">
+            Seu custo (R$){" "}
+            <span className="font-normal text-slate-400">opcional</span>
+          </label>
+          <input
+            id="custoUnitario"
+            name="custoUnitario"
+            inputMode="decimal"
+            placeholder="0,00"
+            className={campo}
+          />
+        </div>
         <div className="flex items-end sm:col-span-2">
           <button
             type="submit"
             disabled={enviando}
-            className="w-full rounded bg-slate-800 px-4 py-2 font-semibold text-white disabled:opacity-60"
+            className={`${BOTAO_PRIMARIO} w-full py-3`}
           >
             {enviando ? "..." : "Adicionar"}
           </button>
