@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/supabase-server";
+import { buscarVanPorPlaca } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
 import { normalizarPlaca } from "@/lib/placa";
 
 /** Busca a van pela placa para pré-preencher a Nova entrada. */
@@ -15,26 +15,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ erro: "Placa não informada." }, { status: 400 });
   }
 
-  const van = await prisma.van.findUnique({
-    where: { placa: normalizarPlaca(parsed.data.placa) },
-    include: {
-      cliente: true,
-      oss: {
-        orderBy: { dataEntrada: "desc" },
-        take: 3,
-        select: {
-          id: true,
-          numero: true,
-          dataEntrada: true,
-          problemaRelatado: true,
-          problemaReal: true,
-          servicoFeito: true,
-        },
-      },
-    },
-  });
+  const dados = await buscarVanPorPlaca(normalizarPlaca(parsed.data.placa));
+  if (!dados) return NextResponse.json({ encontrada: false });
 
-  if (!van) return NextResponse.json({ encontrada: false });
+  const { van, cliente, oss } = dados;
 
   return NextResponse.json({
     encontrada: true,
@@ -44,12 +28,15 @@ export async function GET(request: Request) {
       modelo: van.modelo,
       ano: van.ano,
       obs: van.obs,
-      cliente: {
-        id: van.cliente.id,
-        nome: van.cliente.nome,
-        telefone: van.cliente.telefone,
-      },
-      ultimasOS: van.oss,
+      cliente: { id: cliente.id, nome: cliente.nome, telefone: cliente.telefone },
+      ultimasOS: oss.slice(0, 3).map((os) => ({
+        id: os.id,
+        numero: os.numero,
+        dataEntrada: os.dataEntrada,
+        problemaRelatado: os.problemaRelatado,
+        problemaReal: os.problemaReal,
+        servicoFeito: os.servicoFeito,
+      })),
     },
   });
 }

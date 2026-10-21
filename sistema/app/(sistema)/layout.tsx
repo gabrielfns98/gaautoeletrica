@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { OFICINA } from "@/lib/oficina";
-import { requireUser } from "@/lib/supabase-server";
+import { requireUser } from "@/lib/auth";
 
 export default async function SistemaLayout({
   children,

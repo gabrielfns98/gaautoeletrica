@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { buscarOS } from "@/lib/db";
 import { reais, dataBR, diasNaOficina } from "@/lib/format";
 import { formatarPlaca } from "@/lib/placa";
 import { numeroOrcamento } from "@/lib/oficina";
@@ -15,18 +15,12 @@ export const dynamic = "force-dynamic";
 export default async function FichaOS({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const os = await prisma.oS.findUnique({
-    where: { id },
-    include: {
-      van: { include: { cliente: true } },
-      itens: { orderBy: { criadoEm: "asc" } },
-    },
-  });
+  const os = await buscarOS(id);
 
   if (!os) notFound();
 
   const totais = calcularTotais(os.itens, os.descontoCentavos);
-  const dias = diasNaOficina(os.dataEntrada);
+  const dias = diasNaOficina(new Date(os.dataEntrada));
 
   return (
     <div className="space-y-4">
@@ -64,7 +58,7 @@ export default async function FichaOS({ params }: { params: Promise<{ id: string
           km: os.km,
           prioridade: os.prioridade,
           status: os.status,
-          previsaoEntrega: os.previsaoEntrega ? os.previsaoEntrega.toISOString() : null,
+          previsaoEntrega: os.previsaoEntrega,
           descontoCentavos: os.descontoCentavos,
           validadeDias: os.validadeDias,
           observacoesOrcamento: os.observacoesOrcamento,

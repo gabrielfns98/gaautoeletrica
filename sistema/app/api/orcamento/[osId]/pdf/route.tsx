@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/supabase-server";
+import { buscarOS } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
 import { numeroCurto } from "@/lib/oficina";
 import { somarDias } from "@/lib/format";
 import { registrarFontes } from "@/lib/pdf/registrarFontes";
@@ -28,13 +28,7 @@ export async function GET(
 
   const { osId } = await params;
 
-  const os = await prisma.oS.findUnique({
-    where: { id: osId },
-    include: {
-      van: { include: { cliente: true } },
-      itens: { orderBy: { criadoEm: "asc" } },
-    },
-  });
+  const os = await buscarOS(osId);
 
   if (!os) return new Response("OS não encontrada.", { status: 404 });
 

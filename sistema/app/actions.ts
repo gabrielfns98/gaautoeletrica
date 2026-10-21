@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/supabase-server";
+import { alterarBanco, novoId } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
 import { normalizarPlaca, placaValida } from "@/lib/placa";
 import { paraCentavos } from "@/lib/format";
 import { OBSERVACOES_ORCAMENTO_PADRAO } from "@/lib/oficina";
@@ -30,7 +30,8 @@ const dataOpcional = z
   .trim()
   .optional()
   .transform((v) => (v ? new Date(`${v}T12:00:00`) : null))
-  .refine((d) => d === null || !Number.isNaN(d.getTime()), "Data inválida.");
+  .refine((d) => d === null || !Number.isNaN(d.getTime()), "Data inválida.")
+  .transform((d) => (d ? d.toISOString() : null));
 
 const inteiroOpcional = z
   .string()
@@ -76,59 +77,75 @@ export async function criarEntrada(
   }
   const d = dados.data;
 
-  let vanId: string;
-  const vanExistente = await prisma.van.findUnique({ where: { placa: d.placa } });
+  const resultado = await alterarBanco((banco): ResultadoAction & { osId?: string } => {
+    const agora = new Date().toISOString();
+    let van = banco.vans.find((v) => v.placa === d.placa);
 
-  if (vanExistente) {
-    vanId = vanExistente.id;
-    await prisma.van.update({
-      where: { id: vanId },
-      data: { modelo: d.modelo, ano: d.ano, obs: d.obsVan || null },
-    });
-  } else {
-    let clienteId = d.clienteId;
-    if (!clienteId) {
-      const cliente = z
-        .object({ nome: texto(120).min(2, "Informe o nome do cliente."), telefone: telefoneSchema })
-        .safeParse({ nome: d.clienteNome ?? "", telefone: d.clienteTelefone ?? "" });
-      if (!cliente.success) {
-        return { erro: cliente.error.issues[0]?.message ?? "Dados do cliente inválidos." };
-      }
-      const novo = await prisma.cliente.create({
-        data: {
+    if (van) {
+      van.modelo = d.modelo;
+      van.ano = d.ano;
+      van.obs = d.obsVan || null;
+    } else {
+      let clienteId = d.clienteId;
+      if (!clienteId || !banco.clientes.some((c) => c.id === clienteId)) {
+        const cliente = z
+          .object({
+            nome: texto(120).min(2, "Informe o nome do cliente."),
+            telefone: telefoneSchema,
+          })
+          .safeParse({ nome: d.clienteNome ?? "", telefone: d.clienteTelefone ?? "" });
+        if (!cliente.success) {
+          return { erro: cliente.error.issues[0]?.message ?? "Dados do cliente inválidos." };
+        }
+        clienteId = novoId();
+        banco.clientes.push({
+          id: clienteId,
           nome: cliente.data.nome,
           telefone: cliente.data.telefone,
           obs: d.obsCliente || null,
-        },
-      });
-      clienteId = novo.id;
-    }
-    const van = await prisma.van.create({
-      data: {
+          criadoEm: agora,
+        });
+      }
+      van = {
+        id: novoId(),
         clienteId,
         placa: d.placa,
         modelo: d.modelo,
         ano: d.ano,
         obs: d.obsVan || null,
-      },
-    });
-    vanId = van.id;
-  }
+        criadoEm: agora,
+      };
+      banco.vans.push(van);
+    }
 
-  const os = await prisma.oS.create({
-    data: {
-      vanId,
-      problemaRelatado: d.problemaRelatado,
+    const osId = novoId();
+    banco.oss.push({
+      id: osId,
+      numero: banco.proximoNumero,
+      vanId: van.id,
+      dataEntrada: agora,
       km: d.km,
       prioridade: d.prioridade,
-      previsaoEntrega: d.previsaoEntrega,
       status: "na_fila",
+      fixada: false,
+      previsaoEntrega: d.previsaoEntrega,
+      dataEntrega: null,
+      problemaRelatado: d.problemaRelatado,
+      problemaReal: null,
+      servicoFeito: null,
+      descontoCentavos: 0,
+      validadeDias: 7,
       observacoesOrcamento: OBSERVACOES_ORCAMENTO_PADRAO,
-    },
+    });
+    banco.proximoNumero += 1;
+
+    return { osId };
   });
 
+  if (resultado.erro) return { erro: resultado.erro };
+
   revalidatePath("/");
-  redirect(`/os/${os.id}`);
+  redirect(`/os/${resultado.osId}`);
 }
 
 /* --------------------------------- Painel --------------------------------- */
@@ -142,12 +159,11 @@ export async function mudarStatus(formData: FormData) {
   if (!dados.success) return;
 
   const { osId, status } = dados.data;
-  await prisma.oS.update({
-    where: { id: osId },
-    data: {
-      status,
-      dataEntrega: status === "entregue" ? new Date() : null,
-    },
+  await alterarBanco((banco) => {
+    const os = banco.oss.find((o) => o.id === osId);
+    if (!os) return;
+    os.status = status;
+    os.dataEntrega = status === "entregue" ? new Date().toISOString() : null;
   });
 
   revalidatePath("/");
@@ -162,9 +178,9 @@ export async function alternarFixada(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
 
-  await prisma.oS.update({
-    where: { id: dados.data.osId },
-    data: { fixada: dados.data.fixada === "true" },
+  await alterarBanco((banco) => {
+    const os = banco.oss.find((o) => o.id === dados.data.osId);
+    if (os) os.fixada = dados.data.fixada === "true";
   });
 
   revalidatePath("/");
@@ -202,21 +218,20 @@ export async function salvarOS(
   }
   const d = dados.data;
 
-  await prisma.oS.update({
-    where: { id: d.osId },
-    data: {
-      problemaRelatado: d.problemaRelatado,
-      problemaReal: d.problemaReal || null,
-      servicoFeito: d.servicoFeito || null,
-      km: d.km,
-      prioridade: d.prioridade,
-      status: d.status,
-      previsaoEntrega: d.previsaoEntrega,
-      dataEntrega: d.status === "entregue" ? new Date() : null,
-      descontoCentavos: paraCentavos(d.desconto ?? "0"),
-      validadeDias: d.validadeDias,
-      observacoesOrcamento: d.observacoesOrcamento || null,
-    },
+  await alterarBanco((banco) => {
+    const os = banco.oss.find((o) => o.id === d.osId);
+    if (!os) return;
+    os.problemaRelatado = d.problemaRelatado;
+    os.problemaReal = d.problemaReal || null;
+    os.servicoFeito = d.servicoFeito || null;
+    os.km = d.km;
+    os.prioridade = d.prioridade;
+    os.status = d.status;
+    os.previsaoEntrega = d.previsaoEntrega;
+    os.dataEntrega = d.status === "entregue" ? new Date().toISOString() : null;
+    os.descontoCentavos = paraCentavos(d.desconto ?? "0");
+    os.validadeDias = d.validadeDias;
+    os.observacoesOrcamento = d.observacoesOrcamento || null;
   });
 
   revalidatePath("/");
@@ -249,14 +264,16 @@ export async function adicionarItem(
   }
   const d = dados.data;
 
-  await prisma.itemOS.create({
-    data: {
+  await alterarBanco((banco) => {
+    banco.itens.push({
+      id: novoId(),
       osId: d.osId,
       tipo: d.tipo,
       descricao: d.descricao,
       quantidade: d.quantidade,
       valorUnitarioCentavos: paraCentavos(d.valorUnitario),
-    },
+      criadoEm: new Date().toISOString(),
+    });
   });
 
   revalidatePath(`/os/${d.osId}`);
@@ -271,6 +288,9 @@ export async function removerItem(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
   if (!dados.success) return;
 
-  await prisma.itemOS.delete({ where: { id: dados.data.itemId } });
+  await alterarBanco((banco) => {
+    banco.itens = banco.itens.filter((i) => i.id !== dados.data.itemId);
+  });
+
   revalidatePath(`/os/${dados.data.osId}`);
 }

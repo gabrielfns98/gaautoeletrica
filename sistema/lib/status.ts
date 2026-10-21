@@ -1,4 +1,4 @@
-import type { StatusOS, TipoItem, Prioridade } from "@prisma/client";
+import type { Prioridade, StatusOS, TipoItem } from "@/lib/tipos";
 
 export const STATUS_LABEL: Record<StatusOS, string> = {
   na_fila: "Na fila",
@@ -26,11 +26,3 @@ export const PRIORIDADE_LABEL: Record<Prioridade, string> = {
   normal: "Normal",
   urgente: "Urgente",
 };
-
-export const STATUS_ORDENAVEIS: StatusOS[] = [
-  "na_fila",
-  "em_servico",
-  "aguardando_peca",
-  "pronta",
-  "entregue",
-];

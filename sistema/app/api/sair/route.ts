@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { COOKIE_SESSAO } from "@/lib/auth";
 
 export async function POST(request: Request) {
-  const supabase = await supabaseServer();
-  await supabase.auth.signOut();
-  return NextResponse.redirect(new URL("/login", request.url));
+  const resposta = NextResponse.redirect(new URL("/login", request.url));
+  resposta.cookies.set(COOKIE_SESSAO, "", { path: "/", maxAge: 0 });
+  return resposta;
 }

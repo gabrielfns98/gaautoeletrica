@@ -10,8 +10,9 @@ export type OSFila = {
   id: string;
   fixada: boolean;
   prioridade: "normal" | "urgente";
-  previsaoEntrega: Date | null;
-  dataEntrada: Date;
+  /** Date ou string ISO (como vem do JSON). */
+  previsaoEntrega: Date | string | null;
+  dataEntrada: Date | string;
 };
 
 export function compararFila(a: OSFila, b: OSFila): number {
@@ -37,7 +38,7 @@ export function ordenarFila<T extends OSFila>(oss: T[]): T[] {
 
 /** Previsão no passado (comparando só a data, sem hora). */
 export function estaAtrasada(
-  previsaoEntrega: Date | null,
+  previsaoEntrega: Date | string | null,
   hoje: Date = new Date(),
 ): boolean {
   if (!previsaoEntrega) return false;

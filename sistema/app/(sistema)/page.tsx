@@ -1,16 +1,12 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { listarOSAbertas } from "@/lib/db";
 import { ordenarFila, estaAtrasada } from "@/lib/fila";
 import { dataBR, diasNaOficina, resumir } from "@/lib/format";
 import { formatarPlaca, normalizarPlaca } from "@/lib/placa";
 import { OFICINA } from "@/lib/oficina";
 import { STATUS_CLASSE, STATUS_LABEL } from "@/lib/status";
 import { alternarFixada, mudarStatus } from "@/app/actions";
-import type { Prisma } from "@prisma/client";
-
-type OSComVan = Prisma.OSGetPayload<{
-  include: { van: { include: { cliente: true } } };
-}>;
+import type { OSCompleta } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -22,24 +18,20 @@ export default async function Painel({
   const { q } = await searchParams;
   const busca = (q ?? "").trim();
 
-  const oss = await prisma.oS.findMany({
-    where: {
-      status: { not: "entregue" },
-      ...(busca
-        ? {
-            van: {
-              OR: [
-                { placa: { contains: normalizarPlaca(busca) } },
-                { modelo: { contains: busca, mode: "insensitive" } },
-                { cliente: { nome: { contains: busca, mode: "insensitive" } } },
-                { cliente: { telefone: { contains: busca.replace(/\D/g, "") || busca } } },
-              ],
-            },
-          }
-        : {}),
-    },
-    include: { van: { include: { cliente: true } } },
-  });
+  const todas = await listarOSAbertas();
+  const termo = busca.toLowerCase();
+  const placaBusca = normalizarPlaca(busca);
+  const somenteDigitos = busca.replace(/\D/g, "");
+
+  const oss = busca
+    ? todas.filter(
+        (os) =>
+          (placaBusca.length > 0 && os.van.placa.includes(placaBusca)) ||
+          os.van.modelo.toLowerCase().includes(termo) ||
+          os.van.cliente.nome.toLowerCase().includes(termo) ||
+          (somenteDigitos.length > 0 && os.van.cliente.telefone.includes(somenteDigitos)),
+      )
+    : todas;
 
   const fila = ordenarFila(
     oss.filter((o) => o.status === "na_fila" || o.status === "em_servico"),
@@ -93,7 +85,7 @@ function Secao({
   numerar = false,
 }: {
   titulo: string;
-  itens: OSComVan[];
+  itens: OSCompleta[];
   vazio: string;
   numerar?: boolean;
 }) {
@@ -127,12 +119,12 @@ function LinhaOS({
   posicao,
   destaque,
 }: {
-  os: OSComVan;
+  os: OSCompleta;
   posicao: number | null;
   destaque: boolean;
 }) {
-  const atrasada = estaAtrasada(os.previsaoEntrega);
-  const dias = diasNaOficina(os.dataEntrada);
+  const atrasada = estaAtrasada(os.previsaoEntrega ? new Date(os.previsaoEntrega) : null);
+  const dias = diasNaOficina(new Date(os.dataEntrada));
 
   return (
     <li

@@ -1,4 +1,4 @@
-import type { TipoItem } from "@prisma/client";
+import type { TipoItem } from "@/lib/tipos";
 
 export type ItemCalculo = {
   tipo: TipoItem;

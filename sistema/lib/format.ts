@@ -27,7 +27,10 @@ export function somarDias(d: Date, dias: number): Date {
 }
 
 /** Dias corridos entre a entrada e hoje (mínimo 0). */
-export function diasNaOficina(dataEntrada: Date, agora: Date = new Date()): number {
+export function diasNaOficina(
+  dataEntrada: Date | string,
+  agora: Date = new Date(),
+): number {
   const ms = agora.getTime() - new Date(dataEntrada).getTime();
   return Math.max(0, Math.floor(ms / 86_400_000));
 }

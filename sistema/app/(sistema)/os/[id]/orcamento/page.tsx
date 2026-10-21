@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { buscarOS } from "@/lib/db";
 import { reais, dataBR, somarDias } from "@/lib/format";
 import { formatarPlaca } from "@/lib/placa";
 import { numeroCurto } from "@/lib/oficina";
@@ -15,10 +15,7 @@ export default async function TelaOrcamento({
 }) {
   const { id } = await params;
 
-  const os = await prisma.oS.findUnique({
-    where: { id },
-    include: { van: { include: { cliente: true } }, itens: true },
-  });
+  const os = await buscarOS(id);
 
   if (!os) notFound();
 
