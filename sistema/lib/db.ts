@@ -18,14 +18,6 @@ const ARQUIVO = "oficina/dados.json";
 const LOCAL = !process.env.BLOB_READ_WRITE_TOKEN;
 const ARQUIVO_LOCAL = path.join(process.cwd(), ".dados-local.json");
 
-/**
- * O Blob leva um instante para publicar a gravação: uma leitura logo depois de
- * gravar pode devolver a versão anterior e a OS recém-criada "sumir" (404).
- * Guardamos a última gravação em memória para as leituras seguintes.
- */
-let ultimaGravacao: { banco: Banco; em: number } | null = null;
-const VALIDADE_CACHE_MS = 10_000;
-
 export type Banco = {
   clientes: Cliente[];
   vans: Van[];
@@ -60,9 +52,6 @@ function normalizar(banco: Banco): Banco {
  * Lê o JSON do Blob. Se ainda não existe (oficina nova), devolve um banco vazio.
  */
 export async function lerBanco(): Promise<Banco> {
-  if (ultimaGravacao && Date.now() - ultimaGravacao.em < VALIDADE_CACHE_MS) {
-    return structuredClone(ultimaGravacao.banco);
-  }
   if (LOCAL) {
     try {
       return normalizar({
@@ -74,7 +63,9 @@ export async function lerBanco(): Promise<Banco> {
     }
   }
   try {
-    const resultado = await get(ARQUIVO, { access: "private" });
+    // useCache:false é essencial: por padrão o SDK lê do cache da CDN e
+    // devolve a versão anterior logo depois de uma gravação.
+    const resultado = await get(ARQUIVO, { access: "private", useCache: false });
     if (!resultado || resultado.statusCode !== 200) return vazio();
     const texto = await new Response(resultado.stream).text();
     if (!texto.trim()) return vazio();
@@ -86,7 +77,6 @@ export async function lerBanco(): Promise<Banco> {
 }
 
 export async function gravarBanco(banco: Banco): Promise<void> {
-  ultimaGravacao = { banco: structuredClone(banco), em: Date.now() };
   if (LOCAL) {
     await fs.writeFile(ARQUIVO_LOCAL, JSON.stringify(banco, null, 2), "utf8");
     return;
