@@ -74,3 +74,19 @@ Não há tela de configuração: tudo isso é arquivo.
 
 Todo dinheiro é `Int` em **centavos**. A formatação em `R$` acontece só na UI e no PDF
 (`lib/format.ts`).
+
+## Como esta versão foi publicada (21/10/2026)
+
+O deploy de produção foi feito enviando os arquivos direto para a API da Vercel
+(projeto `ghcconsultoria10/sistema`), porque a integração GitHub da conta Vercel não
+enxerga este repositório. Nessa cópia publicada:
+
+- os arquivos `.ts`/`.tsx` foram compactados (espaços removidos) e os tipos retirados,
+  então o build roda com `typescript.ignoreBuildErrors` — **o código legível e checado
+  por tipos é este repositório**;
+- `public/fonts` e `public/logo.png` não foram enviados, então o PDF usa a Helvetica
+  interna (acentos e `R$` conferidos) e o cabeçalho mostra o nome da oficina em texto.
+
+Para voltar ao fluxo normal (deploy a cada push), instale o app da Vercel no GitHub
+em https://github.com/apps/vercel/installations/select_target e ligue o projeto a este
+repositório, com Root Directory `sistema`.
