@@ -4,9 +4,15 @@ const nextConfig: NextConfig = {
   // o lint roda separado; o eslint.config.js do site antigo quebraria o build
   eslint: { ignoreDuringBuilds: true },
   serverExternalPackages: ["@react-pdf/renderer"],
-  // garante que a logo e as fontes do PDF existam no servidor em produção
   outputFileTracingIncludes: {
-    "/api/orcamento/[osId]/pdf": ["./public/logo.png", "./public/fonts/**"],
+    // o pdfkit carrega as fontes padrão por caminho montado em tempo de
+    // execução, então o Next não as enxerga sozinho e o PDF quebra em produção
+    "/api/orcamento/[osId]/pdf": [
+      "./node_modules/pdfkit/js/standard-fonts/**",
+      "./node_modules/pdfkit/js/data/**",
+      "./public/logo.png",
+      "./public/fonts/**",
+    ],
   },
 };
 

@@ -18,6 +18,14 @@ const ARQUIVO = "oficina/dados.json";
 const LOCAL = !process.env.BLOB_READ_WRITE_TOKEN;
 const ARQUIVO_LOCAL = path.join(process.cwd(), ".dados-local.json");
 
+/**
+ * O Blob leva um instante para publicar a gravação: uma leitura logo depois de
+ * gravar pode devolver a versão anterior e a OS recém-criada "sumir" (404).
+ * Guardamos a última gravação em memória para as leituras seguintes.
+ */
+let ultimaGravacao: { banco: Banco; em: number } | null = null;
+const VALIDADE_CACHE_MS = 10_000;
+
 export type Banco = {
   clientes: Cliente[];
   vans: Van[];
@@ -52,6 +60,9 @@ function normalizar(banco: Banco): Banco {
  * Lê o JSON do Blob. Se ainda não existe (oficina nova), devolve um banco vazio.
  */
 export async function lerBanco(): Promise<Banco> {
+  if (ultimaGravacao && Date.now() - ultimaGravacao.em < VALIDADE_CACHE_MS) {
+    return structuredClone(ultimaGravacao.banco);
+  }
   if (LOCAL) {
     try {
       return normalizar({
@@ -75,6 +86,7 @@ export async function lerBanco(): Promise<Banco> {
 }
 
 export async function gravarBanco(banco: Banco): Promise<void> {
+  ultimaGravacao = { banco: structuredClone(banco), em: Date.now() };
   if (LOCAL) {
     await fs.writeFile(ARQUIVO_LOCAL, JSON.stringify(banco, null, 2), "utf8");
     return;
@@ -135,7 +147,13 @@ export async function listarOSAbertas(): Promise<OSCompleta[]> {
 export async function buscarOS(id: string): Promise<OSCompleta | null> {
   const banco = await lerBanco();
   const os = banco.oss.find((o) => o.id === id);
-  return os ? montarOS(banco, os) : null;
+  if (os) return montarOS(banco, os);
+
+  // Pode ser uma OS recém-criada que o Blob ainda não publicou: tenta de novo.
+  await new Promise((pronto) => setTimeout(pronto, 600));
+  const relido = await lerBanco();
+  const osRelida = relido.oss.find((o) => o.id === id);
+  return osRelida ? montarOS(relido, osRelida) : null;
 }
 
 export async function buscarVanPorPlaca(
