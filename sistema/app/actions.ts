@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { normalizarPlaca, placaValida } from "@/lib/placa";
 import { paraCentavos } from "@/lib/format";
 import { OBSERVACOES_ORCAMENTO_PADRAO } from "@/lib/oficina";
+import { bancoDemo } from "@/lib/demo";
 
 export type ResultadoAction = { erro?: string };
 
@@ -428,5 +429,39 @@ export async function removerDespesa(formData: FormData) {
     banco.despesas = banco.despesas.filter((d) => d.id !== dados.data.despesaId);
   });
 
+  revalidatePath("/financeiro");
+}
+
+/* ----------------------------- Dados de exemplo ---------------------------- */
+
+/** Só funciona com o sistema vazio: nunca apaga dado de verdade. */
+export async function preencherComExemplo(): Promise<void> {
+  await requireUser();
+
+  await alterarBanco((banco) => {
+    if (banco.oss.length > 0 || banco.vans.length > 0) return;
+    Object.assign(banco, bancoDemo());
+  });
+
+  revalidatePath("/");
+  revalidatePath("/financeiro");
+}
+
+/** Só funciona se TODAS as OS forem de exemplo. */
+export async function limparExemplo(): Promise<void> {
+  await requireUser();
+
+  await alterarBanco((banco) => {
+    if (banco.oss.length === 0 || !banco.oss.every((os) => os.demo)) return;
+    banco.clientes = [];
+    banco.vans = [];
+    banco.oss = [];
+    banco.itens = [];
+    banco.pagamentos = [];
+    banco.despesas = [];
+    banco.proximoNumero = 1;
+  });
+
+  revalidatePath("/");
   revalidatePath("/financeiro");
 }

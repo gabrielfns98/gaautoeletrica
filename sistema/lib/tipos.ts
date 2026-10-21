@@ -62,6 +62,8 @@ export type OS = {
   descontoCentavos: number;
   validadeDias: number;
   observacoesOrcamento: string | null;
+  /** Marca as OS criadas pelo botão de dados de exemplo. */
+  demo?: boolean;
 };
 
 export type ItemOS = {

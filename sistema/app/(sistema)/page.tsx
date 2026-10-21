@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listarOSAbertas } from "@/lib/db";
+import { listarTodasOS } from "@/lib/db";
 import { ordenarFila, estaAtrasada } from "@/lib/fila";
 import { dataBR, diasNaOficina, reais, resumir } from "@/lib/format";
 import { financeiroDaOS } from "@/lib/financeiro";
@@ -15,7 +15,12 @@ import {
   CARTAO,
   TITULO_SECAO,
 } from "@/lib/ui";
-import { alternarFixada, mudarStatus } from "@/app/actions";
+import {
+  alternarFixada,
+  limparExemplo,
+  mudarStatus,
+  preencherComExemplo,
+} from "@/app/actions";
 import type { OSCompleta, StatusOS } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +41,10 @@ export default async function Painel({
   const { q } = await searchParams;
   const busca = (q ?? "").trim();
 
-  const todas = await listarOSAbertas();
+  const { oss: historico } = await listarTodasOS();
+  const todas = historico.filter((os) => os.status !== "entregue");
+  const sistemaVazio = historico.length === 0;
+  const soExemplo = historico.length > 0 && historico.every((os) => os.demo);
   const termo = busca.toLowerCase();
   const placaBusca = normalizarPlaca(busca);
   const somenteDigitos = busca.replace(/\D/g, "");
@@ -91,6 +99,21 @@ export default async function Painel({
         </p>
       )}
 
+      {sistemaVazio && !busca && (
+        <section className={`${CARTAO} p-5 text-center`}>
+          <h2 className="text-base font-bold">Sistema ainda vazio</h2>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">
+            Clique em <strong>Nova entrada</strong> para registrar a primeira van. Ou
+            preencha com dados de exemplo para conhecer o sistema — depois é só limpar.
+          </p>
+          <form action={preencherComExemplo} className="mt-3">
+            <button type="submit" className={BOTAO_SECUNDARIO}>
+              Preencher com dados de exemplo
+            </button>
+          </form>
+        </section>
+      )}
+
       <Secao titulo="Fila de trabalho" vazio="Nenhuma van na fila." itens={fila} numerar />
       <Secao
         titulo="Aguardando peça"
@@ -98,6 +121,20 @@ export default async function Painel({
         itens={aguardando}
       />
       <Secao titulo="Prontas para retirada" vazio="Nenhuma van pronta." itens={prontas} />
+
+      {soExemplo && (
+        <form action={limparExemplo} className="border-t border-slate-200 pt-4 text-center">
+          <p className="text-xs text-slate-500">
+            Estes são dados de exemplo, para demonstração.
+          </p>
+          <button
+            type="submit"
+            className="mt-1 text-xs font-semibold text-slate-600 underline hover:text-red-700"
+          >
+            Apagar os dados de exemplo e começar do zero
+          </button>
+        </form>
+      )}
     </div>
   );
 }
