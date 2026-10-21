@@ -21,6 +21,7 @@ import {
   mudarStatus,
   preencherComExemplo,
 } from "@/app/actions";
+import ZonaDePerigo from "./ZonaDePerigo";
 import type { OSCompleta, StatusOS } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -135,6 +136,8 @@ export default async function Painel({
           </button>
         </form>
       )}
+
+      {!busca && <ZonaDePerigo />}
     </div>
   );
 }

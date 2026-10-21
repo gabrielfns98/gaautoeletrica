@@ -447,21 +447,60 @@ export async function preencherComExemplo(): Promise<void> {
   revalidatePath("/financeiro");
 }
 
+function esvaziar(banco: {
+  clientes: unknown[];
+  vans: unknown[];
+  oss: unknown[];
+  itens: unknown[];
+  pagamentos: unknown[];
+  despesas: unknown[];
+  proximoNumero: number;
+}) {
+  banco.clientes = [];
+  banco.vans = [];
+  banco.oss = [];
+  banco.itens = [];
+  banco.pagamentos = [];
+  banco.despesas = [];
+  banco.proximoNumero = 1;
+}
+
 /** Só funciona se TODAS as OS forem de exemplo. */
 export async function limparExemplo(): Promise<void> {
   await requireUser();
 
   await alterarBanco((banco) => {
     if (banco.oss.length === 0 || !banco.oss.every((os) => os.demo)) return;
-    banco.clientes = [];
-    banco.vans = [];
-    banco.oss = [];
-    banco.itens = [];
-    banco.pagamentos = [];
-    banco.despesas = [];
-    banco.proximoNumero = 1;
+    esvaziar(banco);
   });
 
   revalidatePath("/");
   revalidatePath("/financeiro");
+}
+
+/** Apaga TUDO, inclusive dado real. Exige a confirmação digitada. */
+const CONFIRMACAO_ZERAR = "APAGAR TUDO";
+
+export async function zerarSistema(
+  _anterior: ResultadoAction | null,
+  formData: FormData,
+): Promise<ResultadoAction> {
+  await requireUser();
+
+  const dados = z
+    .object({ confirmacao: z.string() })
+    .safeParse(Object.fromEntries(formData));
+
+  if (
+    !dados.success ||
+    dados.data.confirmacao.trim().toUpperCase() !== CONFIRMACAO_ZERAR
+  ) {
+    return { erro: `Para confirmar, digite ${CONFIRMACAO_ZERAR} exatamente assim.` };
+  }
+
+  await alterarBanco((banco) => esvaziar(banco));
+
+  revalidatePath("/");
+  revalidatePath("/financeiro");
+  return {};
 }
