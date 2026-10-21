@@ -10,6 +10,7 @@ import { OFICINA, numeroCurto } from "@/lib/oficina";
 import { reais, dataBR } from "@/lib/format";
 import { formatarPlaca } from "@/lib/placa";
 import { calcularTotais, subtotalItem, type ItemCalculo } from "@/lib/orcamento";
+import { registrarFontes } from "@/lib/pdf/registrarFontes";
 
 export type DadosOrcamento = {
   numero: number;
@@ -25,13 +26,16 @@ export type DadosOrcamento = {
   logoDataUri: string | null;
 };
 
+/** Roboto quando os arquivos existem; senão a Helvetica interna do PDF. */
+const FAMILIA = registrarFontes();
+
 const COR = OFICINA.corPrimaria;
 const CINZA = "#6B7280";
 const BORDA = "#E5E7EB";
 
 const s = StyleSheet.create({
   page: {
-    fontFamily: "Roboto",
+    fontFamily: FAMILIA,
     fontSize: 9,
     color: "#111827",
     paddingTop: 24,

@@ -5,7 +5,6 @@ import { buscarOS } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { numeroCurto } from "@/lib/oficina";
 import { somarDias } from "@/lib/format";
-import { registrarFontes } from "@/lib/pdf/registrarFontes";
 import { OrcamentoPDF } from "@/lib/pdf/OrcamentoPDF";
 
 export const runtime = "nodejs";
@@ -31,8 +30,6 @@ export async function GET(
   const os = await buscarOS(osId);
 
   if (!os) return new Response("OS não encontrada.", { status: 404 });
-
-  registrarFontes();
 
   const emissao = new Date();
   const buffer = await renderToBuffer(
