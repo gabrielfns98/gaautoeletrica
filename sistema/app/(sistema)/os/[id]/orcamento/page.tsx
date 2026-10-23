@@ -4,6 +4,7 @@ import { buscarOS } from "@/lib/db";
 import { reais, dataBR, somarDias } from "@/lib/format";
 import { formatarPlaca } from "@/lib/placa";
 import { numeroCurto } from "@/lib/oficina";
+import { paraWhatsApp } from "@/lib/telefone";
 import { calcularTotais } from "@/lib/orcamento";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export default async function TelaOrcamento({
     `${os.van.modelo} placa ${formatarPlaca(os.van.placa)}, no valor de ` +
     `${reais(totais.totalCentavos)}. Validade: ${dataBR(validadeAte)}.`;
 
-  const whatsapp = `https://wa.me/${os.van.cliente.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(mensagem)}`;
+  const whatsapp = `https://wa.me/${paraWhatsApp(os.van.cliente.telefone)}?text=${encodeURIComponent(mensagem)}`;
 
   return (
     <div className="space-y-4">
