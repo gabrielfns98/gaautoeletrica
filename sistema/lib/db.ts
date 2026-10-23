@@ -206,12 +206,14 @@ export async function lerLogo(): Promise<string | null> {
     valor = null; // ainda não enviaram logo
   }
 
-  logoEmMemoria = { valor, em: Date.now() };
+  // só guarda logo encontrada: cada instância tem a sua memória, e guardar
+  // "não existe" faria a logo recém-enviada sumir até o prazo vencer
+  if (valor !== null) logoEmMemoria = { valor, em: Date.now() };
   return valor;
 }
 
 export async function gravarLogo(dataUri: string | null): Promise<void> {
-  logoEmMemoria = { valor: dataUri, em: Date.now() };
+  logoEmMemoria = dataUri === null ? null : { valor: dataUri, em: Date.now() };
   const conteudo = dataUri ?? "";
 
   if (LOCAL) {

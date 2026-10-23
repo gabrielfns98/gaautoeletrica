@@ -106,6 +106,12 @@ export default function FormLogo({ logoAtual }: { logoAtual: string | null }) {
         <p className="mt-2 text-sm font-medium text-red-700">{erroLocal ?? estado?.erro}</p>
       )}
 
+      {estado && !estado.erro && !erroLocal && (
+        <p className="mt-2 text-sm font-medium text-emerald-700">
+          Logo salva. Ela já aparece no topo e nos próximos orçamentos.
+        </p>
+      )}
+
       {previa && (
         <button type="submit" disabled={enviando} className={`${BOTAO_PRIMARIO} mt-3 w-full py-3`}>
           {enviando ? "Salvando..." : "Salvar esta logo"}
