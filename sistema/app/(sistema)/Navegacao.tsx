@@ -7,6 +7,7 @@ import { OFICINA } from "@/lib/oficina";
 const ABAS = [
   { href: "/", label: "Painel" },
   { href: "/financeiro", label: "Financeiro" },
+  { href: "/historico", label: "Histórico" },
 ];
 
 export default function Navegacao() {
