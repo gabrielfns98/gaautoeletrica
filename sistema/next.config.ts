@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
     "/api/orcamento/[osId]/pdf": [
       "./node_modules/pdfkit/js/standard-fonts/**",
       "./node_modules/pdfkit/js/data/**",
-      "./public/logo.png",
       "./public/fonts/**",
     ],
   },

@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { buscarOS, lerLogo } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -9,15 +7,6 @@ import { OrcamentoPDF } from "@/lib/pdf/OrcamentoPDF";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function lerLogoDoDisco(): string | null {
-  try {
-    const arquivo = path.join(process.cwd(), "public", "logo.png");
-    return `data:image/png;base64,${fs.readFileSync(arquivo).toString("base64")}`;
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(
   _request: Request,
@@ -54,7 +43,7 @@ export async function GET(
         quantidade: i.quantidade,
         valorUnitarioCentavos: i.valorUnitarioCentavos,
       })),
-      logoDataUri: (await lerLogo()) ?? lerLogoDoDisco(),
+      logoDataUri: await lerLogo(),
     }),
   );
 

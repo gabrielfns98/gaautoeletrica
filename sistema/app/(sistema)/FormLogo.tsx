@@ -4,10 +4,16 @@ import { useActionState, useState } from "react";
 import { salvarLogo, type ResultadoAction } from "@/app/actions";
 import { BOTAO_PRIMARIO, BOTAO_SECUNDARIO } from "@/lib/ui";
 
-/** Reduz a imagem no navegador antes de enviar: o servidor guarda pouco. */
-const LADO_MAXIMO = 420;
+/**
+ * Reduz a imagem no navegador e já a entrega recortada em círculo: nem o
+ * cabeçalho do sistema nem o leitor de PDF arredondam a borda por conta
+ * própria, então o recorte precisa vir na própria imagem.
+ */
+const LADO = 360;
+/** A arte não encosta na borda do círculo, senão o nome da marca é cortado. */
+const PROPORCAO_DA_ARTE = 0.8;
 
-function reduzir(arquivo: File): Promise<string> {
+function recortarEmCirculo(arquivo: File): Promise<string> {
   return new Promise((pronto, falhou) => {
     const leitor = new FileReader();
     leitor.onerror = () => falhou(new Error("Não consegui ler o arquivo."));
@@ -15,20 +21,28 @@ function reduzir(arquivo: File): Promise<string> {
       const img = new Image();
       img.onerror = () => falhou(new Error("Arquivo não é uma imagem válida."));
       img.onload = () => {
-        const escala = Math.min(1, LADO_MAXIMO / Math.max(img.width, img.height));
-        const largura = Math.round(img.width * escala);
-        const altura = Math.round(img.height * escala);
-
         const tela = document.createElement("canvas");
-        tela.width = largura;
-        tela.height = altura;
+        tela.width = LADO;
+        tela.height = LADO;
         const ctx = tela.getContext("2d");
         if (!ctx) return falhou(new Error("Navegador não suporta o redimensionamento."));
-        ctx.drawImage(img, 0, 0, largura, altura);
 
-        // PNG preserva o traço da logo; se ficar grande demais, cai para JPG.
-        const png = tela.toDataURL("image/png");
-        pronto(png.length <= 380_000 ? png : tela.toDataURL("image/jpeg", 0.85));
+        const raio = LADO / 2;
+        ctx.beginPath();
+        ctx.arc(raio, raio, raio, 0, Math.PI * 2);
+        ctx.clip();
+
+        // o fundo escuro acompanha logos desenhadas sobre preto
+        ctx.fillStyle = "#080808";
+        ctx.fillRect(0, 0, LADO, LADO);
+
+        const lado = LADO * PROPORCAO_DA_ARTE;
+        const escala = Math.min(lado / img.width, lado / img.height);
+        const largura = img.width * escala;
+        const altura = img.height * escala;
+        ctx.drawImage(img, (LADO - largura) / 2, (LADO - altura) / 2, largura, altura);
+
+        pronto(tela.toDataURL("image/png"));
       };
       img.src = String(leitor.result);
     };
@@ -49,7 +63,7 @@ export default function FormLogo({ logoAtual }: { logoAtual: string | null }) {
     if (!arquivo) return;
     setErroLocal(null);
     try {
-      setPrevia(await reduzir(arquivo));
+      setPrevia(await recortarEmCirculo(arquivo));
     } catch (erro) {
       setErroLocal(erro instanceof Error ? erro.message : "Não consegui ler a imagem.");
     }
@@ -82,7 +96,7 @@ export default function FormLogo({ logoAtual }: { logoAtual: string | null }) {
             />
           </label>
           <p className="mt-1 text-xs text-slate-500">
-            PNG, JPG ou WEBP. A imagem é reduzida automaticamente e aparece no topo do
+            PNG, JPG ou WEBP. A imagem é recortada em círculo e aparece no topo do
             sistema e no cabeçalho do orçamento.
           </p>
         </div>

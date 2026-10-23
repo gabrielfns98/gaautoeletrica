@@ -10,8 +10,7 @@ export default async function SistemaLayout({
   children: React.ReactNode;
 }) {
   await requireUser();
-  // sem logo enviada pelo painel, usa a que vem no projeto
-  const logo = (await lerLogo()) ?? "/logo.png";
+  const logo = await lerLogo();
 
   return (
     <>
