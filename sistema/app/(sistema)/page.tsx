@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listarTodasOS } from "@/lib/db";
+import { lerLogo, listarTodasOS } from "@/lib/db";
 import { ordenarFila, estaAtrasada } from "@/lib/fila";
 import { dataBR, diasNaOficina, reais, resumir } from "@/lib/format";
 import { financeiroDaOS } from "@/lib/financeiro";
@@ -21,6 +21,7 @@ import {
   mudarStatus,
   preencherComExemplo,
 } from "@/app/actions";
+import FormLogo from "./FormLogo";
 import ZonaDePerigo from "./ZonaDePerigo";
 import type { OSCompleta, StatusOS } from "@/lib/tipos";
 
@@ -43,6 +44,7 @@ export default async function Painel({
   const busca = (q ?? "").trim();
 
   const { oss: historico } = await listarTodasOS();
+  const logo = await lerLogo();
   const todas = historico.filter((os) => os.status !== "entregue");
   const sistemaVazio = historico.length === 0;
   const soExemplo = historico.length > 0 && historico.every((os) => os.demo);
@@ -50,8 +52,10 @@ export default async function Painel({
   const placaBusca = normalizarPlaca(busca);
   const somenteDigitos = busca.replace(/\D/g, "");
 
+  // Na busca, procura também nas OS já entregues: a van some do painel quando
+  // é entregue, mas quem digita a placa espera achá-la.
   const oss = busca
-    ? todas.filter(
+    ? historico.filter(
         (os) =>
           (placaBusca.length > 0 && os.van.placa.includes(placaBusca)) ||
           os.van.modelo.toLowerCase().includes(termo) ||
@@ -65,6 +69,11 @@ export default async function Painel({
   );
   const aguardando = ordenarFila(oss.filter((o) => o.status === "aguardando_peca"));
   const prontas = ordenarFila(oss.filter((o) => o.status === "pronta"));
+  const entregues = busca
+    ? oss
+        .filter((o) => o.status === "entregue")
+        .sort((a, b) => (b.dataEntrega ?? "").localeCompare(a.dataEntrega ?? ""))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -122,6 +131,9 @@ export default async function Painel({
         itens={aguardando}
       />
       <Secao titulo="Prontas para retirada" vazio="Nenhuma van pronta." itens={prontas} />
+      {entregues.length > 0 && (
+        <Secao titulo="Já entregues" vazio="" itens={entregues} />
+      )}
 
       {soExemplo && (
         <form action={limparExemplo} className="border-t border-slate-200 pt-4 text-center">
@@ -135,6 +147,17 @@ export default async function Painel({
             Apagar os dados de exemplo e começar do zero
           </button>
         </form>
+      )}
+
+      {!busca && (
+        <details className="mt-8 border-t border-slate-200 pt-4">
+          <summary className="cursor-pointer text-center text-xs font-medium text-slate-400 hover:text-slate-600">
+            Logo da oficina
+          </summary>
+          <div className="mx-auto max-w-md">
+            <FormLogo logoAtual={logo} />
+          </div>
+        </details>
       )}
 
       {!busca && <ZonaDePerigo />}

@@ -42,10 +42,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 32,
     paddingBottom: 52,
   },
-  cabecalho: { flexDirection: "row", alignItems: "flex-start", marginBottom: 10 },
-  logo: { width: 150, height: 50, objectFit: "contain" },
+  cabecalho: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  logo: { width: 72, height: 72, borderRadius: 36, objectFit: "cover" },
   logoFallback: { fontSize: 14, fontWeight: 700, color: COR, width: 150 },
-  oficina: { flex: 1, textAlign: "right", color: CINZA, lineHeight: 1.4 },
+  oficina: { flex: 1, textAlign: "right", color: CINZA, lineHeight: 1.25 },
   oficinaNome: { fontSize: 11, fontWeight: 700, color: "#111827" },
 
   faixa: {

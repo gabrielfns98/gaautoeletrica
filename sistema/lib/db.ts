@@ -13,10 +13,12 @@ import type {
 } from "@/lib/tipos";
 
 const ARQUIVO = "oficina/dados.json";
+const ARQUIVO_LOGO = "oficina/logo.txt";
 
 /** Sem token do Blob (ex.: `npm run dev` na sua máquina), grava num arquivo local. */
 const LOCAL = !process.env.BLOB_READ_WRITE_TOKEN;
 const ARQUIVO_LOCAL = path.join(process.cwd(), ".dados-local.json");
+const ARQUIVO_LOGO_LOCAL = path.join(process.cwd(), ".logo-local.txt");
 
 export type Banco = {
   clientes: Cliente[];
@@ -174,4 +176,53 @@ export async function listarTodasOS(): Promise<{
     .sort((a, b) => b.dataEntrada.localeCompare(a.dataEntrada));
   const despesas = [...banco.despesas].sort((a, b) => b.data.localeCompare(a.data));
   return { oss, despesas };
+}
+
+/* ---------------------------------- Logo ---------------------------------- */
+
+/**
+ * A logo fica num arquivo separado do banco: é grande e muda quase nunca, então
+ * não faz sentido carregá-la em toda leitura. Guardamos em memória por 5min.
+ */
+let logoEmMemoria: { valor: string | null; em: number } | null = null;
+const VALIDADE_LOGO_MS = 5 * 60_000;
+
+export async function lerLogo(): Promise<string | null> {
+  if (logoEmMemoria && Date.now() - logoEmMemoria.em < VALIDADE_LOGO_MS) {
+    return logoEmMemoria.valor;
+  }
+
+  let valor: string | null = null;
+  try {
+    if (LOCAL) {
+      valor = (await fs.readFile(ARQUIVO_LOGO_LOCAL, "utf8")).trim() || null;
+    } else {
+      const resultado = await get(ARQUIVO_LOGO, { access: "private", useCache: false });
+      if (resultado && resultado.statusCode === 200) {
+        valor = (await new Response(resultado.stream).text()).trim() || null;
+      }
+    }
+  } catch {
+    valor = null; // ainda não enviaram logo
+  }
+
+  logoEmMemoria = { valor, em: Date.now() };
+  return valor;
+}
+
+export async function gravarLogo(dataUri: string | null): Promise<void> {
+  logoEmMemoria = { valor: dataUri, em: Date.now() };
+  const conteudo = dataUri ?? "";
+
+  if (LOCAL) {
+    await fs.writeFile(ARQUIVO_LOGO_LOCAL, conteudo, "utf8");
+    return;
+  }
+  await put(ARQUIVO_LOGO, conteudo, {
+    access: "private",
+    contentType: "text/plain",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    cacheControlMaxAge: 0,
+  });
 }

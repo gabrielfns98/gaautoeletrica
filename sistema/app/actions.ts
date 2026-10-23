@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { alterarBanco, novoId } from "@/lib/db";
+import { alterarBanco, gravarLogo, novoId } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { normalizarPlaca, placaValida } from "@/lib/placa";
 import { paraCentavos } from "@/lib/format";
@@ -503,4 +503,44 @@ export async function zerarSistema(
   revalidatePath("/");
   revalidatePath("/financeiro");
   return {};
+}
+
+/* ---------------------------------- Logo ---------------------------------- */
+
+/** 400 KB já é folgado para uma logo redimensionada no navegador. */
+const LIMITE_LOGO = 400_000;
+
+export async function salvarLogo(
+  _anterior: ResultadoAction | null,
+  formData: FormData,
+): Promise<ResultadoAction> {
+  await requireUser();
+
+  const dados = z
+    .object({ logo: z.string().trim().min(1, "Escolha um arquivo de imagem.") })
+    .safeParse(Object.fromEntries(formData));
+
+  if (!dados.success) {
+    return { erro: dados.error.issues[0]?.message ?? "Imagem inválida." };
+  }
+  const logo = dados.data.logo;
+
+  if (!/^data:image\/(png|jpeg|webp);base64,/.test(logo)) {
+    return { erro: "Use uma imagem PNG, JPG ou WEBP." };
+  }
+  if (logo.length > LIMITE_LOGO) {
+    return { erro: "Imagem muito grande. Tente uma menor." };
+  }
+
+  await gravarLogo(logo);
+
+  revalidatePath("/");
+  revalidatePath("/financeiro");
+  return {};
+}
+
+export async function removerLogo(): Promise<void> {
+  await requireUser();
+  await gravarLogo(null);
+  revalidatePath("/");
 }
