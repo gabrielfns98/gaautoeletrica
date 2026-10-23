@@ -3,15 +3,15 @@
  * Não existe tela de configuração: edite este arquivo e troque /public/logo.png.
  */
 export const OFICINA = {
-  nome: "Oficina",
-  telefone: "(11) 99999-0000",
-  whatsapp: "5511999990000", // só dígitos, com 55 + DDD (usado no link wa.me)
-  endereco: "Rua das Oficinas, 123 — Vila Industrial",
-  cidade: "São Paulo — SP",
-  cnpj: "12.345.678/0001-90",
-  email: "contato@oficina.com.br",
+  nome: "Oficina Mecânica D Multimarcas",
+  telefone: "(34) 98816-6509",
+  whatsapp: "5534988166509", // só dígitos, com 55 + DDD (usado no link wa.me)
+  endereco: "Rua Terezinha Cândida Medosa, 59 — Bairro Filhinha Mendes",
+  cidade: "", // opcional: "" esconde do PDF
+  cnpj: "14.263.699/0001-72",
+  email: "", // opcional: "" esconde do PDF
   instagram: "", // opcional: "" esconde do PDF
-  pix: "12.345.678/0001-90", // opcional: "" esconde do PDF
+  pix: "14.263.699/0001-72", // opcional: "" esconde do PDF
   corPrimaria: "#1D4ED8",
   condicoesPadrao: [
     "Orçamento sujeito a alteração caso sejam encontrados outros defeitos durante o serviço.",

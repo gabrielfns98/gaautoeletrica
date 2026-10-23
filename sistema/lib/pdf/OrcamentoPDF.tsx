@@ -190,9 +190,10 @@ export function OrcamentoPDF(dados: DadosOrcamento) {
             <Text style={s.oficinaNome}>{OFICINA.nome}</Text>
             <Text>CNPJ {OFICINA.cnpj}</Text>
             <Text>{OFICINA.endereco}</Text>
-            <Text>{OFICINA.cidade}</Text>
+            {OFICINA.cidade ? <Text>{OFICINA.cidade}</Text> : null}
             <Text>
-              {OFICINA.telefone} · {OFICINA.email}
+              {OFICINA.telefone}
+              {OFICINA.email ? ` · ${OFICINA.email}` : ""}
             </Text>
           </View>
         </View>
@@ -325,7 +326,8 @@ export function OrcamentoPDF(dados: DadosOrcamento) {
         {/* 9. Rodapé com paginação */}
         <View style={s.rodape} fixed>
           <Text>
-            {OFICINA.nome} · {OFICINA.telefone} · {OFICINA.email}
+            {OFICINA.nome} · {OFICINA.telefone}
+            {OFICINA.email ? ` · ${OFICINA.email}` : ""}
             {OFICINA.instagram ? ` · ${OFICINA.instagram}` : ""}
           </Text>
           <Text
