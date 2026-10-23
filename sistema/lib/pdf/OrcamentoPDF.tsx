@@ -43,7 +43,8 @@ const s = StyleSheet.create({
     paddingBottom: 52,
   },
   cabecalho: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  logo: { width: 72, height: 72, borderRadius: 36, objectFit: "cover" },
+  // o recorte redondo vem na própria imagem: o leitor de PDF não arredonda nada
+  logo: { width: 76, height: 76, objectFit: "contain" },
   logoFallback: { fontSize: 14, fontWeight: 700, color: COR, width: 150 },
   oficina: { flex: 1, textAlign: "right", color: CINZA, lineHeight: 1.25 },
   oficinaNome: { fontSize: 11, fontWeight: 700, color: "#111827" },
