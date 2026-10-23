@@ -517,22 +517,29 @@ export async function salvarLogo(
   await requireUser();
 
   const dados = z
-    .object({ logo: z.string().trim().min(1, "Escolha um arquivo de imagem.") })
+    .object({
+      logo: z.string().trim().min(1, "Escolha um arquivo de imagem."),
+      icone: z.string().trim().optional(),
+    })
     .safeParse(Object.fromEntries(formData));
 
   if (!dados.success) {
     return { erro: dados.error.issues[0]?.message ?? "Imagem inválida." };
   }
-  const logo = dados.data.logo;
+  const { logo, icone } = dados.data;
+  const imagemValida = /^data:image\/(png|jpeg|webp);base64,/;
 
-  if (!/^data:image\/(png|jpeg|webp);base64,/.test(logo)) {
+  if (!imagemValida.test(logo)) {
     return { erro: "Use uma imagem PNG, JPG ou WEBP." };
   }
   if (logo.length > LIMITE_LOGO) {
     return { erro: "Imagem muito grande. Tente uma menor." };
   }
+  // o ícone é gerado junto com a logo; se vier estranho, grava só a logo
+  const iconeValido =
+    icone && imagemValida.test(icone) && icone.length <= LIMITE_LOGO ? icone : null;
 
-  await gravarLogo(logo);
+  await gravarLogo(logo, iconeValido);
 
   revalidatePath("/");
   revalidatePath("/financeiro");

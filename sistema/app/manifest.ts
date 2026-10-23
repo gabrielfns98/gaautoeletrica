@@ -14,8 +14,9 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "pt-BR",
     background_color: "#f8fafc",
     theme_color: OFICINA.corPrimaria,
+    // o ícone enviado pelo painel é quadrado de 512: declarar outro tamanho
+    // faz o Chrome descartar o ícone na hora de instalar
     icons: [
-      { src: "/api/icone", sizes: "192x192", purpose: "any" },
       { src: "/api/icone", sizes: "512x512", purpose: "any" },
       { src: "/api/icone", sizes: "512x512", purpose: "maskable" },
     ],

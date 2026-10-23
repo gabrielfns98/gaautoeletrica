@@ -14,11 +14,13 @@ import type {
 
 const ARQUIVO = "oficina/dados.json";
 const ARQUIVO_LOGO = "oficina/logo.txt";
+const ARQUIVO_ICONE = "oficina/icone.txt";
 
 /** Sem token do Blob (ex.: `npm run dev` na sua máquina), grava num arquivo local. */
 const LOCAL = !process.env.BLOB_READ_WRITE_TOKEN;
 const ARQUIVO_LOCAL = path.join(process.cwd(), ".dados-local.json");
 const ARQUIVO_LOGO_LOCAL = path.join(process.cwd(), ".logo-local.txt");
+const ARQUIVO_ICONE_LOCAL = path.join(process.cwd(), ".icone-local.txt");
 
 export type Banco = {
   clientes: Cliente[];
@@ -212,19 +214,59 @@ export async function lerLogo(): Promise<string | null> {
   return valor;
 }
 
-export async function gravarLogo(dataUri: string | null): Promise<void> {
+export async function gravarLogo(
+  dataUri: string | null,
+  icone: string | null = null,
+): Promise<void> {
   logoEmMemoria = dataUri === null ? null : { valor: dataUri, em: Date.now() };
-  const conteudo = dataUri ?? "";
+  iconeEmMemoria = icone === null ? null : { valor: icone, em: Date.now() };
 
   if (LOCAL) {
-    await fs.writeFile(ARQUIVO_LOGO_LOCAL, conteudo, "utf8");
+    await fs.writeFile(ARQUIVO_LOGO_LOCAL, dataUri ?? "", "utf8");
+    await fs.writeFile(ARQUIVO_ICONE_LOCAL, icone ?? "", "utf8");
     return;
   }
-  await put(ARQUIVO_LOGO, conteudo, {
+  await put(ARQUIVO_LOGO, dataUri ?? "", {
     access: "private",
     contentType: "text/plain",
     addRandomSuffix: false,
     allowOverwrite: true,
     cacheControlMaxAge: 0,
   });
+  await put(ARQUIVO_ICONE, icone ?? "", {
+    access: "private",
+    contentType: "text/plain",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    cacheControlMaxAge: 0,
+  });
+}
+
+let iconeEmMemoria: { valor: string; em: number } | null = null;
+
+/**
+ * Versão quadrada usada como ícone do app instalado. Logos salvas antes
+ * desta versão não têm essa variante: aí vale a logo redonda mesmo.
+ */
+export async function lerIcone(): Promise<string | null> {
+  if (iconeEmMemoria && Date.now() - iconeEmMemoria.em < VALIDADE_LOGO_MS) {
+    return iconeEmMemoria.valor;
+  }
+
+  let valor: string | null = null;
+  try {
+    if (LOCAL) {
+      valor = (await fs.readFile(ARQUIVO_ICONE_LOCAL, "utf8")).trim() || null;
+    } else {
+      const resultado = await get(ARQUIVO_ICONE, { access: "private", useCache: false });
+      if (resultado && resultado.statusCode === 200) {
+        valor = (await new Response(resultado.stream).text()).trim() || null;
+      }
+    }
+  } catch {
+    valor = null;
+  }
+
+  if (valor !== null) iconeEmMemoria = { valor, em: Date.now() };
+  return valor ?? (await lerLogo());
 }

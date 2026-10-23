@@ -50,8 +50,54 @@ function recortarEmCirculo(arquivo: File): Promise<string> {
   });
 }
 
+/** Lado do ícone do app instalado. É o tamanho que o manifesto declara. */
+const LADO_ICONE = 512;
+/**
+ * O Android recorta o ícone no formato dele, então a arte precisa caber na
+ * área segura central; o fundo tem que ir de ponta a ponta, sem transparência.
+ */
+const PROPORCAO_AREA_SEGURA = 0.62;
+
+function gerarIcone(arquivo: File): Promise<string> {
+  return new Promise((pronto, falhou) => {
+    const leitor = new FileReader();
+    leitor.onerror = () => falhou(new Error("Não consegui ler o arquivo."));
+    leitor.onload = () => {
+      const img = new Image();
+      img.onerror = () => falhou(new Error("Arquivo não é uma imagem válida."));
+      img.onload = () => {
+        const tela = document.createElement("canvas");
+        tela.width = LADO_ICONE;
+        tela.height = LADO_ICONE;
+        const ctx = tela.getContext("2d");
+        if (!ctx) return falhou(new Error("Navegador não suporta o redimensionamento."));
+
+        ctx.fillStyle = "#080808";
+        ctx.fillRect(0, 0, LADO_ICONE, LADO_ICONE);
+
+        const lado = LADO_ICONE * PROPORCAO_AREA_SEGURA;
+        const escala = Math.min(lado / img.width, lado / img.height);
+        const largura = img.width * escala;
+        const altura = img.height * escala;
+        ctx.drawImage(
+          img,
+          (LADO_ICONE - largura) / 2,
+          (LADO_ICONE - altura) / 2,
+          largura,
+          altura,
+        );
+
+        pronto(tela.toDataURL("image/png"));
+      };
+      img.src = String(leitor.result);
+    };
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
 export default function FormLogo({ logoAtual }: { logoAtual: string | null }) {
   const [previa, setPrevia] = useState<string | null>(null);
+  const [icone, setIcone] = useState<string | null>(null);
   const [erroLocal, setErroLocal] = useState<string | null>(null);
   const [estado, enviar, enviando] = useActionState<ResultadoAction | null, FormData>(
     salvarLogo,
@@ -63,7 +109,12 @@ export default function FormLogo({ logoAtual }: { logoAtual: string | null }) {
     if (!arquivo) return;
     setErroLocal(null);
     try {
-      setPrevia(await recortarEmCirculo(arquivo));
+      const [redonda, quadrada] = await Promise.all([
+        recortarEmCirculo(arquivo),
+        gerarIcone(arquivo),
+      ]);
+      setPrevia(redonda);
+      setIcone(quadrada);
     } catch (erro) {
       setErroLocal(erro instanceof Error ? erro.message : "Não consegui ler a imagem.");
     }
@@ -74,6 +125,7 @@ export default function FormLogo({ logoAtual }: { logoAtual: string | null }) {
   return (
     <form action={enviar} className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
       <input type="hidden" name="logo" value={previa ?? ""} />
+      <input type="hidden" name="icone" value={icone ?? ""} />
 
       <div className="flex items-center gap-4">
         <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border border-slate-200 bg-slate-900">

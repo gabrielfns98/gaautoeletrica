@@ -1,4 +1,4 @@
-import { lerLogo } from "@/lib/db";
+import { lerIcone } from "@/lib/db";
 import { OFICINA } from "@/lib/oficina";
 
 export const runtime = "nodejs";
@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /** Ícone do app instalado: a logo enviada ou um fallback com a inicial. */
 export async function GET() {
-  const logo = await lerLogo();
+  const logo = await lerIcone();
   const casa = logo?.match(/^data:(image\/[a-z+]+);base64,(.+)$/);
 
   if (casa) {
