@@ -10,6 +10,7 @@ import { STATUS_LABEL, TIPO_ITEM_LABEL } from "@/lib/status";
 import { BOTAO_FANTASMA, CARTAO_PAD, TITULO_SECAO } from "@/lib/ui";
 import { removerItem, removerPagamento } from "@/app/actions";
 import FormOS from "./FormOS";
+import FormVeiculo from "./FormVeiculo";
 import FormItem from "./FormItem";
 import FormPagamento from "./FormPagamento";
 
@@ -72,6 +73,27 @@ export default async function FichaOS({ params }: { params: Promise<{ id: string
           observacoesOrcamento: os.observacoesOrcamento,
         }}
       />
+
+      <details className={CARTAO_PAD}>
+        <summary className={`cursor-pointer ${TITULO_SECAO}`}>
+          Corrigir placa, veículo ou cliente
+        </summary>
+        <FormVeiculo
+          osId={os.id}
+          van={{
+            id: os.van.id,
+            placa: os.van.placa,
+            modelo: os.van.modelo,
+            ano: os.van.ano,
+            obs: os.van.obs,
+          }}
+          cliente={{
+            nome: os.van.cliente.nome,
+            telefone: os.van.cliente.telefone,
+            obs: os.van.cliente.obs,
+          }}
+        />
+      </details>
 
       <section className={CARTAO_PAD}>
         <h2 className={TITULO_SECAO}>Peças e serviços</h2>

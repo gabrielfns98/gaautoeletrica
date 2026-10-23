@@ -240,6 +240,66 @@ export async function salvarOS(
   return {};
 }
 
+const veiculoSchema = z.object({
+  osId: z.string().min(1),
+  vanId: z.string().min(1),
+  placa: placaSchema,
+  modelo: texto(120).min(2, "Informe o modelo do veículo."),
+  ano: inteiroOpcional,
+  obsVan: texto().optional(),
+  clienteNome: texto(120).min(2, "Informe o nome do cliente."),
+  clienteTelefone: telefoneSchema,
+  obsCliente: texto().optional(),
+});
+
+/** Corrige o cadastro do veículo e do cliente (placa trocada, telefone errado…). */
+export async function salvarVeiculo(
+  _anterior: ResultadoAction | null,
+  formData: FormData,
+): Promise<ResultadoAction> {
+  await requireUser();
+
+  const dados = veiculoSchema.safeParse(Object.fromEntries(formData));
+  if (!dados.success) {
+    return { erro: dados.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const d = dados.data;
+
+  const resultado = await alterarBanco((banco) => {
+    const van = banco.vans.find((v) => v.id === d.vanId);
+    if (!van) return { erro: "Veículo não encontrado." };
+
+    // duas vans com a mesma placa quebrariam a busca e o histórico
+    const repetida = banco.vans.some((v) => v.id !== van.id && v.placa === d.placa);
+    if (repetida) {
+      return { erro: `Já existe outro veículo cadastrado com a placa ${d.placa}.` };
+    }
+
+    const cliente = banco.clientes.find((c) => c.id === van.clienteId);
+    if (!cliente) return { erro: "Cliente não encontrado." };
+
+    const placaAnterior = van.placa;
+    van.placa = d.placa;
+    van.modelo = d.modelo;
+    van.ano = d.ano;
+    van.obs = d.obsVan || null;
+
+    cliente.nome = d.clienteNome;
+    cliente.telefone = d.clienteTelefone;
+    cliente.obs = d.obsCliente || null;
+
+    return { placaAnterior };
+  });
+
+  if (resultado.erro) return { erro: resultado.erro };
+
+  revalidatePath("/");
+  revalidatePath(`/os/${d.osId}`);
+  revalidatePath(`/van/${d.placa}`);
+  if (resultado.placaAnterior) revalidatePath(`/van/${resultado.placaAnterior}`);
+  return {};
+}
+
 const itemSchema = z.object({
   osId: z.string().min(1),
   tipo: z.enum(["peca_comprada", "peca_reparada", "mao_de_obra"]),
