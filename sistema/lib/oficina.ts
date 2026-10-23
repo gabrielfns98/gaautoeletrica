@@ -6,7 +6,7 @@ export const OFICINA = {
   nome: "Oficina Mecânica D Multimarcas",
   telefone: "(34) 98816-6509",
   whatsapp: "5534988166509", // só dígitos, com 55 + DDD (usado no link wa.me)
-  endereco: "Rua Terezinha Cândida Medosa, 59 — Bairro Filhinha Mendes",
+  endereco: "Rua Terezinha Cândida Mendonça, 59 — Bairro Filhinha Mendes",
   cidade: "", // opcional: "" esconde do PDF
   cnpj: "14.263.699/0001-72",
   email: "", // opcional: "" esconde do PDF
