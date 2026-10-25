@@ -7,6 +7,7 @@ import { numeroOrcamento } from "@/lib/oficina";
 import { calcularTotais } from "@/lib/orcamento";
 import { STATUS_CLASSE, STATUS_LABEL, TIPO_ITEM_LABEL } from "@/lib/status";
 import { BOTAO_FANTASMA, CARTAO_PAD } from "@/lib/ui";
+import FormExcluirVeiculo from "./FormExcluirVeiculo";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,20 @@ export default async function HistoricoVan({
           })}
         </ol>
       )}
+
+      <FormExcluirVeiculo
+        vanId={van.id}
+        placa={formatarPlaca(van.placa)}
+        resumo={{
+          os: oss.length,
+          pagamentos: oss.reduce((total, os) => total + os.pagamentos.length, 0),
+          recebidoCentavos: oss.reduce(
+            (total, os) =>
+              total + os.pagamentos.reduce((soma, p) => soma + Math.max(0, p.valorCentavos), 0),
+            0,
+          ),
+        }}
+      />
     </div>
   );
 }

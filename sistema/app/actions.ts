@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { alterarBanco, gravarLogo, novoId } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { normalizarPlaca, placaValida } from "@/lib/placa";
+import { formatarPlaca, normalizarPlaca, placaValida } from "@/lib/placa";
 import { paraCentavos } from "@/lib/format";
 import { OBSERVACOES_ORCAMENTO_PADRAO } from "@/lib/oficina";
 import { bancoDemo } from "@/lib/demo";
@@ -298,6 +298,57 @@ export async function salvarVeiculo(
   revalidatePath(`/van/${d.placa}`);
   if (resultado.placaAnterior) revalidatePath(`/van/${resultado.placaAnterior}`);
   return {};
+}
+
+const excluirVeiculoSchema = z.object({
+  vanId: z.string().min(1),
+  confirmacao: z.string(),
+});
+
+/**
+ * Apaga o veículo e tudo que pendura nele: OS, itens e pagamentos. É o único
+ * jeito de tirar do sistema um carro cadastrado por engano — por isso pede a
+ * placa digitada e não só um clique.
+ */
+export async function excluirVeiculo(
+  _anterior: ResultadoAction | null,
+  formData: FormData,
+): Promise<ResultadoAction> {
+  await requireUser();
+
+  const dados = excluirVeiculoSchema.safeParse(Object.fromEntries(formData));
+  if (!dados.success) return { erro: "Dados inválidos." };
+  const { vanId, confirmacao } = dados.data;
+
+  const resultado = await alterarBanco((banco) => {
+    const van = banco.vans.find((v) => v.id === vanId);
+    if (!van) return { erro: "Veículo não encontrado." };
+
+    if (normalizarPlaca(confirmacao) !== van.placa) {
+      return { erro: `Para confirmar, digite a placa ${formatarPlaca(van.placa)}.` };
+    }
+
+    const osDaVan = new Set(banco.oss.filter((o) => o.vanId === van.id).map((o) => o.id));
+    banco.itens = banco.itens.filter((i) => !osDaVan.has(i.osId));
+    banco.pagamentos = banco.pagamentos.filter((p) => !osDaVan.has(p.osId));
+    banco.oss = banco.oss.filter((o) => o.vanId !== van.id);
+    banco.vans = banco.vans.filter((v) => v.id !== van.id);
+
+    // cliente que não tem mais nenhum veículo não precisa ficar no cadastro
+    const temOutroVeiculo = banco.vans.some((v) => v.clienteId === van.clienteId);
+    if (!temOutroVeiculo) {
+      banco.clientes = banco.clientes.filter((c) => c.id !== van.clienteId);
+    }
+
+    return {};
+  });
+
+  if (resultado.erro) return { erro: resultado.erro };
+
+  revalidatePath("/");
+  revalidatePath("/financeiro");
+  revalidatePath("/historico");
+  redirect("/");
 }
 
 const itemSchema = z.object({
