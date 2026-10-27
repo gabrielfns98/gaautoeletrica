@@ -69,7 +69,39 @@ Coberto por 34 asserções:
 npx tsx src/lims/lib/curva.test.ts
 ```
 
+## Importação — o caminho principal de entrada
+
+Amostras e resultados chegam em planilha, não digitados um a um. `lib/importacao.ts`
+cuida do que precisa estar certo antes de qualquer tela ver o dado:
+
+- **Separador detectado por consistência**, não por contagem: um endereço com
+  vírgulas não faz a vírgula vencer num arquivo separado por ponto-e-vírgula.
+- **Decimal conforme o separador** — com `;` ou tabulação a vírgula é decimal;
+  com `,` só o ponto pode ser. `1.234,56` e `1,234.56` caem no mesmo número.
+- **Cabeçalho** reconhecido pelo contraste texto/número e, quando a planilha é
+  toda textual (o caso de uma relação de amostras), pela unicidade dos rótulos.
+- Aspas escapadas, separador e quebra de linha dentro do campo, BOM e CRLF.
+- **Mapeamento de coluna sugerido** por sinônimo do título, e confirmado na tela.
+  Palpite, não decisão.
+
+Coberto por 44 asserções:
+
+```sh
+npx tsx src/lims/lib/importacao.test.ts
+```
+
+A tela fica em `/lab/importacao`, com dois fluxos — amostras e resultados — e a
+mesma sequência: colar ou subir, conferir colunas, revisar linha a linha, gravar.
+Linha com erro não entra; linha com ressalva entra só na parte aproveitável.
+Colar direto do Excel funciona: o Ctrl+C da planilha produz TSV.
+
+> Planilha `.xlsx` ainda não é lida direto — exige uma dependência nova. Por ora
+> o caminho é salvar como CSV ou colar as células.
+
 ### Aquisição do sinal — `lib/serial.ts`
+
+A leitura ao vivo do pHmetro continua disponível e é o caminho mais rastreável,
+mas é o secundário: a operação entra por importação.
 
 Três caminhos, intercambiáveis pela mesma interface `FontePh`:
 
@@ -87,6 +119,7 @@ Três caminhos, intercambiáveis pela mesma interface `FontePh`:
 |---|---|
 | `/lab` | Painel: fluxo de amostras, acidez do solo, produtividade da bancada, estado dos pHmetros |
 | `/lab/recepcao` | Protocolo de lotes, conferência de conformidade, abertura automática dos ensaios |
+| `/lab/importacao` | **Importação de amostras e resultados** a partir de planilha |
 | `/lab/amostras` | Acervo, ficha completa com curva de estabilização e interpretação agronômica |
 | `/lab/ph` | **Bancada, calibração, controle de qualidade e importação** |
 | `/lab/resultados` | **Lançamento em grade** — filtra a corrida e digita por coluna |
