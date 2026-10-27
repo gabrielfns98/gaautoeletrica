@@ -577,10 +577,10 @@ function phTipico(grupoId: GrupoAnaliseId, extrator: string): number {
 let seqProtocolo = 14_200;
 const ano = String(HOJE.getFullYear()).slice(2);
 
-for (let l = 0; l < 120; l++) {
+for (let l = 0; l < 210; l++) {
   const cliente = escolher(clientes.filter((c) => c.ativo));
   const diasAtrasRecepcao = inteiro(0, 115);
-  const qtd = inteiro(2, 14);
+  const qtd = inteiro(3, 17);
 
   const lote: LoteRecepcao = {
     id: `rec-${String(l + 1).padStart(3, '0')}`,
@@ -821,16 +821,22 @@ export const titulos: Titulo[] = [];
 export const notasFiscais: NotaFiscal[] = [];
 
 const CATEGORIAS_RECEITA = ['Análises de solo', 'Análises foliares', 'Análises de água', 'Corretivos e fertilizantes', 'Sementes e sanidade'];
+/**
+ * A despesa é proporcional à receita, não um valor absoluto: se o volume
+ * de amostras mudar, o laboratório continua coerente em vez de aparecer
+ * com um prejuízo de centenas de milhares por mês.
+ * Os pesos são fração do faturamento médio mensal.
+ */
 const DESPESAS: Array<[string, string, number, number]> = [
-  ['Energia elétrica — CELPE', 'Utilidades', 9_200, 16_400],
-  ['Reagentes e padrões analíticos', 'Insumos de laboratório', 18_000, 42_000],
-  ['Folha de pagamento', 'Pessoal', 148_000, 172_000],
-  ['Aluguel do galpão', 'Ocupação', 22_000, 22_000],
-  ['Manutenção de equipamentos', 'Manutenção', 3_400, 14_800],
-  ['Software e licenças', 'TI', 2_800, 5_200],
-  ['Descarte de resíduos químicos', 'Ambiental', 4_100, 9_600],
-  ['Ensaios subcontratados', 'Terceiros', 6_500, 28_000],
-  ['Frete e logística de amostras', 'Logística', 5_200, 13_400],
+  ['Folha de pagamento', 'Pessoal', 0.30, 0.36],
+  ['Reagentes e padrões analíticos', 'Insumos de laboratório', 0.08, 0.13],
+  ['Aluguel do galpão', 'Ocupação', 0.06, 0.06],
+  ['Energia elétrica — CELPE', 'Utilidades', 0.04, 0.07],
+  ['Ensaios subcontratados', 'Terceiros', 0.03, 0.08],
+  ['Frete e logística de amostras', 'Logística', 0.02, 0.05],
+  ['Descarte de resíduos químicos', 'Ambiental', 0.02, 0.04],
+  ['Manutenção de equipamentos', 'Manutenção', 0.01, 0.05],
+  ['Software e licenças', 'TI', 0.01, 0.02],
 ];
 
 let seqNota = 2840;
@@ -907,12 +913,17 @@ for (const laudo of laudos.filter((l) => l.status === 'emitido')) {
   }
 }
 
-for (let m = 0; m < 5; m++) {
-  for (const [descricao, categoria, min, max] of DESPESAS) {
+/** Faturamento médio mensal já gerado, base de rateio da despesa. */
+const MESES_DE_OPERACAO = 5;
+const faturamentoMedioMensal =
+  titulos.filter((t) => t.tipo === 'receber').reduce((s, t) => s + t.valor, 0) / MESES_DE_OPERACAO;
+
+for (let m = 0; m < MESES_DE_OPERACAO; m++) {
+  for (const [descricao, categoria, pesoMin, pesoMax] of DESPESAS) {
     const venc = new Date(HOJE);
     venc.setMonth(venc.getMonth() - m, inteiro(5, 25));
     const vencido = venc < HOJE;
-    const valor = entre(min, max);
+    const valor = faturamentoMedioMensal * entre(pesoMin, pesoMax);
     titulos.push({
       id: `tit-p-${String(titulos.length + 1).padStart(4, '0')}`,
       tipo: 'pagar',
