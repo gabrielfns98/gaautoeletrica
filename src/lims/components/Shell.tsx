@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Activity, Beaker, Boxes, ClipboardList, FileCheck2, FlaskConical, Gauge,
-  LayoutDashboard, Menu, Moon, Receipt, ScrollText, Settings, ShieldCheck,
+  Layers, LayoutDashboard, Menu, Moon, Receipt, ScrollText, Settings, ShieldCheck,
   Sun, TableProperties, TestTubes, Users, Wallet, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -63,6 +63,7 @@ const GRUPOS_NAV: Array<{ titulo: string; itens: ItemNav[] }> = [
   {
     titulo: 'Administração',
     itens: [
+      { modulo: 'configuracoes', rotulo: 'Cadastros', caminho: '/lab/cadastros', icone: Layers },
       { modulo: 'usuarios', rotulo: 'Usuários e papéis', caminho: '/lab/usuarios', icone: ShieldCheck },
       { modulo: 'auditoria', rotulo: 'Auditoria', caminho: '/lab/auditoria', icone: ScrollText },
       { modulo: 'configuracoes', rotulo: 'Configurações', caminho: '/lab/configuracoes', icone: Settings },

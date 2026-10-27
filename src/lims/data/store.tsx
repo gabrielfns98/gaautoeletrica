@@ -24,6 +24,7 @@ import type {
   LoteRecepcao, Modulo, MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento,
   Papel, Parametro, Permissao, PontoCalibracao, RegistroAuditoria, RegistroCQ,
   StatusAmostra, StatusEnsaio, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario, UUID,
+  Bandeja, Convenio, Curva, Legenda, Metodologia, RegraDesconto, ItemSimples,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -36,6 +37,16 @@ export interface EstadoBancada {
   papeis: Papel[];
   grupos: GrupoAnalise[];
   tiposAnalise: TipoAnalise[];
+  curvas: Curva[];
+  legendas: Legenda[];
+  metodologias: Metodologia[];
+  bandejas: Bandeja[];
+  profundidades: ItemSimples[];
+  culturas: ItemSimples[];
+  tiposCliente: ItemSimples[];
+  convenios: Convenio[];
+  regrasDesconto: RegraDesconto[];
+  observacoesFixas: ItemSimples[];
   parametros: Parametro[];
   clientes: Cliente[];
   contatos: Contato[];
@@ -69,6 +80,16 @@ function estadoInicial(): EstadoBancada {
     papeis: PAPEIS_PADRAO,
     grupos: seed.grupos,
     tiposAnalise: seed.tiposAnalise,
+    curvas: seed.curvas,
+    legendas: seed.legendas,
+    metodologias: seed.metodologias,
+    bandejas: seed.bandejas,
+    profundidades: seed.profundidades,
+    culturas: seed.culturas,
+    tiposCliente: seed.tiposCliente,
+    convenios: seed.convenios,
+    regrasDesconto: seed.regrasDesconto,
+    observacoesFixas: seed.observacoesFixas,
     parametros: seed.parametros,
     clientes: seed.clientes,
     contatos: seed.contatos,
@@ -117,6 +138,8 @@ type Acao =
   | { tipo: 'movimentar-estoque'; movimento: MovimentoEstoque }
   | { tipo: 'salvar-usuario'; usuario: Usuario }
   | { tipo: 'salvar-papel'; papel: Papel }
+  | { tipo: 'salvar-curva'; curva: Curva }
+  | { tipo: 'salvar-legenda'; legenda: Legenda }
   | { tipo: 'registrar-cq'; registro: RegistroCQ }
   | { tipo: 'auditar'; registro: RegistroAuditoria }
   | { tipo: 'restaurar' };
@@ -262,6 +285,11 @@ function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
       return { ...estado, usuarios: substituir(estado.usuarios, acao.usuario) };
     case 'salvar-papel':
       return { ...estado, papeis: substituir(estado.papeis, acao.papel) };
+
+    case 'salvar-curva':
+      return { ...estado, curvas: substituir(estado.curvas, acao.curva) };
+    case 'salvar-legenda':
+      return { ...estado, legendas: substituir(estado.legendas, acao.legenda) };
 
     case 'registrar-cq':
       return { ...estado, registrosCQ: [acao.registro, ...estado.registrosCQ] };
@@ -633,6 +661,17 @@ export function useAcoes() {
     auditar('Alterou permissões', 'Papel', p.id, `${p.nome} — ${p.permissoes.length} permissões`);
   }, [despachar, auditar]);
 
+  const salvarCurva = useCallback((c: Curva) => {
+    despachar({ tipo: 'salvar-curva', curva: c });
+    auditar('Salvou curva de calibração', 'Curva', c.id,
+      `${c.codigo} · R² ${c.r2.toFixed(5)} · ${c.pontos.filter((p) => !p.descartado).length} pontos`);
+  }, [despachar, auditar]);
+
+  const salvarLegenda = useCallback((l: Legenda) => {
+    despachar({ tipo: 'salvar-legenda', legenda: l });
+    auditar('Salvou legenda', 'Legenda', l.id, `${l.codigo} · ${l.faixas.length} faixas`);
+  }, [despachar, auditar]);
+
   const salvarCliente = useCallback((c: Cliente) => {
     despachar({ tipo: 'salvar-cliente', cliente: c });
     auditar('Salvou cliente', 'Cliente', c.id, c.nome);
@@ -658,7 +697,7 @@ export function useAcoes() {
     registrarLeitura, salvarCalibracao, lancarResultados, aprovarEnsaio, repetirEnsaio,
     mudarStatusAmostra, registrarCQ, emitirLaudo, emitirNota, baixarTitulo,
     moverOportunidade, movimentarEstoque, salvarUsuario, salvarPapel,
-    salvarCliente, criarRecepcao, trocarUsuario, trocarUnidade,
+    salvarCliente, salvarCurva, salvarLegenda, criarRecepcao, trocarUsuario, trocarUnidade,
   };
 }
 

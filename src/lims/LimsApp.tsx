@@ -28,6 +28,7 @@ import Estoque from './pages/Estoque';
 import Equipamentos from './pages/Equipamentos';
 import Usuarios from './pages/Usuarios';
 import Auditoria from './pages/Auditoria';
+import Cadastros from './pages/cadastros';
 import Configuracoes from './pages/Configuracoes';
 
 /** Bloqueia a rota quando o papel do usuário não enxerga o módulo. */
@@ -64,6 +65,7 @@ export default function LimsApp() {
           <Route path="equipamentos" element={<Protegido modulo="equipamentos"><Equipamentos /></Protegido>} />
           <Route path="usuarios" element={<Protegido modulo="usuarios"><Usuarios /></Protegido>} />
           <Route path="auditoria" element={<Protegido modulo="auditoria"><Auditoria /></Protegido>} />
+          <Route path="cadastros" element={<Protegido modulo="configuracoes"><Cadastros /></Protegido>} />
           <Route path="configuracoes" element={<Protegido modulo="configuracoes"><Configuracoes /></Protegido>} />
           <Route path="*" element={<Navigate to="/lab" replace />} />
         </Route>

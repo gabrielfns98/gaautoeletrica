@@ -649,3 +649,122 @@ export interface EnvelopeMedicao {
   linha?: string;
   perfilId?: string;
 }
+
+/* ============================================================
+   CADASTROS DE APOIO
+   Vocabulário do laboratório: a Curva converte a leitura bruta
+   do instrumento em concentração; a Legenda converte o número
+   em interpretação. Os dois eram código; viram cadastro.
+   ============================================================ */
+
+export interface PontoCurva {
+  /** concentração do padrão preparado */
+  concentracao: number;
+  /** leitura do instrumento para esse padrão (absorbância, intensidade…) */
+  leitura: number;
+  /** ponto descartado do ajuste, mas mantido no registro */
+  descartado?: boolean;
+}
+
+export type TipoAjuste = 'linear' | 'linear-sem-intercepto';
+
+/**
+ * Curva de calibração analítica. Nada a ver com a calibração do
+ * pHmetro: aqui o instrumento devolve um sinal (absorbância,
+ * intensidade de chama) e a curva traduz esse sinal em concentração.
+ */
+export interface Curva {
+  id: UUID;
+  codigo: string;
+  nome: string;
+  parametroId: UUID;
+  equipamentoId?: UUID;
+  tipoAjuste: TipoAjuste;
+  pontos: PontoCurva[];
+  /** coeficiente angular do ajuste: leitura por unidade de concentração */
+  coefAngular: number;
+  coefLinear: number;
+  r2: number;
+  /** limite de detecção e de quantificação, na unidade do parâmetro */
+  lod?: number;
+  loq?: number;
+  /** fator de diluição aplicado antes da leitura */
+  diluicao: number;
+  analistaId?: UUID;
+  data: ISODate;
+  validaAte: ISODate;
+  ativa: boolean;
+  observacao?: string;
+}
+
+export type SeveridadeFaixa = 'critico' | 'atencao' | 'bom' | 'ideal' | 'neutro';
+
+export interface FaixaLegenda {
+  /** limite inferior, inclusivo; ausente significa "sem piso" */
+  de?: number;
+  /** limite superior, exclusivo; ausente significa "sem teto" */
+  ate?: number;
+  rotulo: string;
+  descricao?: string;
+  severidade: SeveridadeFaixa;
+}
+
+/**
+ * Faixas de interpretação de um resultado. Cada laboratório adota a
+ * referência que quiser — CFSEMG, Boletim 100, manual próprio do
+ * cliente — então isso não pode estar cravado no código.
+ */
+export interface Legenda {
+  id: UUID;
+  codigo: string;
+  nome: string;
+  parametroId: UUID;
+  /** quando preenchida, a legenda só vale para esta cultura */
+  cultura?: string;
+  fonte: string;
+  faixas: FaixaLegenda[];
+  padrao: boolean;
+  ativa: boolean;
+}
+
+/* ---------------- Cadastros simples ---------------- */
+
+export interface Metodologia {
+  id: UUID;
+  codigo: string;
+  nome: string;
+  norma: string;
+  versao: string;
+  vigenteDesde: ISODate;
+  ativa: boolean;
+}
+
+export interface Bandeja {
+  id: UUID;
+  codigo: string;
+  nome: string;
+  linhas: number;
+  colunas: number;
+  setor: string;
+  ativa: boolean;
+}
+
+export interface ItemSimples {
+  id: UUID;
+  codigo: string;
+  nome: string;
+  ativo: boolean;
+  observacao?: string;
+}
+
+export interface Convenio extends ItemSimples {
+  tabelaPrecoId?: UUID;
+  desconto: number;
+  validoAte?: ISODate;
+}
+
+export interface RegraDesconto extends ItemSimples {
+  /** a partir de quantas amostras no mesmo lote */
+  quantidadeMinima: number;
+  percentual: number;
+}

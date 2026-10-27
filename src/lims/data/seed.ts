@@ -7,6 +7,7 @@
 import { PAPEIS_PADRAO } from '../lib/rbac';
 import { calcularCalibracao, mvDePh, phDeMv, corrigirPara25C, avaliarCQ } from '../lib/ph';
 import { apurarNotaServico } from '../lib/fiscal';
+import { ajustarCurva } from '../lib/curva';
 import { iniciais } from '../lib/format';
 import type {
   Amostra, AmostraControle, Calibracao, Cliente, Contato, Ensaio, Equipamento,
@@ -14,6 +15,8 @@ import type {
   LoteReagente, LoteRecepcao, MovimentoEstoque, NotaFiscal, Oportunidade,
   Orcamento, Papel, Parametro, PontoTrace, RegistroAuditoria, RegistroCQ,
   StatusAmostra, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario,
+  Bandeja, Convenio, Curva, Legenda, Metodologia, PontoCurva, RegraDesconto,
+  ItemSimples, TipoAjuste,
 } from '../types';
 
 /* ---------------- PRNG determinístico (mulberry32) ---------------- */
@@ -1000,3 +1003,255 @@ export const auditoria: RegistroAuditoria[] = Array.from({ length: 70 }, (_, i) 
     ip: `10.${inteiro(0, 4)}.${inteiro(1, 254)}.${inteiro(2, 254)}`,
   };
 }).sort((a, b) => +new Date(b.data) - +new Date(a.data));
+
+/* ============================================================
+   CADASTROS DE APOIO
+   ============================================================ */
+
+
+const idDe = (codigo: string) => parametros.find((p) => p.codigo === codigo)?.id ?? '';
+
+function montarCurva(
+  id: string, codigo: string, nome: string, codigoParam: string,
+  equipamentoId: string | undefined, pontos: PontoCurva[],
+  diluicao: number, diasAtrasCriacao: number, tipo: TipoAjuste = 'linear',
+): Curva {
+  const a = ajustarCurva(pontos, tipo);
+  const validade = new Date(diasAtras(diasAtrasCriacao));
+  validade.setDate(validade.getDate() + 30);
+  return {
+    id, codigo, nome,
+    parametroId: idDe(codigoParam),
+    equipamentoId,
+    tipoAjuste: tipo,
+    pontos,
+    coefAngular: a.coefAngular,
+    coefLinear: a.coefLinear,
+    r2: a.r2,
+    lod: a.lod,
+    loq: a.loq,
+    diluicao,
+    analistaId: analistas[0]?.id,
+    data: diasAtras(diasAtrasCriacao, 8),
+    validaAte: validade.toISOString(),
+    ativa: validade > HOJE,
+    observacao: a.avisos[0],
+  };
+}
+
+export const curvas: Curva[] = [
+  montarCurva(
+    'cur-p-mel', 'CUR-P-001', 'Fósforo Mehlich-1 — colorimetria 660 nm', 'P-MEL',
+    'eq-esp-01',
+    [
+      { concentracao: 0, leitura: 0.004 },
+      { concentracao: 2, leitura: 0.131 },
+      { concentracao: 5, leitura: 0.318 },
+      { concentracao: 10, leitura: 0.629 },
+      { concentracao: 20, leitura: 1.248 },
+      { concentracao: 40, leitura: 2.491 },
+    ],
+    10, 4,
+  ),
+  montarCurva(
+    'cur-k-chama', 'CUR-K-001', 'Potássio — fotometria de chama 766,5 nm', 'K',
+    undefined,
+    [
+      { concentracao: 0, leitura: 0.0 },
+      { concentracao: 10, leitura: 48.2 },
+      { concentracao: 20, leitura: 97.1 },
+      { concentracao: 40, leitura: 193.6 },
+      { concentracao: 80, leitura: 388.4 },
+    ],
+    5, 6, 'linear-sem-intercepto',
+  ),
+  montarCurva(
+    'cur-ca-eaa', 'CUR-CA-001', 'Cálcio — absorção atômica 422,7 nm', 'CA',
+    undefined,
+    [
+      { concentracao: 0, leitura: 0.002 },
+      { concentracao: 1, leitura: 0.094 },
+      { concentracao: 2, leitura: 0.187 },
+      { concentracao: 4, leitura: 0.371 },
+      { concentracao: 6, leitura: 0.548 },
+      // padrão preparado errado: fica no registro, fora do ajuste
+      { concentracao: 8, leitura: 0.512, descartado: true },
+    ],
+    // o fator de conversão do extrato para a base de solo já entra aqui,
+    // junto com a diluição física da alíquota
+    2, 2,
+  ),
+  montarCurva(
+    'cur-n-foliar', 'CUR-N-001', 'Nitrogênio foliar — Kjeldahl, titulação', 'N-FOL',
+    undefined,
+    [
+      { concentracao: 0, leitura: 0.01 },
+      { concentracao: 5, leitura: 1.02 },
+      { concentracao: 10, leitura: 1.98 },
+      { concentracao: 20, leitura: 4.03 },
+      { concentracao: 30, leitura: 6.01 },
+    ],
+    1, 34,
+  ),
+  montarCurva(
+    'cur-turb', 'CUR-TURB-001', 'Turbidez — nefelometria, padrão formazina', 'TURB',
+    undefined,
+    [
+      { concentracao: 0, leitura: 0.012 },
+      { concentracao: 10, leitura: 0.241 },
+      { concentracao: 50, leitura: 1.198 },
+      { concentracao: 100, leitura: 2.402 },
+    ],
+    1, 11,
+  ),
+];
+
+/* ---------------- Legendas (faixas de interpretação) ---------------- */
+
+export const legendas: Legenda[] = [
+  {
+    id: 'leg-ph-h2o', codigo: 'LEG-PH-H2O', nome: 'Acidez ativa — pH em água',
+    parametroId: idDe('PH-H2O'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 4.5, rotulo: 'Muito baixo', descricao: 'Acidez muito elevada — provável toxidez por alumínio', severidade: 'critico' },
+      { de: 4.5, ate: 5.5, rotulo: 'Baixo', descricao: 'Acidez elevada — calagem recomendada', severidade: 'critico' },
+      { de: 5.5, ate: 6.1, rotulo: 'Bom', descricao: 'Faixa adequada — máxima disponibilidade de nutrientes', severidade: 'ideal' },
+      { de: 6.1, ate: 7.1, rotulo: 'Alto', descricao: 'Acidez baixa — monitorar micronutrientes', severidade: 'bom' },
+      { de: 7.1, rotulo: 'Muito alto', descricao: 'Alcalino — risco de deficiência de Fe, Mn, Zn e B', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-ph-cacl2', codigo: 'LEG-PH-CACL2', nome: 'Acidez ativa — pH em CaCl₂',
+    parametroId: idDe('PH-CACL2'), fonte: 'IAC, Boletim Técnico 100', padrao: true, ativa: true,
+    faixas: [
+      { ate: 4.4, rotulo: 'Acidez muito alta', severidade: 'critico' },
+      { de: 4.4, ate: 5.1, rotulo: 'Acidez alta', severidade: 'critico' },
+      { de: 5.1, ate: 5.6, rotulo: 'Acidez média', severidade: 'atencao' },
+      { de: 5.6, ate: 6.1, rotulo: 'Acidez baixa', descricao: 'Faixa adequada à maioria das culturas', severidade: 'ideal' },
+      { de: 6.1, ate: 7.1, rotulo: 'Acidez muito baixa', severidade: 'bom' },
+      { de: 7.1, rotulo: 'Alcalino', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-p', codigo: 'LEG-P', nome: 'Fósforo disponível',
+    parametroId: idDe('P-MEL'), fonte: 'CFSEMG — textura média', padrao: true, ativa: true,
+    faixas: [
+      { ate: 6, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 6, ate: 16, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 16, ate: 41, rotulo: 'Médio', severidade: 'bom' },
+      { de: 41, ate: 81, rotulo: 'Alto', severidade: 'ideal' },
+      { de: 81, rotulo: 'Muito alto', descricao: 'Risco ambiental de perda por escoamento', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-k', codigo: 'LEG-K', nome: 'Potássio trocável',
+    parametroId: idDe('K'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 16, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 16, ate: 41, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 41, ate: 71, rotulo: 'Médio', severidade: 'bom' },
+      { de: 71, ate: 121, rotulo: 'Alto', severidade: 'ideal' },
+      { de: 121, rotulo: 'Muito alto', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-mo', codigo: 'LEG-MO', nome: 'Matéria orgânica',
+    parametroId: idDe('MO'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 15, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 15, ate: 31, rotulo: 'Médio', severidade: 'bom' },
+      { de: 31, rotulo: 'Alto', severidade: 'ideal' },
+    ],
+  },
+  {
+    id: 'leg-v', codigo: 'LEG-V', nome: 'Saturação por bases',
+    parametroId: idDe('V'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 21, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 21, ate: 41, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 41, ate: 61, rotulo: 'Médio', severidade: 'atencao' },
+      { de: 61, ate: 81, rotulo: 'Bom', descricao: 'Faixa alvo para a maioria das lavouras anuais', severidade: 'ideal' },
+      { de: 81, rotulo: 'Muito alto', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-ph-agua-conama', codigo: 'LEG-PH-CONAMA', nome: 'pH — lançamento de efluente',
+    parametroId: idDe('PH-AGUA'), fonte: 'CONAMA 430/2011, art. 16', padrao: true, ativa: true,
+    faixas: [
+      { ate: 5, rotulo: 'Fora do padrão', descricao: 'Abaixo do limite de lançamento', severidade: 'critico' },
+      { de: 5, ate: 9, rotulo: 'Conforme', descricao: 'Dentro do padrão de lançamento', severidade: 'ideal' },
+      { de: 9, rotulo: 'Fora do padrão', descricao: 'Acima do limite de lançamento', severidade: 'critico' },
+    ],
+  },
+];
+
+/* ---------------- Cadastros simples ---------------- */
+
+export const metodologias: Metodologia[] = [
+  { id: 'met-01', codigo: 'POP-ACI-004', nome: 'Potenciometria em suspensão de solo', norma: 'Embrapa 2017', versao: '4.2', vigenteDesde: diasAtras(420), ativa: true },
+  { id: 'met-02', codigo: 'POP-ACI-007', nome: 'pH em CaCl₂ 0,01 mol/L', norma: 'IAC Boletim 100', versao: '2.1', vigenteDesde: diasAtras(300), ativa: true },
+  { id: 'met-03', codigo: 'POP-FER-011', nome: 'Fósforo por Mehlich-1 e colorimetria', norma: 'Embrapa 2017', versao: '3.0', vigenteDesde: diasAtras(260), ativa: true },
+  { id: 'met-04', codigo: 'POP-FER-014', nome: 'Potássio por fotometria de chama', norma: 'Embrapa 2017', versao: '2.4', vigenteDesde: diasAtras(240), ativa: true },
+  { id: 'met-05', codigo: 'POP-ORG-002', nome: 'Matéria orgânica por Walkley-Black', norma: 'Embrapa 2017', versao: '1.8', vigenteDesde: diasAtras(510), ativa: true },
+  { id: 'met-06', codigo: 'POP-AGU-021', nome: 'pH em água e efluente', norma: 'SMEWW 4500-H⁺ B', versao: '23ª ed.', vigenteDesde: diasAtras(180), ativa: true },
+  { id: 'met-07', codigo: 'POP-COR-005', nome: 'PRNT de corretivos', norma: 'IN SDA 05/2007', versao: '2.0', vigenteDesde: diasAtras(600), ativa: true },
+];
+
+export const bandejas: Bandeja[] = [
+  { id: 'ban-01', codigo: 'B05', nome: 'Bandeja de acidez 05', linhas: 10, colunas: 4, setor: 'Bancada de Acidez', ativa: true },
+  { id: 'ban-02', codigo: 'B06', nome: 'Bandeja de acidez 06', linhas: 10, colunas: 4, setor: 'Bancada de Acidez', ativa: true },
+  { id: 'ban-03', codigo: 'B12', nome: 'Bandeja de extração 12', linhas: 12, colunas: 5, setor: 'Extração', ativa: true },
+  { id: 'ban-04', codigo: 'B20', nome: 'Bandeja de foliar 20', linhas: 8, colunas: 6, setor: 'Foliar', ativa: true },
+  { id: 'ban-05', codigo: 'B24', nome: 'Bandeja de úmidos 24', linhas: 6, colunas: 4, setor: 'Físico-Química', ativa: false },
+];
+
+export const profundidades: ItemSimples[] = [
+  { id: 'prf-01', codigo: '0-20', nome: '0 a 20 cm', ativo: true, observacao: 'Camada arável — padrão da amostragem de fertilidade' },
+  { id: 'prf-02', codigo: '20-40', nome: '20 a 40 cm', ativo: true },
+  { id: 'prf-03', codigo: '40-60', nome: '40 a 60 cm', ativo: true, observacao: 'Avaliação de alumínio em subsuperfície' },
+  { id: 'prf-04', codigo: '0-10', nome: '0 a 10 cm', ativo: true, observacao: 'Plantio direto consolidado' },
+  { id: 'prf-05', codigo: '60-80', nome: '60 a 80 cm', ativo: false },
+];
+
+export const culturas: ItemSimples[] = [
+  { id: 'cul-01', codigo: 'SOJA', nome: 'Soja', ativo: true },
+  { id: 'cul-02', codigo: 'MILHO2', nome: 'Milho 2ª safra', ativo: true },
+  { id: 'cul-03', codigo: 'ALGODAO', nome: 'Algodão', ativo: true },
+  { id: 'cul-04', codigo: 'CANA', nome: 'Cana-de-açúcar', ativo: true },
+  { id: 'cul-05', codigo: 'CAFE', nome: 'Café', ativo: true },
+  { id: 'cul-06', codigo: 'PASTO', nome: 'Pastagem', ativo: true },
+  { id: 'cul-07', codigo: 'FEIJAO', nome: 'Feijão', ativo: true },
+  { id: 'cul-08', codigo: 'SORGO', nome: 'Sorgo', ativo: true },
+];
+
+export const tiposCliente: ItemSimples[] = [
+  { id: 'tcl-01', codigo: 'PROD', nome: 'Produtor rural', ativo: true },
+  { id: 'tcl-02', codigo: 'USINA', nome: 'Usina', ativo: true },
+  { id: 'tcl-03', codigo: 'COOP', nome: 'Cooperativa', ativo: true },
+  { id: 'tcl-04', codigo: 'REVENDA', nome: 'Revenda de insumos', ativo: true },
+  { id: 'tcl-05', codigo: 'CONSULT', nome: 'Consultoria agronômica', ativo: true },
+  { id: 'tcl-06', codigo: 'INDUSTRIA', nome: 'Indústria', ativo: true },
+  { id: 'tcl-07', codigo: 'ORGAO', nome: 'Órgão público', ativo: true },
+];
+
+export const convenios: Convenio[] = [
+  { id: 'cnv-01', codigo: 'COOP-OESTE', nome: 'Cooperativa Agroindustrial do Oeste', desconto: 18, tabelaPrecoId: 'tab-coop', ativo: true, validoAte: diasAFrente(210) },
+  { id: 'cnv-02', codigo: 'SAFRA-25', nome: 'Contrato safra 25/26', desconto: 25, tabelaPrecoId: 'tab-contrato', ativo: true, validoAte: diasAFrente(120) },
+  { id: 'cnv-03', codigo: 'PARC-VOL', nome: 'Parceria por volume', desconto: 12, tabelaPrecoId: 'tab-parceiro', ativo: true },
+  { id: 'cnv-04', codigo: 'EMBRAPA', nome: 'Convênio de pesquisa', desconto: 40, ativo: false, validoAte: diasAtras(60), observacao: 'Encerrado — renovação em análise' },
+];
+
+export const regrasDesconto: RegraDesconto[] = [
+  { id: 'dsc-01', codigo: 'VOL-50', nome: 'A partir de 50 amostras', quantidadeMinima: 50, percentual: 5, ativo: true },
+  { id: 'dsc-02', codigo: 'VOL-200', nome: 'A partir de 200 amostras', quantidadeMinima: 200, percentual: 10, ativo: true },
+  { id: 'dsc-03', codigo: 'VOL-500', nome: 'A partir de 500 amostras', quantidadeMinima: 500, percentual: 15, ativo: true },
+  { id: 'dsc-04', codigo: 'VOL-1000', nome: 'A partir de 1.000 amostras', quantidadeMinima: 1000, percentual: 20, ativo: true },
+];
+
+export const observacoesFixas: ItemSimples[] = [
+  { id: 'obs-01', codigo: 'OBS-AMOSTRAGEM', nome: 'Os resultados referem-se exclusivamente às amostras recebidas e identificadas neste documento.', ativo: true },
+  { id: 'obs-02', codigo: 'OBS-REPRODUCAO', nome: 'A reprodução parcial deste laudo só é permitida com autorização escrita do laboratório.', ativo: true },
+  { id: 'obs-03', codigo: 'OBS-COLETA', nome: 'A coleta foi realizada pelo cliente; o laboratório não se responsabiliza pela representatividade da amostra.', ativo: true },
+  { id: 'obs-04', codigo: 'OBS-SUBCONTRATADO', nome: 'Ensaio subcontratado a laboratório parceiro, identificado no corpo do laudo.', ativo: true },
+  { id: 'obs-05', codigo: 'OBS-FORA-ESCOPO', nome: 'Ensaio fora do escopo de acreditação.', ativo: true },
+];

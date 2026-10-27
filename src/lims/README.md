@@ -44,6 +44,31 @@ A leitura de pH não é um campo de formulário: é uma estação de bancada.
 npx tsx src/lims/lib/ph.test.ts
 ```
 
+## Curva de calibração analítica
+
+Potenciometria é a exceção: o pHmetro entrega o resultado quase pronto. O resto
+do laboratório trabalha por comparação com padrões — o espectrofotômetro devolve
+absorbância, o fotômetro de chama devolve intensidade, e é a **curva** que traduz
+esse sinal em concentração.
+
+`lib/curva.ts` implementa o ajuste e os limites do método:
+
+- Regressão linear, com a opção de forçar pela origem quando o método garante
+  sinal nulo em concentração zero.
+- R² calculado sobre os resíduos do modelo efetivamente usado, para que o ajuste
+  pela origem não ganhe um R² otimista.
+- **Limite de detecção e de quantificação** derivados do desvio residual —
+  3,3·s/a e 10·s/a (IUPAC/ICH).
+- Descarte de ponto: o padrão mal preparado sai do ajuste e **fica no registro**.
+- Situação do resultado: abaixo do LD, entre LD e LQ (o laudo diz "< LQ", não um
+  número), quantificável, ou acima do maior padrão — aí é diluir e repetir.
+
+Coberto por 34 asserções:
+
+```sh
+npx tsx src/lims/lib/curva.test.ts
+```
+
 ### Aquisição do sinal — `lib/serial.ts`
 
 Três caminhos, intercambiáveis pela mesma interface `FontePh`:
@@ -64,7 +89,9 @@ Três caminhos, intercambiáveis pela mesma interface `FontePh`:
 | `/lab/recepcao` | Protocolo de lotes, conferência de conformidade, abertura automática dos ensaios |
 | `/lab/amostras` | Acervo, ficha completa com curva de estabilização e interpretação agronômica |
 | `/lab/ph` | **Bancada, calibração, controle de qualidade e importação** |
+| `/lab/resultados` | **Lançamento em grade** — filtra a corrida e digita por coluna |
 | `/lab/ensaios` | Lista de trabalho, revisão técnica e aprovação em lote |
+| `/lab/cadastros` | Tipo de Análise, Elemento, Metodologia, **Curva**, **Legenda**, Bandeja, Profundidade, Cultura, Convênio, Desconto, Observação Fixa |
 | `/lab/laudos` | Compilação dos resultados, assinatura do RT e código de verificação |
 | `/lab/crm` | Carteira, funil de oportunidades, histórico de relacionamento, propostas |
 | `/lab/financeiro` | Contas a receber e a pagar, fluxo de caixa, aging, despesas por categoria |
