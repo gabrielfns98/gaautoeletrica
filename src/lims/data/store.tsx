@@ -10,11 +10,19 @@
    ============================================================ */
 
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
 import type { ReactNode } from 'react';
+import { toast } from 'sonner';
 
 import * as seed from './seed';
+import { COM_BANCO, supabase } from './supabase';
+import {
+  carregarBancada, gravarCalibracao, gravarEnsaio, gravarLeitura, gravarRecepcao,
+  gravarResultados, gravarStatusAmostra,
+} from './repositorio';
+import type { CargaBancada } from './repositorio';
+import { Carregando, Entrar, FalhaCarga } from '../components/acesso';
 import { PAPEIS_PADRAO } from '../lib/rbac';
 import { avaliarCQ, calcularCalibracao } from '../lib/ph';
 import { apurarNotaServico } from '../lib/fiscal';
@@ -142,6 +150,7 @@ type Acao =
   | { tipo: 'salvar-legenda'; legenda: Legenda }
   | { tipo: 'registrar-cq'; registro: RegistroCQ }
   | { tipo: 'auditar'; registro: RegistroAuditoria }
+  | { tipo: 'carregar'; carga: CargaBancada }
   | { tipo: 'restaurar' };
 
 const substituir = <T extends { id: UUID }>(lista: T[], item: T): T[] => {
@@ -154,6 +163,22 @@ const mesclar = <T extends { id: UUID }>(lista: T[], id: UUID, dados: Partial<T>
 
 function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
   switch (acao.tipo) {
+    /* Carga do banco. As coleções que ainda não têm tabela mapeada entram
+       vazias: misturar massa de demonstração com dado real do laboratório
+       seria pior que mostrar módulo vazio. */
+    case 'carregar':
+      return {
+        ...estado,
+        ...acao.carga,
+        unidadeAtivaId: acao.carga.unidades[0]?.id ?? estado.unidadeAtivaId,
+        tiposAnalise: [], curvas: [], legendas: [], metodologias: [], bandejas: [],
+        profundidades: [], culturas: [], tiposCliente: [], convenios: [],
+        regrasDesconto: [], observacoesFixas: [], contatos: [], oportunidades: [],
+        interacoes: [], amostrasControle: [], registrosCQ: [], laudos: [],
+        orcamentos: [], titulos: [], notasFiscais: [], itensEstoque: [],
+        lotesReagente: [], movimentosEstoque: [], auditoria: [],
+      };
+
     case 'trocar-usuario':
       return { ...estado, usuarioAtualId: acao.usuarioId };
     case 'trocar-unidade':
@@ -309,9 +334,15 @@ function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
 
 export type Tema = 'dark' | 'light';
 
+export type ModoBancada = 'demonstracao' | 'banco';
+
 interface ContextoBancada {
   estado: EstadoBancada;
   despachar: React.Dispatch<Acao>;
+  /** 'banco' lê e grava no Supabase; 'demonstracao' roda só em memória. */
+  modo: ModoBancada;
+  sair: () => Promise<void>;
+  recarregar: () => Promise<void>;
   usuario: Usuario;
   papel: Papel | undefined;
   unidade: Unidade;
@@ -346,11 +377,57 @@ export function BancadaProvider({ children }: { children: ReactNode }) {
     return base;
   });
 
+  /* No modo banco nada é desenhado antes de existir sessão e carga: as
+     telas de acesso ficam antes do provedor para não dependerem do estado. */
+  type Fase = 'verificando' | 'entrar' | 'carregando' | 'pronto' | 'erro';
+  const [fase, setFase] = useState<Fase>(COM_BANCO ? 'verificando' : 'pronto');
+  const [erroCarga, setErroCarga] = useState('');
+  const usuarioDaSessao = useRef<string | null>(null);
+
+  const recarregar = useCallback(async () => {
+    setErroCarga('');
+    setFase('carregando');
+    try {
+      despachar({ tipo: 'carregar', carga: await carregarBancada() });
+      setFase('pronto');
+    } catch (e) {
+      setErroCarga(e instanceof Error ? e.message : String(e));
+      setFase('erro');
+    }
+  }, []);
+
+  const sair = useCallback(async () => {
+    await supabase?.auth.signOut();
+  }, []);
+
+  useEffect(() => {
+    if (!COM_BANCO || !supabase) return;
+    // O ouvinte já dispara com a sessão existente; o id guardado evita
+    // recarregar a bancada inteira a cada renovação de token.
+    const { data: ouvinte } = supabase.auth.onAuthStateChange((_evento, sessao) => {
+      const id = sessao?.user?.id ?? null;
+      if (id === usuarioDaSessao.current) return;
+      usuarioDaSessao.current = id;
+      clearTimeout(prazo);
+      if (id) void recarregar();
+      else setFase('entrar');
+    });
+    // Com o servidor fora do ar o evento inicial nunca chega. Melhor cair na
+    // tela de entrada, onde a tentativa mostra o erro real, que girar para sempre.
+    const prazo = setTimeout(
+      () => setFase((f) => (f === 'verificando' ? 'entrar' : f)),
+      8000,
+    );
+    return () => { clearTimeout(prazo); ouvinte.subscription.unsubscribe(); };
+  }, [recarregar]);
+
   const [tema, setTema] = useState<Tema>(() =>
     (lerPreferencia(CHAVE_TEMA) as Tema) ?? 'dark');
 
   useEffect(() => { gravarPreferencia(CHAVE_TEMA, tema); }, [tema]);
-  useEffect(() => { gravarPreferencia(CHAVE_USUARIO, estado.usuarioAtualId); }, [estado.usuarioAtualId]);
+  useEffect(() => {
+    if (!COM_BANCO) gravarPreferencia(CHAVE_USUARIO, estado.usuarioAtualId);
+  }, [estado.usuarioAtualId]);
 
   const usuario = useMemo(
     () => estado.usuarios.find((u) => u.id === estado.usuarioAtualId) ?? estado.usuarios[0],
@@ -395,9 +472,21 @@ export function BancadaProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const valor = useMemo<ContextoBancada>(
-    () => ({ estado, despachar, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo, auditar }),
-    [estado, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo, auditar],
+    () => ({
+      estado, despachar, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo,
+      auditar, sair, recarregar, modo: COM_BANCO ? 'banco' : 'demonstracao',
+    }),
+    [estado, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo, auditar, sair, recarregar],
   );
+
+  if (COM_BANCO) {
+    if (fase === 'verificando') return <Carregando mensagem="Verificando acesso…" />;
+    if (fase === 'entrar') return <Entrar />;
+    if (fase === 'carregando') return <Carregando />;
+    if (fase === 'erro') {
+      return <FalhaCarga erro={erroCarga} aoTentar={() => void recarregar()} aoSair={() => void sair()} />;
+    }
+  }
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
@@ -446,7 +535,20 @@ export function useCalibracaoVigente(equipamentoId: UUID | undefined): Calibraca
 /* ---------------- Ações de alto nível ---------------- */
 
 export function useAcoes() {
-  const { despachar, usuario, auditar, estado } = useBancada();
+  const { despachar, usuario, auditar, estado, recarregar } = useBancada();
+
+  /* No modo banco a tela avança na hora e a gravação segue atrás. Se o banco
+     recusar — segregação de função, calibração vencida, permissão — o erro
+     aparece e o estado volta do banco; divergir em silêncio seria pior. */
+  const persistir = useCallback((rotulo: string, tarefa: () => Promise<void>) => {
+    if (!COM_BANCO) return;
+    void tarefa().catch((e: unknown) => {
+      toast.error(`Não gravado: ${rotulo}`, {
+        description: e instanceof Error ? e.message : String(e),
+      });
+      void recarregar();
+    });
+  }, [recarregar]);
 
   const registrarLeitura = useCallback((leitura: LeituraPh, valorFinal: number) => {
     despachar({ tipo: 'registrar-leitura', leitura, valor: valorFinal });
@@ -455,10 +557,15 @@ export function useAcoes() {
       'Registrou leitura de pH', 'LeituraPh', leitura.id,
       `${amostra?.protocolo ?? leitura.amostraId} · pH ${valorFinal.toFixed(2)} · origem ${leitura.origem}`,
     );
-    if (amostra && (amostra.status === 'recebida' || amostra.status === 'preparo')) {
+    const abreAnalise = amostra && (amostra.status === 'recebida' || amostra.status === 'preparo');
+    if (abreAnalise) {
       despachar({ tipo: 'atualizar-amostra', amostraId: amostra.id, dados: { status: 'em-analise' } });
     }
-  }, [despachar, auditar, estado.amostras]);
+    persistir('leitura de pH', async () => {
+      await gravarLeitura(leitura, valorFinal);
+      if (abreAnalise && amostra) await gravarStatusAmostra(amostra.id, 'em-analise');
+    });
+  }, [despachar, auditar, estado.amostras, persistir]);
 
   const salvarCalibracao = useCallback((
     equipamentoId: UUID, pontos: PontoCalibracao[], observacao?: string,
@@ -483,45 +590,46 @@ export function useAcoes() {
       observacao: observacao ?? r.avisos[0],
     };
     despachar({ tipo: 'salvar-calibracao', calibracao });
+    persistir('calibração', () => gravarCalibracao(calibracao));
     auditar(
       r.aprovada ? 'Calibrou equipamento' : 'Reprovou calibração', 'Calibracao', calibracao.id,
       `${pontos.length} pontos · slope ${r.slopePercentual.toFixed(1)}% · offset ${r.offsetMv.toFixed(1)} mV`,
     );
     return calibracao;
-  }, [despachar, usuario.id, auditar]);
+  }, [despachar, usuario.id, auditar, persistir]);
 
   /** Lançamento em lote da bancada: várias amostras, vários elementos, uma gravação. */
   const lancarResultados = useCallback((entradas: Array<{ ensaioId: UUID; valor: number }>) => {
     if (entradas.length === 0) return;
     despachar({ tipo: 'lancar-resultados', entradas, analistaId: usuario.id });
+    persistir('resultados', () => gravarResultados(entradas, usuario.id));
     auditar(
       'Lançou resultados', 'Ensaio', `${entradas.length} ensaios`,
       `Lançamento em lote de ${entradas.length} ${entradas.length === 1 ? 'resultado' : 'resultados'}`,
     );
-  }, [despachar, usuario.id, auditar]);
+  }, [despachar, usuario.id, auditar, persistir]);
 
   const aprovarEnsaio = useCallback((ensaioId: UUID) => {
-    despachar({
-      tipo: 'atualizar-ensaio',
-      ensaioId,
-      dados: { status: 'aprovado', revisorId: usuario.id, dataAprovacao: new Date().toISOString() },
-    });
+    const dados = {
+      status: 'aprovado' as const, revisorId: usuario.id, dataAprovacao: new Date().toISOString(),
+    };
+    despachar({ tipo: 'atualizar-ensaio', ensaioId, dados });
+    persistir('aprovação', () => gravarEnsaio(ensaioId, dados));
     auditar('Aprovou resultado', 'Ensaio', ensaioId, 'Resultado liberado após revisão técnica');
-  }, [despachar, usuario.id, auditar]);
+  }, [despachar, usuario.id, auditar, persistir]);
 
   const repetirEnsaio = useCallback((ensaioId: UUID, motivo: string) => {
-    despachar({
-      tipo: 'atualizar-ensaio',
-      ensaioId,
-      dados: { status: 'repetir', valor: undefined, observacao: motivo },
-    });
+    const dados = { status: 'repetir' as const, valor: undefined, observacao: motivo };
+    despachar({ tipo: 'atualizar-ensaio', ensaioId, dados });
+    persistir('repetição', () => gravarEnsaio(ensaioId, dados));
     auditar('Solicitou repetição', 'Ensaio', ensaioId, motivo);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir]);
 
   const mudarStatusAmostra = useCallback((amostraId: UUID, status: StatusAmostra) => {
     despachar({ tipo: 'atualizar-amostra', amostraId, dados: { status } });
+    persistir('status da amostra', () => gravarStatusAmostra(amostraId, status));
     auditar('Alterou status da amostra', 'Amostra', amostraId, `Novo status: ${status}`);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir]);
 
   const registrarCQ = useCallback((
     controleId: UUID, equipamentoId: UUID, valorMedido: number,
@@ -681,9 +789,10 @@ export function useAcoes() {
     lote: LoteRecepcao, novasAmostras: Amostra[], novosEnsaios: Ensaio[],
   ) => {
     despachar({ tipo: 'criar-recepcao', lote, amostras: novasAmostras, ensaios: novosEnsaios });
+    persistir('recepção', () => gravarRecepcao(lote, novasAmostras, novosEnsaios, estado.unidadeAtivaId));
     auditar('Protocolou recepção', 'LoteRecepcao', lote.id,
       `${lote.numero} · ${novasAmostras.length} amostras · ${novosEnsaios.length} ensaios`);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir, estado.unidadeAtivaId]);
 
   const trocarUsuario = useCallback((usuarioId: UUID) => {
     despachar({ tipo: 'trocar-usuario', usuarioId });

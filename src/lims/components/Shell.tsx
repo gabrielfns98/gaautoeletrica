@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Activity, Beaker, Boxes, ClipboardList, FileCheck2, FlaskConical, Gauge,
-  Layers, LayoutDashboard, Menu, Moon, Receipt, ScrollText, Settings, ShieldCheck,
+  Layers, LayoutDashboard, LogOut, Menu, Moon, Receipt, ScrollText, Settings, ShieldCheck,
   Sun, TableProperties, TestTubes, Upload, Users, Wallet, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -248,7 +248,7 @@ function RodapeLateral() {
 /* ---------------- Topo ---------------- */
 
 function Topo({ aoAbrirMenu }: { aoAbrirMenu: () => void }) {
-  const { usuario, papel, tema, alternarTema, estado } = useBancada();
+  const { usuario, papel, tema, alternarTema, estado, modo, sair } = useBancada();
   const { trocarUsuario } = useAcoes();
 
   return (
@@ -313,10 +313,23 @@ function Topo({ aoAbrirMenu }: { aoAbrirMenu: () => void }) {
               <p className="mt-1 text-[0.68rem] font-normal text-muted-foreground">{usuario.email}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {modo === 'banco' ? (
+              <>
+                <DropdownMenuLabel className="label-micro">
+                  {papel?.nome ?? 'Sem papel'}
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => void sair()} className="gap-2.5">
+                  <LogOut className="h-4 w-4" />
+                  <span className="text-xs">Sair da conta</span>
+                </DropdownMenuItem>
+              </>
+            ) : null}
+            {modo === 'banco' ? null : (
             <DropdownMenuLabel className="label-micro">
               Operar como — demonstra as permissões
             </DropdownMenuLabel>
-            {estado.usuarios.filter((u) => u.ativo).map((u) => {
+            )}
+            {modo === 'banco' ? [] : estado.usuarios.filter((u) => u.ativo).map((u) => {
               const p = estado.papeis.find((x) => x.id === u.papelId);
               return (
                 <DropdownMenuItem

@@ -8,6 +8,8 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   root: path.resolve(__dirname, "apps/bancada"),
+  // As variáveis moram na raiz do repositório, não na pasta da entrada.
+  envDir: __dirname,
   publicDir: false,
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
