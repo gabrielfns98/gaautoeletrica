@@ -21,6 +21,7 @@ import type {
 } from '../../types';
 
 import Curvas from './Curvas';
+import { rota } from '../../base';
 
 type Registro =
   | 'tipos-analise' | 'elementos' | 'curvas' | 'legendas' | 'metodologias'
@@ -62,9 +63,9 @@ const GRUPOS_REGISTRO: Array<{ titulo: string; itens: Array<{ id: Registro; rotu
 
 /** Cadastros que já têm tela própria em outro módulo. */
 const ATALHOS = [
-  { rotulo: 'Equipamento', para: '/lab/equipamentos' },
-  { rotulo: 'Cliente / Fornecedor', para: '/lab/crm' },
-  { rotulo: 'Análise e Unidade', para: '/lab/configuracoes' },
+  { rotulo: 'Equipamento', para: rota('/equipamentos') },
+  { rotulo: 'Cliente / Fornecedor', para: rota('/crm') },
+  { rotulo: 'Análise e Unidade', para: rota('/configuracoes') },
 ];
 
 export default function Cadastros() {

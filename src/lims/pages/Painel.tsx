@@ -21,6 +21,7 @@ import { data as fData, diasEntre, moeda, moedaCompacta, numero, tempoRelativo }
 import { BarraProporcao, CabecalhoPagina, Indicador, Pilula, Secao, Tabela, Vazio } from '../components/primitivos';
 import { ChipPh, HistogramaPh } from '../components/ph-visual';
 import type { Amostra } from '../types';
+import { rota } from '../base';
 
 const CORES_STATUS: Record<string, string> = {
   recebida: 'hsl(var(--ph-11))',
@@ -157,7 +158,7 @@ export default function Painel() {
         descricao={`${unidade.nome} — ${unidade.acreditacao ?? 'laboratório de ensaio'}`}
         acoes={
           <Button asChild className="gap-2">
-            <Link to="/lab/ph">
+            <Link to={rota('/ph')}>
               <Gauge className="h-4 w-4" /> Abrir bancada de pH
             </Link>
           </Button>
@@ -200,7 +201,7 @@ export default function Painel() {
             prazo de entrega combinado.
           </p>
           <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs">
-            <Link to="/lab/amostras">ver amostras <ArrowRight className="h-3.5 w-3.5" /></Link>
+            <Link to={rota('/amostras')}>ver amostras <ArrowRight className="h-3.5 w-3.5" /></Link>
           </Button>
         </div>
       )}
@@ -331,7 +332,7 @@ export default function Painel() {
             ))}
           </ul>
           <Button asChild variant="outline" size="sm" className="mt-4 w-full gap-1.5 text-xs">
-            <Link to="/lab/ph">Calibrar <ArrowRight className="h-3.5 w-3.5" /></Link>
+            <Link to={rota('/ph')}>Calibrar <ArrowRight className="h-3.5 w-3.5" /></Link>
           </Button>
         </Secao>
       </div>

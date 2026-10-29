@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { useAcoes, useBancada, useFilaPh } from '../data/store';
 import type { Modulo } from '../types';
+import { rota } from '../base';
 
 interface ItemNav {
   modulo: Modulo;
@@ -36,38 +37,38 @@ const GRUPOS_NAV: Array<{ titulo: string; itens: ItemNav[] }> = [
   {
     titulo: 'Operação',
     itens: [
-      { modulo: 'dashboard', rotulo: 'Painel', caminho: '/lab', icone: LayoutDashboard, fim: true },
-      { modulo: 'recepcao', rotulo: 'Recepção', caminho: '/lab/recepcao', icone: ClipboardList },
-      { modulo: 'amostras', rotulo: 'Importação', caminho: '/lab/importacao', icone: Upload },
-      { modulo: 'amostras', rotulo: 'Amostras', caminho: '/lab/amostras', icone: TestTubes },
-      { modulo: 'ph', rotulo: 'Leitura de pH', caminho: '/lab/ph', icone: Gauge },
-      { modulo: 'analises', rotulo: 'Resultados', caminho: '/lab/resultados', icone: TableProperties },
-      { modulo: 'analises', rotulo: 'Revisão', caminho: '/lab/ensaios', icone: FlaskConical },
-      { modulo: 'laudos', rotulo: 'Laudos', caminho: '/lab/laudos', icone: FileCheck2 },
+      { modulo: 'dashboard', rotulo: 'Painel', caminho: rota(), icone: LayoutDashboard, fim: true },
+      { modulo: 'recepcao', rotulo: 'Recepção', caminho: rota('/recepcao'), icone: ClipboardList },
+      { modulo: 'amostras', rotulo: 'Importação', caminho: rota('/importacao'), icone: Upload },
+      { modulo: 'amostras', rotulo: 'Amostras', caminho: rota('/amostras'), icone: TestTubes },
+      { modulo: 'ph', rotulo: 'Leitura de pH', caminho: rota('/ph'), icone: Gauge },
+      { modulo: 'analises', rotulo: 'Resultados', caminho: rota('/resultados'), icone: TableProperties },
+      { modulo: 'analises', rotulo: 'Revisão', caminho: rota('/ensaios'), icone: FlaskConical },
+      { modulo: 'laudos', rotulo: 'Laudos', caminho: rota('/laudos'), icone: FileCheck2 },
     ],
   },
   {
     titulo: 'Comercial',
     itens: [
-      { modulo: 'crm', rotulo: 'CRM', caminho: '/lab/crm', icone: Users },
-      { modulo: 'financeiro', rotulo: 'Financeiro', caminho: '/lab/financeiro', icone: Wallet },
-      { modulo: 'fiscal', rotulo: 'Fiscal', caminho: '/lab/fiscal', icone: Receipt },
+      { modulo: 'crm', rotulo: 'CRM', caminho: rota('/crm'), icone: Users },
+      { modulo: 'financeiro', rotulo: 'Financeiro', caminho: rota('/financeiro'), icone: Wallet },
+      { modulo: 'fiscal', rotulo: 'Fiscal', caminho: rota('/fiscal'), icone: Receipt },
     ],
   },
   {
     titulo: 'Recursos',
     itens: [
-      { modulo: 'estoque', rotulo: 'Estoque', caminho: '/lab/estoque', icone: Boxes },
-      { modulo: 'equipamentos', rotulo: 'Equipamentos', caminho: '/lab/equipamentos', icone: Beaker },
+      { modulo: 'estoque', rotulo: 'Estoque', caminho: rota('/estoque'), icone: Boxes },
+      { modulo: 'equipamentos', rotulo: 'Equipamentos', caminho: rota('/equipamentos'), icone: Beaker },
     ],
   },
   {
     titulo: 'Administração',
     itens: [
-      { modulo: 'configuracoes', rotulo: 'Cadastros', caminho: '/lab/cadastros', icone: Layers },
-      { modulo: 'usuarios', rotulo: 'Usuários e papéis', caminho: '/lab/usuarios', icone: ShieldCheck },
-      { modulo: 'auditoria', rotulo: 'Auditoria', caminho: '/lab/auditoria', icone: ScrollText },
-      { modulo: 'configuracoes', rotulo: 'Configurações', caminho: '/lab/configuracoes', icone: Settings },
+      { modulo: 'configuracoes', rotulo: 'Cadastros', caminho: rota('/cadastros'), icone: Layers },
+      { modulo: 'usuarios', rotulo: 'Usuários e papéis', caminho: rota('/usuarios'), icone: ShieldCheck },
+      { modulo: 'auditoria', rotulo: 'Auditoria', caminho: rota('/auditoria'), icone: ScrollText },
+      { modulo: 'configuracoes', rotulo: 'Configurações', caminho: rota('/configuracoes'), icone: Settings },
     ],
   },
 ];

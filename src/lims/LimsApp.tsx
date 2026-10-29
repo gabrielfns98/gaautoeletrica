@@ -31,6 +31,7 @@ import Usuarios from './pages/Usuarios';
 import Auditoria from './pages/Auditoria';
 import Cadastros from './pages/cadastros';
 import Configuracoes from './pages/Configuracoes';
+import { rota } from './base';
 
 /** Bloqueia a rota quando o papel do usuário não enxerga o módulo. */
 function Protegido({ modulo, children }: { modulo: Modulo; children: ReactElement }) {
@@ -69,7 +70,7 @@ export default function LimsApp() {
           <Route path="auditoria" element={<Protegido modulo="auditoria"><Auditoria /></Protegido>} />
           <Route path="cadastros" element={<Protegido modulo="configuracoes"><Cadastros /></Protegido>} />
           <Route path="configuracoes" element={<Protegido modulo="configuracoes"><Configuracoes /></Protegido>} />
-          <Route path="*" element={<Navigate to="/lab" replace />} />
+          <Route path="*" element={<Navigate to={rota()} replace />} />
         </Route>
       </Routes>
       <Toaster position="bottom-right" richColors closeButton />

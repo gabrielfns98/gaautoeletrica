@@ -16,6 +16,7 @@ import {
   BarraFiltros, CabecalhoPagina, Campos, Indicador, Pilula, Secao, Tabela, Vazio, filtrar,
 } from '../components/primitivos';
 import type { Calibracao, Equipamento } from '../types';
+import { rota } from '../base';
 
 export default function Equipamentos() {
   const { estado, unidade } = useBancada();
@@ -60,7 +61,7 @@ export default function Equipamentos() {
         descricao="Parque instalado, estado metrológico dos potenciômetros e cronograma de manutenção preventiva."
         acoes={
           <Button asChild variant="outline" className="gap-2">
-            <Link to="/lab/ph"><Gauge className="h-4 w-4" /> Calibrar pHmetro</Link>
+            <Link to={rota('/ph')}><Gauge className="h-4 w-4" /> Calibrar pHmetro</Link>
           </Button>
         }
       />
