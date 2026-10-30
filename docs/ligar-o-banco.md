@@ -11,15 +11,20 @@ que tela de erro.
 
 ## 1. Aplicar a migração
 
-No projeto Supabase, SQL Editor, rode o conteúdo de
-`supabase/migrations/20251008120000_bancada_lims.sql`. Ele cria 29 tabelas
-`lab_*`, os tipos, as políticas de RLS, os gatilhos (trilha de auditoria,
-bloqueio de calibração vencida, saldo de estoque) e os sete papéis de fábrica.
+No projeto Supabase, SQL Editor, rode **na ordem** o conteúdo de:
+
+1. `supabase/migrations/20251008120000_bancada_lims.sql` — 29 tabelas `lab_*`,
+   os tipos, as políticas de RLS, os gatilhos (trilha de auditoria, bloqueio de
+   calibração vencida, saldo de estoque) e os sete papéis de fábrica.
+2. `supabase/migrations/20251030120000_bancada_cadastros.sql` — mais 9 tabelas
+   de cadastro (pacotes de análise, curvas, legendas, metodologias, bandejas,
+   listas simples, convênios e regras de desconto) e a coluna do pacote
+   contratado na amostra.
 
 Para conferir depois:
 
 ```sql
-select count(*) from pg_tables where tablename like 'lab\_%';  -- 29
+select count(*) from pg_tables where tablename like 'lab\_%';  -- 38
 select nome from public.lab_papeis order by nome;              -- 7 papéis
 ```
 
@@ -74,20 +79,17 @@ Variáveis de build (na Vercel: Project → Settings → Environment Variables):
 São lidas no build, não em tempo de execução: mudou variável, precisa de um
 novo deploy.
 
-## O que já persiste
+## O que persiste
 
-A cadeia analítica: unidades, papéis, membros, grupos, parâmetros, tabelas de
-preço, clientes, lotes de recepção, amostras, ensaios, equipamentos,
-calibrações e leituras de pH. Em termos de tela: recepção, importação de
-amostras e de resultados, lançamento, revisão, aprovação, bancada de pH e
-calibração.
+Tudo o que a aplicação mostra: a cadeia analítica (unidades, papéis, membros,
+grupos, parâmetros, tabelas de preço, clientes, lotes, amostras, ensaios,
+equipamentos, calibrações e leituras de pH), o CRM, o controle de qualidade,
+laudos, orçamentos, notas fiscais, títulos, estoque, a trilha de auditoria e os
+cadastros de referência.
 
-## O que ainda não persiste
-
-Laudos, orçamentos, financeiro, fiscal, estoque, CRM além do cadastro de
-cliente, curvas, legendas e os demais cadastros. No modo banco esses módulos
-aparecem **vazios**, de propósito: misturar massa de demonstração com dado real
-do laboratório seria pior que mostrar módulo vazio.
+Uma exceção de propósito: **criar membro** não se faz pela tela. O vínculo com
+`auth.users` nasce no convite, então a tela edita quem já existe e recusa, com
+mensagem clara, quem ainda não foi convidado.
 
 ## Como o mapeamento é conferido
 
