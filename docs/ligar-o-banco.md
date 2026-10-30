@@ -32,7 +32,12 @@ No projeto Supabase, SQL Editor, rode **na ordem** o conteúdo de:
 6. `supabase/migrations/20251030160000_bancada_formulas.sql` — as fórmulas dos
    resultados calculados (SB, CTC, V%, m%, H+Al pelo SMP, PRNT).
 7. `supabase/migrations/20251030170000_bancada_modelo_laudo.sql` — o modelo do
-   laudo: timbre, ordem dos ensaios, observações e assinatura.
+   laudo: timbre, ordem dos ensaios, observações, assinatura e o layout
+   (genérico, analítico ou foliar).
+8. `supabase/migrations/20251030180000_bancada_metodologia.sql` — a metodologia
+   como cadastro completo (extração, equipamento, unidade, casas decimais, LQ
+   e incerteza), o elemento apontando para ela, o LQ e a marca de relação no
+   elemento, a garantia no ensaio e os campos de produto na amostra.
 
 Para conferir depois:
 
