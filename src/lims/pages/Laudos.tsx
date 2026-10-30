@@ -14,6 +14,7 @@ import { useAcoes, useBancada, useIndices } from '../data/store';
 import { modeloDoLaudo, montarLaudo, ordenarPeloModelo } from './laudo/montar';
 import { FolhaLaudo } from './laudo/Folha';
 import { FolhaFoliar } from './laudo/Foliar';
+import { FolhaAnalitica } from './laudo/Analitico';
 import type { Disposicao } from './laudo/Folha';
 import { data as fData, tempoRelativo } from '../lib/format';
 import {
@@ -220,6 +221,11 @@ function PreVisualizacao({
 
   const comoMostrar = disposicao ?? modelo.disposicaoPadrao;
 
+  /* Solicitante é quem pediu a análise: o contato do cliente, não
+     alguém do laboratório. */
+  const solicitante = estado.contatos.find((c) => c.clienteId === laudo.clienteId && c.principal)?.nome
+    ?? estado.contatos.find((c) => c.clienteId === laudo.clienteId)?.nome;
+
   const cliente = clientePorId.get(laudo.clienteId);
   const grupo = grupoPorId.get(laudo.grupoId);
   const assinante = laudo.assinadoPorId ? usuarioPorId.get(laudo.assinadoPorId) : undefined;
@@ -254,7 +260,18 @@ function PreVisualizacao({
             )}
 
             <div className="mt-6">
-              {modelo.layout === 'foliar' ? (
+              {modelo.layout === 'analitico' ? (
+                <FolhaAnalitica
+                  laudo={laudo}
+                  montado={montado}
+                  cliente={cliente}
+                  unidade={unidade}
+                  assinante={assinante}
+                  observacoes={observacoes}
+                  modelo={modelo}
+                  solicitante={solicitante}
+                />
+              ) : modelo.layout === 'foliar' ? (
                 <FolhaFoliar
                   laudo={laudo}
                   montado={montado}
@@ -264,10 +281,7 @@ function PreVisualizacao({
                   observacoes={observacoes}
                   modelo={modelo}
                   lote={estado.lotesRecepcao.find((l) => l.id === montado.amostras[0]?.amostra.loteRecepcaoId)}
-                  solicitante={
-                    estado.contatos.find((c) => c.clienteId === laudo.clienteId && c.principal)?.nome
-                    ?? estado.contatos.find((c) => c.clienteId === laudo.clienteId)?.nome
-                  }
+                  solicitante={solicitante}
                   relacoes={relacoes}
                 />
               ) : (

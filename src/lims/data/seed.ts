@@ -146,7 +146,38 @@ export const parametros: Parametro[] = [
 
   // --- Fertilizantes / orgânicos ---
   { id: 'par-ph-fert', codigo: 'PH-FERT', nome: 'pH em solução', grupoId: 'fertilizantes', unidade: '', tipo: 'numerico', metodo: 'IN SDA 28/2007 — potenciometria 1:10', casasDecimais: 2, incerteza: 0.06, preco: 16.0, ativo: true, ehPh: true, extrator: 'H2O', proporcao: '1:10' },
-  { id: 'par-n-total', codigo: 'N-TOT', nome: 'Nitrogênio total', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA 28/2007 — Kjeldahl', casasDecimais: 2, preco: 32.0, ativo: true },
+  { id: 'par-n-total', codigo: 'N-TOT', nome: 'N Total', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 1.3', casasDecimais: 2, lq: 0.1, preco: 32.0, ativo: true },
+
+  /* O escopo que o laboratório entrega num laudo de fertilizante.
+     Os códigos de método são os da IN SDA, escritos de um jeito só —
+     nos laudos atuais o mesmo método aparece como "IN SDA CAP. 1 C 1.3",
+     "IN SDA CAP. I C 2" e "IN CAP. 1 C 11.2". */
+  { id: 'par-n-amoniacal', codigo: 'N-AMON', nome: 'N Amoniacal', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 1', casasDecimais: 2, lq: 0.1, preco: 28.0, ativo: true },
+  { id: 'par-n-nitrico', codigo: 'N-NITR', nome: 'N Nítrico', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 1', casasDecimais: 2, lq: 0.1, preco: 28.0, ativo: true },
+  { id: 'par-p2o5-total', codigo: 'P2O5-TOT', nome: 'P2O5 Total', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 2', casasDecimais: 2, lq: 0.1, preco: 34.0, ativo: true },
+  { id: 'par-p2o5-h2o', codigo: 'P2O5-H2O', nome: 'P2O5 solúvel em água', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 3', casasDecimais: 2, lq: 0.1, preco: 32.0, ativo: true },
+  { id: 'par-k2o-h2o', codigo: 'K2O-H2O', nome: 'K2O solúvel em água', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 8.1.2', casasDecimais: 2, lq: 0.1, preco: 30.0, ativo: true },
+  { id: 'par-ca-fert', codigo: 'CA-FERT', nome: 'Ca Total', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 9.2', casasDecimais: 2, lq: 0.1, preco: 24.0, ativo: true },
+  { id: 'par-mg-fert', codigo: 'MG-FERT', nome: 'Mg Total', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 9.3', casasDecimais: 2, lq: 0.1, preco: 24.0, ativo: true },
+  { id: 'par-s-fert', codigo: 'S-FERT', nome: 'S Total (SO4)', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 10', casasDecimais: 2, lq: 0.1, preco: 26.0, ativo: true },
+  { id: 'par-b-fert', codigo: 'B-FERT', nome: 'B Total', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 11.2', casasDecimais: 3, lq: 0.01, preco: 26.0, ativo: true },
+  { id: 'par-zn-fert', codigo: 'ZN-FERT', nome: 'Zn Total', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 12', casasDecimais: 3, lq: 0.01, preco: 22.0, ativo: true },
+  { id: 'par-cu-fert', codigo: 'CU-FERT', nome: 'Cu Total', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I C 12', casasDecimais: 3, lq: 0.01, preco: 22.0, ativo: true },
+  { id: 'par-umidade-fert', codigo: 'UMID-FERT', nome: 'Umidade', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'Método da estufa', casasDecimais: 1, lq: 0.1, preco: 14.0, ativo: true },
+  { id: 'par-agua-livre', codigo: 'AGUA-LIV', nome: 'Água Livre', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'ANDA — água livre', casasDecimais: 2, lq: 0.1, preco: 18.0, ativo: true },
+  { id: 'par-acidez-livre', codigo: 'ACIDEZ', nome: 'Acidez Livre', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'ANDA — acidez livre', casasDecimais: 2, lq: 0.1, preco: 18.0, ativo: true },
+  { id: 'par-dureza', codigo: 'DUREZA', nome: 'Dureza', grupoId: 'fertilizantes', unidade: 'Kgf/cm²', tipo: 'numerico', metodo: 'ANDA — dureza do grânulo', casasDecimais: 2, lq: 0.1, preco: 20.0, ativo: true },
+  { id: 'par-gran-004', codigo: 'GRAN-004', nome: '# 004 — 4,75 mm — Passante', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I B', casasDecimais: 2, lq: 0.1, preco: 16.0, ativo: true },
+  { id: 'par-gran-010', codigo: 'GRAN-010', nome: '# 010 — 2,00 mm — Passante', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I B', casasDecimais: 2, lq: 0.1, preco: 16.0, ativo: true },
+  { id: 'par-gran-018', codigo: 'GRAN-018', nome: '# 018 — 1,00 mm — Passante', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I B', casasDecimais: 2, lq: 0.1, preco: 16.0, ativo: true },
+  { id: 'par-gran-fundo', codigo: 'GRAN-FUNDO', nome: 'Fundo', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. I B', casasDecimais: 2, lq: 0.1, preco: 16.0, ativo: true },
+  { id: 'par-as-fert', codigo: 'AS-FERT', nome: 'As Total', grupoId: 'fertilizantes', unidade: 'mg/kg', tipo: 'numerico', metodo: 'IN SDA CAP. I C 27', casasDecimais: 2, lq: 0.1, preco: 48.0, ativo: true },
+  { id: 'par-hg-fert', codigo: 'HG-FERT', nome: 'Hg Total', grupoId: 'fertilizantes', unidade: 'mg/kg', tipo: 'numerico', metodo: 'IN SDA CAP. I C 28.1', casasDecimais: 2, lq: 0.1, preco: 52.0, ativo: true },
+  { id: 'par-cd-fert', codigo: 'CD-FERT', nome: 'Cd Total', grupoId: 'fertilizantes', unidade: 'mg/kg', tipo: 'numerico', metodo: 'U.S.EPA 3050-B', casasDecimais: 2, lq: 0.1, preco: 46.0, ativo: true },
+  { id: 'par-cr-fert', codigo: 'CR-FERT', nome: 'Cr Total', grupoId: 'fertilizantes', unidade: 'mg/kg', tipo: 'numerico', metodo: 'IN SDA CAP. I C 25', casasDecimais: 2, lq: 0.1, preco: 44.0, ativo: true },
+  { id: 'par-pb-fert', codigo: 'PB-FERT', nome: 'Pb Total', grupoId: 'fertilizantes', unidade: 'mg/kg', tipo: 'numerico', metodo: 'IN SDA CAP. I C 25', casasDecimais: 2, lq: 0.1, preco: 44.0, ativo: true },
+  { id: 'par-co-fert', codigo: 'CO-FERT', nome: 'C.O. — Carbono orgânico', grupoId: 'fertilizantes', unidade: '%', tipo: 'numerico', metodo: 'IN SDA CAP. III E 13', casasDecimais: 2, lq: 0.1, preco: 28.0, ativo: true },
+  { id: 'par-cn-fert', codigo: 'REL-CN', nome: 'Relação C/N', grupoId: 'fertilizantes', unidade: '', tipo: 'numerico', metodo: 'Cálculo', casasDecimais: 2, ehRelacao: true, preco: 0, ativo: true },
   { id: 'par-ph-comp', codigo: 'PH-COMP', nome: 'pH do composto', grupoId: 'compostos-organicos', unidade: '', tipo: 'numerico', metodo: 'IN SDA 28/2007 — potenciometria 1:10', casasDecimais: 2, incerteza: 0.07, preco: 15.0, ativo: true, ehPh: true, extrator: 'H2O', proporcao: '1:10' },
   { id: 'par-ph-cana', codigo: 'PH-CANA', nome: 'pH do caldo', grupoId: 'derivados-cana', unidade: '', tipo: 'numerico', metodo: 'CONSECANA — potenciometria direta', casasDecimais: 2, incerteza: 0.04, preco: 12.0, ativo: true, ehPh: true, extrator: 'direto', proporcao: 'direto' },
   { id: 'par-brix', codigo: 'BRIX', nome: 'Brix', grupoId: 'derivados-cana', unidade: '°Bx', tipo: 'numerico', metodo: 'CONSECANA — refratometria', casasDecimais: 2, preco: 14.0, ativo: true },
@@ -1064,7 +1095,27 @@ for (let l = 0; l < 210; l++) {
           ensaio.valor = Number(base.toFixed(par.casasDecimais));
         }
 
-        if (par.limiteInferior !== undefined && ensaio.valor !== undefined) {
+        /* Garantia declarada pelo fabricante: ela é do lote, não do
+         método, e é a coluna que o cliente lê primeiro no laudo de
+         fertilizante. Uma em cada oito sai fora, para a tela mostrar
+         o destaque em vermelho. */
+      if (grupoLote === 'fertilizantes' && ensaio.valor !== undefined && par.preco > 0) {
+        const fora = chance(0.12);
+        if (par.codigo.startsWith('GRAN-') && par.codigo !== 'GRAN-FUNDO') {
+          const teto = par.codigo === 'GRAN-004';
+          const alvo = teto ? 95 : par.codigo === 'GRAN-010' ? 40 : 5;
+          ensaio.garantia = `${alvo.toFixed(2).replace('.', ',')} ${teto ? 'Mín.' : 'Máx.'}`;
+          ensaio.valor = teto
+            ? (fora ? alvo - entre(0.2, 2) : alvo + entre(0.05, 3))
+            : (fora ? alvo + entre(0.5, 6) : entre(0, alvo * 0.6));
+          ensaio.valor = Number(ensaio.valor.toFixed(par.casasDecimais));
+        } else if (!par.codigo.startsWith('GRAN-') && chance(0.55)) {
+          const declarado = Number((ensaio.valor * (fora ? 1.15 : 0.93)).toFixed(par.casasDecimais));
+          ensaio.garantia = `${declarado.toFixed(par.casasDecimais).replace('.', ',')} Mín.`;
+        }
+      }
+
+      if (par.limiteInferior !== undefined && ensaio.valor !== undefined) {
           ensaio.foraDeFaixa = ensaio.valor < par.limiteInferior || ensaio.valor > (par.limiteSuperior ?? Infinity);
         }
       }
@@ -1184,6 +1235,12 @@ export const formulas: Formula[] = [
     fonte: 'CFSEMG, 5ª aproximação — estimativa pelo índice SMP',
     ativa: true,
     observacao: 'Troque os coeficientes pela equação do seu estado.',
+  },
+  {
+    id: 'frm-cn', parametroId: idDe('REL-CN'), grupoId: 'fertilizantes',
+    expressao: 'CO-FERT / N-TOT',
+    fonte: 'Relação carbono/nitrogênio', ativa: true,
+    observacao: 'Adimensional: o laudo não imprime unidade.',
   },
   {
     id: 'frm-ndt', parametroId: idDe('NDT'), grupoId: 'bromatologia',

@@ -224,6 +224,16 @@ export interface Amostra {
   identificacaoCampo: string;   // identificação dada pelo cliente
   /** pacote contratado para esta amostra */
   tipoAnaliseId?: UUID;
+  /* ---- Campos do laudo analítico de fertilizante ---- */
+  /** fabricação, validade e lote do produto amostrado */
+  dataFabricacao?: ISODate;
+  dataValidade?: ISODate;
+  lote?: string;
+  fornecedor?: string;
+  /** quantidade representada pela amostra: "30.000,000 MTS" */
+  quantidade?: string;
+  /** sólido, granulado, líquido, farelado */
+  naturezaFisica?: string;
   fazenda?: string;             // "Propriedade", no vocabulário do laboratório
   talhao?: string;
   profundidade?: string;        // "0-20 cm"
@@ -274,6 +284,13 @@ export interface Ensaio {
   leituraPhId?: UUID;
   observacao?: string;
   foraDeFaixa?: boolean;
+  /**
+   * Garantia declarada pelo fabricante, no laudo de fertilizante:
+   * "95,00 Mín.", "40,00 Máx." ou um número cheio. É do lote, não do
+   * método, por isso mora no ensaio e não no parâmetro — o mesmo
+   * N total tem garantia diferente a cada produto analisado.
+   */
+  garantia?: string;
 }
 
 /* ---------------- Núcleo: potenciometria / pH ---------------- */

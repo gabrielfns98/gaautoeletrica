@@ -56,6 +56,15 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
+    /* O vermelho semântico do laudo, ao lado de --success e --warning:
+       resultado fora da garantia, verificação reprovada, amostra
+       cancelada. Mesmo matiz de --destructive, nome que combina com
+       os outros dois — e definido, porque usá-lo sem definir faz o
+       navegador cair para a cor herdada e o destaque desaparecer
+       justamente na linha que reprova o lote. */
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+
     /* Borders and inputs */
     --border: 0 0% 88%;
     --input: 0 0% 95%;
@@ -126,6 +135,9 @@
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
+
+    --danger: 0 84% 64%;
+    --danger-foreground: 0 0% 98%;
 
     --border: 0 0% 20%;
     --input: 0 0% 15%;

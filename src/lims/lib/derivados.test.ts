@@ -122,3 +122,18 @@ describe('fórmulas do catálogo', () => {
     expect(problemas).toEqual([]);
   });
 });
+
+describe('relação C/N do laudo de fertilizante', () => {
+  it('sai do carbono orgânico sobre o nitrogênio total', () => {
+    const r = calcularDerivados(formulas, parametros, 'fertilizantes', {
+      'CO-FERT': 4.68, 'N-TOT': 0.75,
+    });
+    // Laudo 2649: C.O. 4,68 e N total 0,75 dão C/N 6,24.
+    expect(r.find((d) => d.codigo === 'REL-CN')?.valor).toBeCloseTo(6.24, 2);
+  });
+
+  /* Código com barra viraria divisão dentro de uma fórmula. */
+  it('nenhum código de elemento tem barra', () => {
+    expect(parametros.filter((p) => p.codigo.includes('/')).map((p) => p.codigo)).toEqual([]);
+  });
+});
