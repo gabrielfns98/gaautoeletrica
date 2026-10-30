@@ -17,6 +17,7 @@ import type { Modulo } from './types';
 import Painel from './pages/Painel';
 import Recepcao from './pages/Recepcao';
 import Importacao from './pages/Importacao';
+import Etiquetas from './pages/Etiquetas';
 import Amostras from './pages/Amostras';
 import EstacaoPh from './pages/ph';
 import Resultados from './pages/Resultados';
@@ -56,6 +57,7 @@ export default function LimsApp() {
           <Route index element={<Protegido modulo="dashboard"><Painel /></Protegido>} />
           <Route path="recepcao" element={<Protegido modulo="recepcao"><Recepcao /></Protegido>} />
           <Route path="importacao" element={<Protegido modulo="amostras"><Importacao /></Protegido>} />
+          <Route path="etiquetas" element={<Protegido modulo="amostras"><Etiquetas /></Protegido>} />
           <Route path="amostras" element={<Protegido modulo="amostras"><Amostras /></Protegido>} />
           <Route path="ph" element={<Protegido modulo="ph"><EstacaoPh /></Protegido>} />
           <Route path="resultados" element={<Protegido modulo="analises"><Resultados /></Protegido>} />

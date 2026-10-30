@@ -319,3 +319,35 @@
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
+
+/* ============================================================
+   Impressão de etiquetas
+   A folha é o único elemento que vai para o papel: o resto da
+   casca some. Medidas em milímetro porque o alvo é papel, não
+   tela — e o código de barras precisa sair no tamanho certo para
+   o leitor enxergar.
+   ============================================================ */
+
+@media print {
+  @page { size: A4; margin: 6mm; }
+
+  body * { visibility: hidden; }
+  .folha-etiquetas,
+  .folha-etiquetas * { visibility: visible; }
+
+  .folha-etiquetas {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  .folha-etiquetas .etiqueta {
+    border: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
