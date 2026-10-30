@@ -554,8 +554,19 @@ function Elementos() {
         { tipo: 'selecao', chave: 'grupoId', rotulo: 'Análise',
           opcoes: estado.grupos.map((g) => ({ valor: g.id, rotulo: g.nome })) },
         { tipo: 'texto', chave: 'unidade', rotulo: 'Unidade', dica: 'Vazio para adimensional, como pH.' },
-        { tipo: 'texto', chave: 'metodo', rotulo: 'Método', largura: 2 },
+        /* Escolher da lista é o que faz o código sair sempre igual: nos
+           laudos atuais a mesma norma aparece como "IN SDA CAP. 1 C 1.3",
+           "IN SDA CAP. I C 2" e "IN CAP. 1 C 11.2". */
+        { tipo: 'selecao', chave: 'metodologiaId', rotulo: 'Método do cadastro', largura: 2,
+          opcoes: [
+            { valor: SEM_METODOLOGIA, rotulo: 'Escrever à mão abaixo' },
+            ...estado.metodologias.filter((m) => m.ativa)
+              .map((m) => ({ valor: m.id, rotulo: `${m.codigo} — ${m.nome}` })),
+          ] },
+        { tipo: 'texto', chave: 'metodo', rotulo: 'Método como sai no laudo', largura: 2 },
         { tipo: 'numero', chave: 'casasDecimais', rotulo: 'Casas decimais', min: 0, max: 6 },
+        // Abaixo do LQ o laudo imprime "< LQ" em vez de "0,00".
+        { tipo: 'numero', chave: 'lq', rotulo: 'Limite de quantificação (LQ)', passo: 0.001, min: 0 },
         { tipo: 'numero', chave: 'preco', rotulo: 'Preço', passo: 0.01, min: 0, sufixo: 'R$' },
         { tipo: 'numero', chave: 'limiteInferior', rotulo: 'Limite inferior do método', passo: 0.01 },
         { tipo: 'numero', chave: 'limiteSuperior', rotulo: 'Limite superior do método', passo: 0.01 },
@@ -568,6 +579,8 @@ function Elementos() {
           ] },
         { tipo: 'booleano', chave: 'ehPh', rotulo: 'Resolvido na bancada de potenciometria',
           dica: 'Marcado, o elemento entra na fila da bancada e exige calibração válida.' },
+        { tipo: 'booleano', chave: 'ehRelacao', rotulo: 'É relação entre elementos',
+          dica: 'C/N, N/P, Ca/Mg: adimensional, então o laudo não imprime unidade.' },
       ]}
       validar={(p) => (
         !p.codigo.trim() ? 'O código é a chave que casa a planilha com o elemento.'
@@ -582,7 +595,18 @@ function Elementos() {
         id: novoId('par'), codigo: '', nome: '', grupoId: estado.grupos[0]?.id ?? 'solo',
         unidade: '', tipo: 'numerico' as const, metodo: '', casasDecimais: 2, preco: 0, ativo: true,
       })}
-      aoSalvar={(p) => salvarCadastro('parametros', p, `${p.codigo} — ${p.nome}`)}
+      aoSalvar={(p) => {
+        const met = estado.metodologias.find((m) => m.id === p.metodologiaId);
+        return salvarCadastro('parametros', {
+          ...p,
+          metodologiaId: p.metodologiaId === SEM_METODOLOGIA ? undefined : p.metodologiaId,
+          // O método do cadastro manda no texto que sai no laudo.
+          metodo: met ? met.codigo : p.metodo,
+          lq: p.lq ?? met?.lq,
+          // Relação não tem unidade; guardá-la seria o "%" da C/N.
+          unidade: p.ehRelacao ? '' : p.unidade,
+        }, `${p.codigo} — ${p.nome}`);
+      }}
       ativoDe={(p) => p.ativo}
       alternarAtivo={(p) => ({ ...p, ativo: !p.ativo })}
       rotuloDe={(p) => p.nome}
@@ -591,6 +615,10 @@ function Elementos() {
   );
 }
 
+/* Os seletores não aceitam opção vazia, então a ausência tem valor próprio. */
+const NENHUM_EQUIPAMENTO = 'qualquer';
+const SEM_METODOLOGIA = 'manual';
+
 function Metodologias() {
   const { estado } = useBancada();
   const { salvarCadastro } = useAcoes();
@@ -598,7 +626,8 @@ function Metodologias() {
   return (
     <PainelRegistro
       titulo="Metodologia"
-      descricao="Procedimentos vigentes, com norma de referência e versão"
+      descricao="O método é o registro central: o elemento aponta para ele, e o código sai sempre escrito do mesmo jeito."
+      larguraDialogo="sm:max-w-2xl"
       itens={estado.metodologias}
       colunas={[
         { chave: 'codigo', titulo: 'POP', valor: (m: Metodologia) => m.codigo,
@@ -606,6 +635,12 @@ function Metodologias() {
         { chave: 'nome', titulo: 'Procedimento', render: (m) => <span className="text-xs">{m.nome}</span> },
         { chave: 'norma', titulo: 'Norma de referência',
           render: (m) => <span className="text-xs text-muted-foreground">{m.norma}</span> },
+        { chave: 'extrator', titulo: 'Extração / digestão', secundaria: true,
+          render: (m) => <span className="text-xs text-muted-foreground">{m.extrator ?? '—'}</span> },
+        { chave: 'lq', titulo: 'LQ', alinhamento: 'direita', secundaria: true,
+          render: (m) => <span className="num text-xs text-muted-foreground">
+            {m.lq === undefined ? '—' : numero(m.lq, m.casasDecimais ?? 2)}
+          </span> },
         { chave: 'versao', titulo: 'Versão', alinhamento: 'centro',
           render: (m) => <span className="num text-xs">{m.versao}</span> },
         { chave: 'desde', titulo: 'Vigente desde', alinhamento: 'direita', valor: (m) => m.vigenteDesde,
@@ -619,17 +654,34 @@ function Metodologias() {
         { tipo: 'texto', chave: 'norma', rotulo: 'Norma de referência', largura: 2 },
         { tipo: 'texto', chave: 'versao', rotulo: 'Versão' },
         { tipo: 'texto', chave: 'vigenteDesde', rotulo: 'Vigente desde', dica: 'aaaa-mm-dd' },
+        { tipo: 'texto', chave: 'extrator', rotulo: 'Extração ou digestão',
+          dica: 'Mehlich-1, nítrico-perclórica, sulfúrica, incineração…' },
+        { tipo: 'selecao', chave: 'tipoEquipamentoId', rotulo: 'Equipamento que executa',
+          opcoes: [
+            { valor: NENHUM_EQUIPAMENTO, rotulo: 'Qualquer equipamento' },
+            ...estado.tiposEquipamento.filter((t) => t.ativo)
+              .map((t) => ({ valor: t.id, rotulo: t.nome })),
+          ] },
+        { tipo: 'texto', chave: 'unidade', rotulo: 'Unidade que o método entrega' },
+        { tipo: 'numero', chave: 'casasDecimais', rotulo: 'Casas decimais', passo: 1, min: 0, max: 6 },
+        // Abaixo do LQ o laudo imprime "< LQ" em vez do número.
+        { tipo: 'numero', chave: 'lq', rotulo: 'Limite de quantificação (LQ)', passo: 0.001, min: 0 },
+        { tipo: 'numero', chave: 'incerteza', rotulo: 'Incerteza expandida', passo: 0.001, min: 0 },
       ]}
       validar={(m) => (!m.codigo.trim() || !m.nome.trim() ? 'Código e procedimento são obrigatórios.' : undefined)}
       criar={() => ({
         id: novoId('met'), codigo: '', nome: '', norma: '', versao: '1',
         vigenteDesde: new Date().toISOString().slice(0, 10), ativa: true,
+        tipoEquipamentoId: NENHUM_EQUIPAMENTO, casasDecimais: 2,
       })}
-      aoSalvar={(m) => salvarCadastro('metodologias', m, `${m.codigo} — ${m.nome}`)}
+      aoSalvar={(m) => salvarCadastro('metodologias', {
+        ...m,
+        tipoEquipamentoId: m.tipoEquipamentoId === NENHUM_EQUIPAMENTO ? undefined : m.tipoEquipamentoId,
+      }, `${m.codigo} — ${m.nome}`)}
       ativoDe={(m) => m.ativa}
       alternarAtivo={(m) => ({ ...m, ativa: !m.ativa })}
       rotuloDe={(m) => m.nome}
-      camposBusca={(m) => [m.codigo, m.nome, m.norma]}
+      camposBusca={(m) => [m.codigo, m.nome, m.norma, m.extrator]}
     />
   );
 }

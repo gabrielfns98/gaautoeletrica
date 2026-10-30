@@ -1000,13 +1000,34 @@ export interface Legenda {
 
 /* ---------------- Cadastros simples ---------------- */
 
+/**
+ * O método, como o laboratório o cadastra.
+ *
+ * É o registro central do ciclo: o elemento aponta para ele, e com
+ * isso o código sai sempre escrito do mesmo jeito. Nos laudos atuais
+ * o mesmo método aparece como "IN SDA CAP. 1 C 1.3", "IN SDA CAP. I
+ * C 2" e "IN CAP. 1 C 11.2" — três grafias para uma norma só, porque
+ * cada uma foi digitada à mão.
+ */
 export interface Metodologia {
   id: UUID;
+  /** "IN SDA CAP. I C 2", "SOLOSEPLANTAS - P 0051", "U.S.EPA 3050-B" */
   codigo: string;
   nome: string;
   norma: string;
   versao: string;
   vigenteDesde: ISODate;
+  /** extração ou digestão que o método emprega */
+  extrator?: string;
+  /** família de equipamento que executa o ensaio */
+  tipoEquipamentoId?: string;
+  /** unidade e casas decimais que o método entrega */
+  unidade?: string;
+  casasDecimais?: number;
+  /** limite de quantificação do método */
+  lq?: number;
+  /** incerteza expandida */
+  incerteza?: number;
   ativa: boolean;
 }
 

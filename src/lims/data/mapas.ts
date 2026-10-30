@@ -60,6 +60,7 @@ export interface LinhaParametro {
   limite_inferior: number | null; limite_superior: number | null;
   incerteza: number | null; preco: number; ativo: boolean; eh_ph: boolean;
   extrator: string | null; proporcao: string | null;
+  lq: number | null; eh_relacao: boolean; metodologia_id: string | null;
 }
 
 export interface LinhaTabelaPreco {
@@ -93,6 +94,10 @@ export interface LinhaAmostra {
   massa_recebida: number | null; temperatura_recebimento: number | null;
   conforme_no_recebimento: boolean; nao_conformidade: string | null;
   posicao_bandeja: string | null; observacoes: string | null;
+  tipo_analise_id: string | null;
+  data_fabricacao: string | null; data_validade: string | null;
+  lote: string | null; fornecedor: string | null;
+  quantidade: string | null; natureza_fisica: string | null;
 }
 
 export interface LinhaEnsaio {
@@ -101,6 +106,7 @@ export interface LinhaEnsaio {
   analista_id: string | null; revisor_id: string | null;
   data_leitura: string | null; data_aprovacao: string | null;
   leitura_ph_id: string | null; fora_de_faixa: boolean; observacao: string | null;
+  garantia: string | null;
 }
 
 export interface LinhaEquipamento {
@@ -163,6 +169,7 @@ export const deParametro = (l: LinhaParametro): Parametro => ({
   limiteSuperior: num(l.limite_superior), incerteza: num(l.incerteza),
   preco: num0(l.preco), ativo: l.ativo, ehPh: l.eh_ph,
   extrator: (opc(l.extrator) as Parametro['extrator']), proporcao: opc(l.proporcao),
+  lq: num(l.lq), ehRelacao: l.eh_relacao, metodologiaId: opc(l.metodologia_id),
 });
 
 export const deTabelaPreco = (l: LinhaTabelaPreco): TabelaPreco => ({
@@ -200,7 +207,10 @@ export const deAmostra = (l: LinhaAmostra): Amostra => ({
   temperaturaRecebimento: num(l.temperatura_recebimento),
   conformeNoRecebimento: l.conforme_no_recebimento,
   naoConformidade: opc(l.nao_conformidade), posicaoBandeja: opc(l.posicao_bandeja),
-  observacoes: opc(l.observacoes),
+  observacoes: opc(l.observacoes), tipoAnaliseId: opc(l.tipo_analise_id),
+  dataFabricacao: opc(l.data_fabricacao), dataValidade: opc(l.data_validade),
+  lote: opc(l.lote), fornecedor: opc(l.fornecedor),
+  quantidade: opc(l.quantidade), naturezaFisica: opc(l.natureza_fisica),
 });
 
 export const deEnsaio = (l: LinhaEnsaio): Ensaio => ({
@@ -210,7 +220,7 @@ export const deEnsaio = (l: LinhaEnsaio): Ensaio => ({
   analistaId: opc(l.analista_id), revisorId: opc(l.revisor_id),
   dataLeitura: opc(l.data_leitura), dataAprovacao: opc(l.data_aprovacao),
   leituraPhId: opc(l.leitura_ph_id), observacao: opc(l.observacao),
-  foraDeFaixa: l.fora_de_faixa,
+  foraDeFaixa: l.fora_de_faixa, garantia: opc(l.garantia),
 });
 
 export const deEquipamento = (l: LinhaEquipamento): Equipamento => ({
@@ -275,6 +285,10 @@ export const paraAmostra = (a: Amostra): LinhaAmostra => ({
   conforme_no_recebimento: a.conformeNoRecebimento,
   nao_conformidade: a.naoConformidade ?? null,
   posicao_bandeja: a.posicaoBandeja ?? null, observacoes: a.observacoes ?? null,
+  tipo_analise_id: a.tipoAnaliseId ?? null,
+  data_fabricacao: a.dataFabricacao ?? null, data_validade: a.dataValidade ?? null,
+  lote: a.lote ?? null, fornecedor: a.fornecedor ?? null,
+  quantidade: a.quantidade ?? null, natureza_fisica: a.naturezaFisica ?? null,
 });
 
 export const paraEnsaio = (e: Ensaio): LinhaEnsaio => ({
@@ -284,6 +298,7 @@ export const paraEnsaio = (e: Ensaio): LinhaEnsaio => ({
   revisor_id: e.revisorId ?? null, data_leitura: e.dataLeitura ?? null,
   data_aprovacao: e.dataAprovacao ?? null, leitura_ph_id: e.leituraPhId ?? null,
   fora_de_faixa: e.foraDeFaixa ?? false, observacao: e.observacao ?? null,
+  garantia: e.garantia ?? null,
 });
 
 export const paraCalibracao = (c: Calibracao): LinhaCalibracao => ({
@@ -429,6 +444,9 @@ export interface LinhaLegenda {
 export interface LinhaMetodologia {
   id: string; codigo: string; nome: string; norma: string; versao: string;
   vigente_desde: string; ativa: boolean;
+  extrator: string | null; tipo_equipamento_id: string | null;
+  unidade: string | null; casas_decimais: number | null;
+  lq: number | null; incerteza: number | null;
 }
 
 export interface LinhaBandeja {
@@ -578,6 +596,9 @@ export const deLegenda = (l: LinhaLegenda): Legenda => ({
 export const deMetodologia = (l: LinhaMetodologia): Metodologia => ({
   id: l.id, codigo: l.codigo, nome: l.nome, norma: l.norma, versao: l.versao,
   vigenteDesde: l.vigente_desde, ativa: l.ativa,
+  extrator: opc(l.extrator), tipoEquipamentoId: opc(l.tipo_equipamento_id),
+  unidade: opc(l.unidade), casasDecimais: num(l.casas_decimais),
+  lq: num(l.lq), incerteza: num(l.incerteza),
 });
 
 export const deBandeja = (l: LinhaBandeja): Bandeja => ({
@@ -726,6 +747,8 @@ export const paraParametro = (p: Parametro): LinhaParametro => ({
   limite_inferior: p.limiteInferior ?? null, limite_superior: p.limiteSuperior ?? null,
   incerteza: p.incerteza ?? null, preco: p.preco, ativo: p.ativo,
   eh_ph: p.ehPh ?? false, extrator: p.extrator ?? null, proporcao: p.proporcao ?? null,
+  lq: p.lq ?? null, eh_relacao: p.ehRelacao ?? false,
+  metodologia_id: p.metodologiaId ?? null,
 });
 
 export const paraTipoAnalise = (t: TipoAnalise): LinhaTipoAnalise => ({
@@ -736,6 +759,9 @@ export const paraTipoAnalise = (t: TipoAnalise): LinhaTipoAnalise => ({
 export const paraMetodologia = (m: Metodologia): LinhaMetodologia => ({
   id: m.id, codigo: m.codigo, nome: m.nome, norma: m.norma, versao: m.versao,
   vigente_desde: m.vigenteDesde, ativa: m.ativa,
+  extrator: m.extrator ?? null, tipo_equipamento_id: m.tipoEquipamentoId ?? null,
+  unidade: m.unidade ?? null, casas_decimais: m.casasDecimais ?? null,
+  lq: m.lq ?? null, incerteza: m.incerteza ?? null,
 });
 
 export const paraBandeja = (b: Bandeja): LinhaBandeja => ({

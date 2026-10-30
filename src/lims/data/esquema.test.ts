@@ -21,6 +21,7 @@ const migracoes = [
   '20251030150000_bancada_equipamentos.sql',
   '20251030160000_bancada_formulas.sql',
   '20251030170000_bancada_modelo_laudo.sql',
+  '20251030180000_bancada_metodologia.sql',
 ];
 const sql = migracoes
   .map((arquivo) => readFileSync(resolve(aqui, '../../../supabase/migrations', arquivo), 'utf8'))
@@ -104,6 +105,37 @@ function colunasDa(tabela: string): Coluna[] {
       obrigatoria: /\bnot null\b/.test(linha) && !/\bdefault\b/.test(linha)
         && !/\bprimary key\b/.test(linha),
     });
+  }
+
+  colunas.push(...colunasAdicionadas(tabela));
+  return colunas;
+}
+
+/**
+ * Colunas que vieram depois, por `alter table ... add column`.
+ *
+ * Sem isto o teste só enxerga o `create table` original, e toda
+ * migração que acrescenta coluna a uma tabela existente é lida como
+ * se a coluna não existisse — foi o que aconteceu ao mover LQ e
+ * garantia para o esquema.
+ */
+function colunasAdicionadas(tabela: string): Coluna[] {
+  const colunas: Coluna[] = [];
+  const alvo = `alter table public.${tabela}`;
+
+  let de = sql.indexOf(alvo);
+  while (de !== -1) {
+    // O comando vai até o ponto-e-vírgula que o encerra.
+    const corpo = sql.slice(de + alvo.length, sql.indexOf(';', de));
+    for (const trecho of corpo.split(/,\s*\n/)) {
+      const m = trecho.match(/add column (?:if not exists )?([a-z_][a-z0-9_]*)/i);
+      if (!m) continue;
+      colunas.push({
+        nome: m[1],
+        obrigatoria: /\bnot null\b/.test(trecho) && !/\bdefault\b/.test(trecho),
+      });
+    }
+    de = sql.indexOf(alvo, de + alvo.length);
   }
   return colunas;
 }
