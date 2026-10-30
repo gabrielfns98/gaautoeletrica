@@ -131,4 +131,33 @@ end $$;
 reset role;
 
 \echo ''
-\echo '============ TODOS OS TESTES DE CADASTROS PASSARAM ============'
+\echo '-- cadastros ok, seguindo para importacao --'
+
+\echo '--- C07 analista registra importacao sem ter o modulo de amostras ---'
+set role authenticated;
+select set_config('request.jwt.claim.sub','66666666-6666-6666-6666-666666666666',false);
+insert into public.lab_importacoes (id, arquivo, hash, fluxo, linhas, gravados, usuario_id, unidade_id)
+values ('66660000-0000-0000-0000-000000000001','leituras.xlsx',
+        'd1f4a0c2b3e5', 'resultados', 4, 4,
+        'eeeeeeee-0000-0000-0000-000000000002','cccccccc-0000-0000-0000-000000000001');
+do $$ begin raise notice 'C07 OK — quem lanca resultado registra a importacao'; end $$;
+reset role;
+
+\echo '--- C08 importacao nao se edita ---'
+set role authenticated;
+select set_config('request.jwt.claim.sub','55555555-5555-5555-5555-555555555555',false);
+do $$
+declare alteradas int;
+begin
+  update public.lab_importacoes set gravados = 999
+  where id = '66660000-0000-0000-0000-000000000001';
+  get diagnostics alteradas = row_count;
+  if alteradas <> 0 then
+    raise exception 'FALHOU: importação foi alterada (% linhas)', alteradas;
+  end if;
+  raise notice 'C08 OK — registro de importacao e imutavel';
+end $$;
+reset role;
+
+\echo ''
+\echo '======= TODOS OS TESTES DE CADASTROS E IMPORTACAO PASSARAM ======='

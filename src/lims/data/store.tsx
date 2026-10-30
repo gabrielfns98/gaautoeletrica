@@ -19,6 +19,7 @@ import * as seed from './seed';
 import { COM_BANCO, supabase } from './supabase';
 import {
   carregarBancada, gravarCalibracao, gravarCliente, gravarCurva, gravarEnsaio,
+  gravarImportacao,
   gravarEstagio, gravarLaudo, gravarLegenda, gravarLeitura, gravarMovimento,
   gravarNota, gravarPapel, gravarRecepcao, gravarRegistroCQ, gravarResultados,
   gravarStatusAmostra, gravarTitulo, gravarUsuario,
@@ -34,7 +35,7 @@ import type {
   LoteRecepcao, Modulo, MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento,
   Papel, Parametro, Permissao, PontoCalibracao, RegistroAuditoria, RegistroCQ,
   StatusAmostra, StatusEnsaio, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario, UUID,
-  Bandeja, Convenio, Curva, Legenda, Metodologia, RegraDesconto, ItemSimples,
+  Bandeja, Convenio, Curva, Importacao, Legenda, Metodologia, RegraDesconto, ItemSimples,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -79,6 +80,7 @@ export interface EstadoBancada {
   lotesReagente: LoteReagente[];
   movimentosEstoque: MovimentoEstoque[];
   auditoria: RegistroAuditoria[];
+  importacoes: Importacao[];
 }
 
 function estadoInicial(): EstadoBancada {
@@ -122,6 +124,7 @@ function estadoInicial(): EstadoBancada {
     lotesReagente: seed.lotesReagente,
     movimentosEstoque: seed.movimentosEstoque,
     auditoria: seed.auditoria,
+    importacoes: [],
   };
 }
 
@@ -151,6 +154,7 @@ type Acao =
   | { tipo: 'salvar-curva'; curva: Curva }
   | { tipo: 'salvar-legenda'; legenda: Legenda }
   | { tipo: 'registrar-cq'; registro: RegistroCQ }
+  | { tipo: 'registrar-importacao'; importacao: Importacao }
   | { tipo: 'auditar'; registro: RegistroAuditoria }
   | { tipo: 'carregar'; carga: CargaBancada }
   | { tipo: 'restaurar' };
@@ -172,6 +176,9 @@ function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
         ...acao.carga,
         unidadeAtivaId: acao.carga.unidades[0]?.id ?? estado.unidadeAtivaId,
       };
+
+    case 'registrar-importacao':
+      return { ...estado, importacoes: [acao.importacao, ...estado.importacoes] };
 
     case 'trocar-usuario':
       return { ...estado, usuarioAtualId: acao.usuarioId };
@@ -784,6 +791,38 @@ export function useAcoes() {
     auditar('Salvou cliente', 'Cliente', c.id, c.nome);
   }, [despachar, auditar, persistir]);
 
+  /**
+   * Registra o arquivo que entrou. Guarda o resumo e, item a item, qual
+   * ensaio recebeu qual valor: é o que responde "de onde veio este
+   * resultado" numa auditoria, e o que deixa a repetição visível.
+   */
+  const registrarImportacao = useCallback((
+    arquivo: string, hash: string, fluxo: Importacao['fluxo'],
+    linhas: number, gravados: number, itens: Importacao['itens'], reimportacao: boolean,
+  ) => {
+    const importacao: Importacao = {
+      id: `imp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      arquivo: arquivo || 'colado da planilha',
+      hash,
+      fluxo,
+      linhas,
+      gravados,
+      usuarioId: usuario.id,
+      unidadeId: estado.unidadeAtivaId,
+      data: new Date().toISOString(),
+      reimportacao,
+      itens,
+    };
+    despachar({ tipo: 'registrar-importacao', importacao });
+    persistir('registro da importação', () => gravarImportacao(importacao));
+    auditar(
+      reimportacao ? 'Reimportou planilha' : 'Importou planilha',
+      'Importacao', importacao.id,
+      `${importacao.arquivo} · ${linhas} ${linhas === 1 ? 'linha' : 'linhas'} · ${gravados} gravados`,
+    );
+    return importacao;
+  }, [despachar, usuario.id, estado.unidadeAtivaId, auditar, persistir]);
+
   const criarRecepcao = useCallback((
     lote: LoteRecepcao, novasAmostras: Amostra[], novosEnsaios: Ensaio[],
   ) => {
@@ -805,7 +844,8 @@ export function useAcoes() {
     registrarLeitura, salvarCalibracao, lancarResultados, aprovarEnsaio, repetirEnsaio,
     mudarStatusAmostra, registrarCQ, emitirLaudo, emitirNota, baixarTitulo,
     moverOportunidade, movimentarEstoque, salvarUsuario, salvarPapel,
-    salvarCliente, salvarCurva, salvarLegenda, criarRecepcao, trocarUsuario, trocarUnidade,
+    salvarCliente, salvarCurva, salvarLegenda, criarRecepcao, registrarImportacao,
+    trocarUsuario, trocarUnidade,
   };
 }
 

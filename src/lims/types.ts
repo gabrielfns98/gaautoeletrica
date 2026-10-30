@@ -538,6 +538,30 @@ export interface MovimentoEstoque {
 
 /* ---------------- Auditoria ---------------- */
 
+/* ---------------- Importação de planilha ---------------- */
+
+/**
+ * Registro de um arquivo importado. Guarda o resumo (quem, quando, quantas
+ * linhas) e, item a item, qual ensaio recebeu qual valor — é o que responde,
+ * numa auditoria, de onde veio um resultado. O hash do conteúdo é o que
+ * permite reconhecer o mesmo arquivo subindo duas vezes.
+ */
+export interface Importacao {
+  id: UUID;
+  arquivo: string;
+  /** SHA-256 do conteúdo lido, em hexadecimal */
+  hash: string;
+  fluxo: 'amostras' | 'resultados';
+  linhas: number;
+  gravados: number;
+  usuarioId: UUID;
+  unidadeId: UUID;
+  data: ISODate;
+  /** o operador foi avisado de que o arquivo já havia entrado e seguiu assim mesmo */
+  reimportacao: boolean;
+  itens: Array<{ ensaioId: UUID; valor: number }>;
+}
+
 export interface RegistroAuditoria {
   id: UUID;
   data: ISODate;

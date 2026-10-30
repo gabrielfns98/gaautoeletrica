@@ -13,15 +13,16 @@ import {
   deItemCadastro, deItemEstoque, deLaudo, deLegenda, deLeituraPh, deLote,
   deLoteReagente, deMembro, deMetodologia, deMovimentoEstoque, deNotaFiscal,
   deOportunidade, deOrcamento, dePapel, deParametro, deRegistroCQ,
-  deRegraDesconto, deTabelaPreco, deTipoAnalise, deTitulo, deUnidade,
+  deImportacao, deRegraDesconto, deTabelaPreco, deTipoAnalise, deTitulo, deUnidade,
   paraAmostra, paraCalibracao, paraCliente, paraCurva, paraEnsaio, paraLegenda,
-  paraLeituraPh, paraLote, paraMembro, paraMovimentoEstoque, paraNotaFiscal,
+  paraImportacao, paraLeituraPh, paraLote, paraMembro, paraMovimentoEstoque, paraNotaFiscal,
   paraPapel, paraRegistroCQ, paraTitulo,
 } from './mapas';
 import type {
   LinhaAmostra, LinhaAmostraControle, LinhaAuditoria, LinhaBandeja,
   LinhaCalibracao, LinhaCliente, LinhaContato, LinhaConvenio, LinhaCurva,
-  LinhaEnsaio, LinhaEquipamento, LinhaGrupo, LinhaInteracao, LinhaItemCadastro,
+  LinhaEnsaio, LinhaEquipamento, LinhaGrupo, LinhaImportacao, LinhaImportacaoEnsaio,
+  LinhaInteracao, LinhaItemCadastro,
   LinhaItemEstoque, LinhaLaudo, LinhaLegenda, LinhaLeituraPh, LinhaLote,
   LinhaLoteReagente, LinhaMembro, LinhaMetodologia, LinhaMovimentoEstoque,
   LinhaNotaFiscal, LinhaOportunidade, LinhaOrcamento, LinhaPapel, LinhaParametro,
@@ -30,7 +31,7 @@ import type {
 } from './mapas';
 import type {
   Amostra, AmostraControle, Bandeja, Calibracao, Cliente, Contato, Convenio,
-  Curva, Ensaio, Equipamento, GrupoAnalise, Interacao, ItemEstoque, ItemSimples,
+  Curva, Ensaio, Equipamento, GrupoAnalise, Importacao, Interacao, ItemEstoque, ItemSimples,
   Laudo, Legenda, LeituraPh, LoteReagente, LoteRecepcao, Metodologia,
   MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento, Papel, Parametro,
   RegistroAuditoria, RegistroCQ, RegraDesconto, StatusAmostra, TabelaPreco,
@@ -41,6 +42,8 @@ import type {
 const TETO_AMOSTRAS = 5000;
 /** A trilha de auditoria é permanente; a tela mostra o período recente. */
 const TETO_AUDITORIA = 2000;
+/** Importações recentes; o histórico completo fica no banco. */
+const TETO_IMPORTACOES = 500;
 const PAGINA = 1000;
 
 export interface CargaBancada {
@@ -82,6 +85,7 @@ export interface CargaBancada {
   observacoesFixas: ItemSimples[];
   convenios: Convenio[];
   regrasDesconto: RegraDesconto[];
+  importacoes: Importacao[];
 }
 
 /** PostgREST devolve no máximo mil linhas por vez; aqui a página é interna. */
@@ -215,6 +219,11 @@ export async function carregarBancada(): Promise<CargaBancada> {
     tudo<LinhaRegraDesconto>('lab_regras_desconto', '*', { coluna: 'quantidade_minima' }),
   ]);
 
+  const [linhasImportacao, itensImportacao] = await Promise.all([
+    tudo<LinhaImportacao>('lab_importacoes', '*', { coluna: 'data', crescente: false }, TETO_IMPORTACOES),
+    tudo<LinhaImportacaoEnsaio>('lab_importacoes_ensaios', '*'),
+  ]);
+
   const agrupar = <T, C>(linhas: T[], chave: (l: T) => string, valor: (l: T) => C) => {
     const mapa = new Map<string, C[]>();
     for (const linha of linhas) {
@@ -272,6 +281,11 @@ export async function carregarBancada(): Promise<CargaBancada> {
     observacoesFixas: daEspecie('observacao-fixa'),
     convenios: convenios.map(deConvenio),
     regrasDesconto: regras.map(deRegraDesconto),
+    importacoes: linhasImportacao.map((i) => deImportacao(
+      i,
+      itensImportacao.filter((t) => t.importacao_id === i.id)
+        .map((t) => ({ ensaioId: t.ensaio_id, valor: Number(t.valor) })),
+    )),
   };
 }
 
@@ -488,4 +502,17 @@ export async function gravarLegenda(legenda: Legenda): Promise<void> {
 export async function gravarRegistroCQ(registro: RegistroCQ): Promise<void> {
   const banco = exigirBanco();
   estourar('registro de CQ', (await banco.from('lab_registros_cq').insert(paraRegistroCQ(registro))).error);
+}
+
+/** A importação e os ensaios que ela tocou — a resposta para "de onde veio". */
+export async function gravarImportacao(importacao: Importacao): Promise<void> {
+  const banco = exigirBanco();
+  estourar('importação', (await banco.from('lab_importacoes').insert(paraImportacao(importacao))).error);
+  if (importacao.itens.length === 0) return;
+  for (let i = 0; i < importacao.itens.length; i += 500) {
+    const bloco = importacao.itens.slice(i, i + 500).map((t) => ({
+      importacao_id: importacao.id, ensaio_id: t.ensaioId, valor: t.valor,
+    }));
+    estourar('itens da importação', (await banco.from('lab_importacoes_ensaios').insert(bloco)).error);
+  }
 }

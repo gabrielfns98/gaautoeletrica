@@ -4,9 +4,9 @@
    em arquivo ou colados do Excel, não digitados um a um.
    ============================================================ */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CheckCircle2, ClipboardPaste, Download, FileUp, Columns3,
+  CheckCircle2, ClipboardPaste, Download, FileUp, Columns3, History,
   TriangleAlert, Upload, XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,14 +19,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
 import {
-  ALVOS_AMOSTRA, lerData, lerNumero, lerTabela, resumir, sugerirMapeamento,
+  ALVOS_AMOSTRA, hashDoConteudo, lerData, lerNumero, lerTabela, resumir, sugerirMapeamento,
 } from '../lib/importacao';
 import { lerXlsx, matrizParaTexto } from '../lib/xlsx';
 import type { LinhaValidada, SituacaoLinha, TabelaLida } from '../lib/importacao';
-import { numero } from '../lib/format';
+import { dataHora, numero } from '../lib/format';
 import { CabecalhoPagina, Indicador, Pilula, Secao, Segmentos, Vazio } from '../components/primitivos';
 import type { TomStatus } from '../components/primitivos';
-import type { Amostra, Ensaio, LoteRecepcao, Parametro } from '../types';
+import type { Amostra, Ensaio, Importacao as RegistroImportacao, LoteRecepcao, Parametro } from '../types';
 
 type Fluxo = 'amostras' | 'resultados';
 
@@ -75,7 +75,86 @@ export default function Importacao() {
       </CabecalhoPagina>
 
       {fluxo === 'resultados' ? <ImportarResultados /> : <ImportarAmostras />}
+
+      <Importacoes />
     </>
+  );
+}
+
+/**
+ * O hash do conteúdo é assíncrono e o texto muda a cada tecla, então ele
+ * chega sempre um instante depois — e vazio enquanto não há conteúdo.
+ */
+function useHashDoConteudo(conteudo: string): string {
+  const [hash, setHash] = useState('');
+
+  useEffect(() => {
+    const texto = conteudo.trim();
+    if (!texto) { setHash(''); return; }
+    let vivo = true;
+    void hashDoConteudo(texto)
+      .then((h) => { if (vivo) setHash(h); })
+      .catch(() => { if (vivo) setHash(''); });
+    return () => { vivo = false; };
+  }, [conteudo]);
+
+  return hash;
+}
+
+/** Mesmo conteúdo subindo de novo: avisa, mas não impede. */
+function AvisoRepetido({ importacao }: { importacao: RegistroImportacao }) {
+  const { estado } = useBancada();
+  const quem = estado.usuarios.find((u) => u.id === importacao.usuarioId)?.nome ?? 'outro operador';
+
+  return (
+    <Secao className="border-[hsl(var(--warning)/0.45)]">
+      <div className="flex items-start gap-3">
+        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--warning))]" />
+        <div>
+          <p className="text-sm font-medium text-foreground">Esta planilha já entrou antes</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            {dataHora(importacao.data)}, por {quem} — {importacao.linhas}{' '}
+            {importacao.linhas === 1 ? 'linha lida' : 'linhas lidas'}, {importacao.gravados} gravados
+            {importacao.arquivo ? ` (${importacao.arquivo})` : ''}. O conteúdo é idêntico, byte a byte.
+            Importar de novo grava por cima do que ainda não foi aprovado e fica registrado como reimportação.
+          </p>
+        </div>
+      </div>
+    </Secao>
+  );
+}
+
+/** A trilha que responde de onde veio um resultado. */
+function Importacoes() {
+  const { estado } = useBancada();
+  const recentes = estado.importacoes.slice(0, 8);
+  if (recentes.length === 0) return null;
+
+  return (
+    <Secao
+      className="mt-5"
+      titulo="Importações recentes"
+      descricao="Cada arquivo que entrou, com o que foi gravado por ele."
+    >
+      <ul className="divide-y divide-[hsl(var(--line-soft))]">
+        {recentes.map((i) => {
+          const quem = estado.usuarios.find((u) => u.id === i.usuarioId)?.nome ?? '—';
+          return (
+            <li key={i.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 text-xs">
+              <History className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+              <span className="num shrink-0 text-muted-foreground">{dataHora(i.data)}</span>
+              <span className="min-w-0 flex-1 truncate text-foreground">{i.arquivo}</span>
+              <Pilula tom={i.fluxo === 'resultados' ? 'info' : 'neutro'}>{i.fluxo}</Pilula>
+              {i.reimportacao && <Pilula tom="alerta">reimportação</Pilula>}
+              <span className="num shrink-0 text-muted-foreground">
+                {i.gravados}/{i.linhas}
+              </span>
+              <span className="shrink-0 truncate text-muted-foreground">{quem}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </Secao>
   );
 }
 
@@ -87,7 +166,7 @@ function Entrada({
   conteudo, aoMudar, exemplo, tabela,
 }: {
   conteudo: string;
-  aoMudar: (v: string) => void;
+  aoMudar: (v: string, arquivo?: string) => void;
   exemplo: string;
   tabela: TabelaLida | null;
 }) {
@@ -105,7 +184,7 @@ function Entrada({
     if (/\.xls[xm]$/i.test(arquivo.name)) {
       try {
         const planilha = lerXlsx(new Uint8Array(await arquivo.arrayBuffer()));
-        aoMudar(matrizParaTexto(planilha.matriz));
+        aoMudar(matrizParaTexto(planilha.matriz), arquivo.name);
         toast.success(`${arquivo.name} carregado`, {
           description: `Aba ${planilha.aba} · ${planilha.matriz.length} ${planilha.matriz.length === 1 ? 'linha' : 'linhas'}`,
         });
@@ -118,7 +197,7 @@ function Entrada({
     }
 
     const texto = await arquivo.text();
-    aoMudar(texto);
+    aoMudar(texto, arquivo.name);
     toast.info(`${arquivo.name} carregado`);
   };
 
@@ -130,7 +209,13 @@ function Entrada({
         <>
           <input
             ref={inputArquivo} type="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) void carregar(f); }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              // Limpar o campo é o que faz escolher o mesmo arquivo de novo
+              // disparar evento: sem isso, a segunda tentativa não acontece.
+              e.target.value = '';
+              if (f) void carregar(f);
+            }}
           />
           <Button variant="outline" size="sm" onClick={() => inputArquivo.current?.click()} className="h-8 gap-1.5 text-xs">
             <FileUp className="h-3.5 w-3.5" /> Escolher arquivo
@@ -190,13 +275,19 @@ interface LinhaResultado {
 
 function ImportarResultados() {
   const { estado, pode } = useBancada();
-  const { lancarResultados } = useAcoes();
+  const { lancarResultados, registrarImportacao } = useAcoes();
   const { parametroPorId, ensaiosPorAmostra } = useIndices();
 
   const [conteudo, setConteudo] = useState('');
+  const [arquivo, setArquivo] = useState('');
   const [mapa, setMapa] = useState<Record<number, string> | null>(null);
 
   const tabela = useMemo(() => (conteudo.trim() ? lerTabela(conteudo) : null), [conteudo]);
+  const hash = useHashDoConteudo(conteudo);
+  const jaImportado = useMemo(
+    () => estado.importacoes.find((i) => i.hash === hash && i.fluxo === 'resultados'),
+    [estado.importacoes, hash],
+  );
 
   /** Casa o título da coluna com o código ou o nome do elemento. */
   const sugestao = useMemo(() => {
@@ -302,7 +393,12 @@ function ImportarResultados() {
   const importar = () => {
     if (paraGravar.length === 0) { toast.error('Nada para importar.'); return; }
     lancarResultados(paraGravar);
+    registrarImportacao(
+      arquivo, hash, 'resultados', linhas.length, paraGravar.length,
+      paraGravar, Boolean(jaImportado),
+    );
     setConteudo('');
+    setArquivo('');
     setMapa(null);
     toast.success(`${paraGravar.length} resultados importados`, {
       description: 'Os ensaios passaram para “lido” e seguem para revisão técnica.',
@@ -313,7 +409,14 @@ function ImportarResultados() {
 
   return (
     <div className="space-y-5">
-      <Entrada conteudo={conteudo} aoMudar={(v) => { setConteudo(v); setMapa(null); }} exemplo={EXEMPLO_RESULTADOS} tabela={tabela} />
+      <Entrada
+        conteudo={conteudo}
+        aoMudar={(v, nome) => { setConteudo(v); setMapa(null); setArquivo(nome ?? ''); }}
+        exemplo={EXEMPLO_RESULTADOS}
+        tabela={tabela}
+      />
+
+      {jaImportado && <AvisoRepetido importacao={jaImportado} />}
 
       {tabela && tabela.colunas.length > 0 && (
         <Secao
@@ -455,14 +558,20 @@ interface LinhaAmostra {
 
 function ImportarAmostras() {
   const { estado, usuario, unidade, pode } = useBancada();
-  const { criarRecepcao } = useAcoes();
+  const { criarRecepcao, registrarImportacao } = useAcoes();
 
   const [conteudo, setConteudo] = useState('');
+  const [arquivo, setArquivo] = useState('');
   const [mapa, setMapa] = useState<Record<number, string> | null>(null);
   const [clienteId, setClienteId] = useState(estado.clientes[0]?.id ?? '');
   const [tipoAnaliseId, setTipoAnaliseId] = useState(estado.tiposAnalise[0]?.id ?? '');
 
   const tabela = useMemo(() => (conteudo.trim() ? lerTabela(conteudo) : null), [conteudo]);
+  const hash = useHashDoConteudo(conteudo);
+  const jaImportado = useMemo(
+    () => estado.importacoes.find((i) => i.hash === hash && i.fluxo === 'amostras'),
+    [estado.importacoes, hash],
+  );
   const sugestao = useMemo(() => (tabela ? sugerirMapeamento(tabela.colunas, ALVOS_AMOSTRA) : {}), [tabela]);
   const mapeamento = mapa ?? sugestao;
 
@@ -571,16 +680,29 @@ function ImportarAmostras() {
     );
 
     criarRecepcao(lote, novasAmostras, novosEnsaios);
+    registrarImportacao(
+      arquivo, hash, 'amostras', aceitas.length, novasAmostras.length, [],
+      Boolean(jaImportado),
+    );
     setConteudo('');
+    setArquivo('');
     setMapa(null);
     toast.success(`${novasAmostras.length} amostras importadas`, {
       description: `${lote.numero} · ${novosEnsaios.length} ensaios abertos · prazo ${prazo.toLocaleDateString('pt-BR')}.`,
     });
-  }, [estado, clienteId, pacote, aceitas, usuario.id, unidade.id, criarRecepcao]);
+  }, [estado, clienteId, pacote, aceitas, usuario.id, unidade.id, criarRecepcao,
+      registrarImportacao, arquivo, hash, jaImportado]);
 
   return (
     <div className="space-y-5">
-      <Entrada conteudo={conteudo} aoMudar={(v) => { setConteudo(v); setMapa(null); }} exemplo={EXEMPLO_AMOSTRAS} tabela={tabela} />
+      <Entrada
+        conteudo={conteudo}
+        aoMudar={(v, nome) => { setConteudo(v); setMapa(null); setArquivo(nome ?? ''); }}
+        exemplo={EXEMPLO_AMOSTRAS}
+        tabela={tabela}
+      />
+
+      {jaImportado && <AvisoRepetido importacao={jaImportado} />}
 
       <Secao titulo="Destino" descricao="Todas as amostras do arquivo entram neste cliente e neste pacote.">
         <div className="grid gap-4 sm:grid-cols-2">

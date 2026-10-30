@@ -308,3 +308,14 @@ export function resumir<T>(linhas: Array<LinhaValidada<T>>) {
     erros: linhas.filter((l) => l.situacao === 'erro').length,
   };
 }
+
+/**
+ * SHA-256 do conteúdo lido, em hexadecimal. É o que permite reconhecer a
+ * mesma planilha subindo duas vezes — nome de arquivo não serve, porque
+ * "resultados (1).xlsx" é o mesmo arquivo de sempre.
+ */
+export async function hashDoConteudo(texto: string): Promise<string> {
+  const dados = new TextEncoder().encode(texto.trim());
+  const resumo = await crypto.subtle.digest('SHA-256', dados);
+  return [...new Uint8Array(resumo)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}

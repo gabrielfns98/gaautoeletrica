@@ -676,3 +676,32 @@ export const paraTitulo = (t: Titulo): LinhaTitulo => ({
   valor: t.valor, valor_pago: t.valorPago, status: t.status,
   forma_pagamento: t.formaPagamento ?? null, nota_fiscal_id: t.notaFiscalId ?? null,
 });
+
+/* ---------------- Importações ---------------- */
+
+import type { Importacao } from '../types';
+
+export interface LinhaImportacao {
+  id: string; arquivo: string; hash: string; fluxo: string; linhas: number;
+  gravados: number; usuario_id: string | null; unidade_id: string;
+  data: string; reimportacao: boolean;
+}
+
+export interface LinhaImportacaoEnsaio {
+  importacao_id: string; ensaio_id: string; valor: number;
+}
+
+export const deImportacao = (
+  l: LinhaImportacao, itens: Importacao['itens'],
+): Importacao => ({
+  id: l.id, arquivo: l.arquivo, hash: l.hash,
+  fluxo: l.fluxo as Importacao['fluxo'], linhas: l.linhas, gravados: l.gravados,
+  usuarioId: txt(l.usuario_id), unidadeId: l.unidade_id, data: l.data,
+  reimportacao: l.reimportacao, itens,
+});
+
+export const paraImportacao = (i: Importacao): LinhaImportacao => ({
+  id: i.id, arquivo: i.arquivo, hash: i.hash, fluxo: i.fluxo, linhas: i.linhas,
+  gravados: i.gravados, usuario_id: i.usuarioId || null, unidade_id: i.unidadeId,
+  data: i.data, reimportacao: i.reimportacao,
+});
