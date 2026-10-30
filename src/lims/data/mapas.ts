@@ -11,7 +11,7 @@ import type {
   LoteRecepcao, Papel, Parametro, Permissao, PontoCalibracao, PontoTrace,
   Prioridade, StatusAmostra, StatusCalibracao, StatusEnsaio, TabelaPreco,
   Unidade, Usuario, UUID,
-  ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
+  Formula, ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
 } from '../types';
 
 /* ---------------- auxiliares ---------------- */
@@ -875,4 +875,23 @@ export const paraModeloImportacao = (m: ModeloImportacao): LinhaModeloImportacao
     ? Object.fromEntries(Object.entries(m.porIndice).map(([k, v]) => [String(k), v]))
     : null,
   ativo: m.ativo, criado_por_id: m.criadoPorId ?? null, data: m.data,
+});
+
+/* ---------------- Fórmulas dos calculados ---------------- */
+
+export interface LinhaFormula {
+  id: string; parametro_id: string; expressao: string; fonte: string | null;
+  grupo_id: string | null; ativa: boolean; observacao: string | null;
+}
+
+export const deFormula = (l: LinhaFormula): Formula => ({
+  id: l.id, parametroId: l.parametro_id, expressao: l.expressao,
+  fonte: opc(l.fonte), grupoId: opc(l.grupo_id) as Formula['grupoId'],
+  ativa: l.ativa, observacao: opc(l.observacao),
+});
+
+export const paraFormula = (f: Formula): LinhaFormula => ({
+  id: f.id, parametro_id: f.parametroId, expressao: f.expressao,
+  fonte: f.fonte ?? null, grupo_id: f.grupoId ?? null,
+  ativa: f.ativa, observacao: f.observacao ?? null,
 });

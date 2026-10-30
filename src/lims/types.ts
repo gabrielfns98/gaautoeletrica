@@ -628,6 +628,27 @@ export interface Importacao {
 }
 
 /**
+ * Fórmula de um resultado calculado.
+ *
+ * SB, CTC, V%, m%, H+Al pelo SMP, PRNT: cada laboratório — às vezes
+ * cada estado — usa equação diferente. Com a conta cravada no código,
+ * quem não usa a de Minas precisa de um programador para fechar um
+ * laudo. As variáveis são os códigos dos elementos da mesma amostra.
+ */
+export interface Formula {
+  id: UUID;
+  parametroId: UUID;
+  /** "CA + MG + K / 391 + NA" */
+  expressao: string;
+  /** de onde a equação veio, para o laudo poder citar */
+  fonte?: string;
+  /** quando preenchida, a fórmula só vale para este grupo de análise */
+  grupoId?: GrupoAnaliseId;
+  ativa: boolean;
+  observacao?: string;
+}
+
+/**
  * Modelo de importação salvo por equipamento.
  *
  * Cada marca exporta de um jeito, e sem isto o analista remapeia as
@@ -701,7 +722,7 @@ export type ColecaoCadastro =
   | 'unidades' | 'grupos' | 'parametros' | 'tiposAnalise' | 'metodologias'
   | 'bandejas' | 'profundidades' | 'culturas' | 'tiposCliente'
   | 'observacoesFixas' | 'convenios' | 'regrasDesconto' | 'criterios'
-  | 'tiposEquipamento' | 'modelosImportacao';
+  | 'tiposEquipamento' | 'modelosImportacao' | 'formulas';
 
 export interface RegistroAuditoria {
   id: UUID;

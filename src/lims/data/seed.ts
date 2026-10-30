@@ -13,7 +13,7 @@ import { iniciais } from '../lib/format';
 import type {
   Amostra, AmostraControle, Calibracao, Cliente, Contato, Ensaio, Equipamento,
   GrupoAnalise, GrupoAnaliseId, Interacao, ItemEstoque, Laudo, LeituraPh,
-  ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
+  Formula, ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
   LoteReagente, LoteRecepcao, MovimentoEstoque, NotaFiscal, Oportunidade,
   Orcamento, Papel, Parametro, PontoTrace, RegistroAuditoria, RegistroCQ,
   StatusAmostra, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario,
@@ -1062,6 +1062,57 @@ for (let l = 0; l < 210; l++) {
     }
   }
 }
+
+/* ---------------- Fórmulas dos calculados ---------------- */
+
+/**
+ * As contas que antes estavam no código. A de H+Al é a da CFSEMG, 5ª
+ * aproximação, e é justamente a que muda de estado para estado — o
+ * laboratório do Paraná troca os coeficientes pela equação do IAPAR
+ * sem pedir nada a ninguém.
+ */
+export const formulas: Formula[] = [
+  {
+    id: 'frm-sb', parametroId: idDe('SB'), grupoId: 'solo',
+    // O K vem em mg/dm³ e entra em cmolc/dm³: 391 é a massa equivalente.
+    expressao: 'CA + MG + K / 391 + NA',
+    fonte: 'Soma de bases trocáveis', ativa: true,
+  },
+  {
+    id: 'frm-ctc', parametroId: idDe('CTC'), grupoId: 'solo',
+    expressao: 'SB + H+AL',
+    fonte: 'CTC a pH 7,0 (T)', ativa: true,
+  },
+  {
+    id: 'frm-v', parametroId: idDe('V'), grupoId: 'solo',
+    expressao: 'limite(100 * SB / CTC; 0; 100)',
+    fonte: 'Saturação por bases', ativa: true,
+  },
+  {
+    id: 'frm-m', parametroId: idDe('M'), grupoId: 'solo',
+    expressao: 'limite(100 * AL / (SB + AL); 0; 100)',
+    fonte: 'Saturação por alumínio', ativa: true,
+  },
+  {
+    id: 'frm-hal', parametroId: idDe('H+AL'), grupoId: 'solo',
+    expressao: 'exp(7,76 - 1,053 * PH-SMP)',
+    fonte: 'CFSEMG, 5ª aproximação — estimativa pelo índice SMP',
+    ativa: true,
+    observacao: 'Troque os coeficientes pela equação do seu estado.',
+  },
+  {
+    id: 'frm-ndt', parametroId: idDe('NDT'), grupoId: 'bromatologia',
+    expressao: '87,84 - 0,70 * FDA',
+    fonte: 'Estimativa a partir da fibra em detergente ácido', ativa: true,
+  },
+  {
+    id: 'frm-prnt', parametroId: idDe('PRNT'), grupoId: 'corretivos-agricolas',
+    expressao: 'PN * RE / 100',
+    fonte: 'IN SDA 05/2007 — poder relativo de neutralização total',
+    ativa: false,
+    observacao: 'Inativa: depende do cadastro da reatividade (RE).',
+  },
+];
 
 /* ---------------- Modelos de importação ---------------- */
 
