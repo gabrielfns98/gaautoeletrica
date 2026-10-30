@@ -20,11 +20,13 @@ No projeto Supabase, SQL Editor, rode **na ordem** o conteúdo de:
    de cadastro (pacotes de análise, curvas, legendas, metodologias, bandejas,
    listas simples, convênios e regras de desconto) e a coluna do pacote
    contratado na amostra.
+3. `supabase/migrations/20251030130000_bancada_importacoes.sql` — o registro
+   das importações e dos ensaios que cada arquivo gravou.
 
 Para conferir depois:
 
 ```sql
-select count(*) from pg_tables where tablename like 'lab\_%';  -- 38
+select count(*) from pg_tables where tablename like 'lab\_%';  -- 40
 select nome from public.lab_papeis order by nome;              -- 7 papéis
 ```
 
