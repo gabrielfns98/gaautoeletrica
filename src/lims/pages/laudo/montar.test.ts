@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { montarLaudo } from './montar';
-import type { Amostra, Ensaio, Laudo, Legenda, Parametro } from '../../types';
+import { MODELO_PADRAO, modeloDoLaudo, montarLaudo, ordenarPeloModelo } from './montar';
+import type { Amostra, Ensaio, Laudo, Legenda, ModeloLaudo, Parametro } from '../../types';
 
 const par = (id: string, codigo: string, extra: Partial<Parametro> = {}): Parametro => ({
   id, codigo, nome: codigo, grupoId: 'solo', unidade: 'mg/dm³', tipo: 'numerico',
@@ -139,5 +139,70 @@ describe('montarLaudo', () => {
       ensaios: [ensaio('e1', 'am-1', 'par-p')],
     });
     expect(m.amostras[1].resultados).toEqual([]);
+  });
+});
+
+/* ---------------- Modelo do laudo ---------------- */
+
+describe('modeloDoLaudo', () => {
+  const base: ModeloLaudo = { ...MODELO_PADRAO, id: 'geral', nome: 'Geral' };
+  const daUnidade: ModeloLaudo = { ...base, id: 'uni', unidadeId: 'un-1' };
+  const doGrupo: ModeloLaudo = { ...base, id: 'grp', grupoId: 'solo' };
+  const dosDois: ModeloLaudo = { ...base, id: 'ambos', unidadeId: 'un-1', grupoId: 'solo' };
+
+  it('prefere o modelo da unidade e da análise', () => {
+    expect(modeloDoLaudo([base, daUnidade, doGrupo, dosDois], 'un-1', 'solo').id).toBe('ambos');
+  });
+
+  it('cai para o da análise quando a unidade não tem o seu', () => {
+    expect(modeloDoLaudo([base, doGrupo], 'un-9', 'solo').id).toBe('grp');
+  });
+
+  it('cai para o da unidade quando a análise não tem o seu', () => {
+    expect(modeloDoLaudo([base, daUnidade], 'un-1', 'foliar').id).toBe('uni');
+  });
+
+  it('cai para o geral quando nada mais serve', () => {
+    expect(modeloDoLaudo([base, daUnidade, doGrupo], 'un-9', 'foliar').id).toBe('geral');
+  });
+
+  it('não usa modelo de outra unidade nem de outra análise', () => {
+    expect(modeloDoLaudo([daUnidade, doGrupo], 'un-9', 'foliar').id).toBe(MODELO_PADRAO.id);
+  });
+
+  it('ignora modelo inativo', () => {
+    expect(modeloDoLaudo([{ ...dosDois, ativo: false }], 'un-1', 'solo').id).toBe(MODELO_PADRAO.id);
+  });
+
+  it('sem nenhum cadastrado, entrega o padrão do sistema', () => {
+    expect(modeloDoLaudo([], 'un-1', 'solo').id).toBe(MODELO_PADRAO.id);
+  });
+});
+
+describe('ordenarPeloModelo', () => {
+  const p1 = par('p1', 'PH');
+  const p2 = par('p2', 'MO');
+  const p3 = par('p3', 'K');
+
+  it('segue a ordem cadastrada', () => {
+    const r = ordenarPeloModelo([p1, p2, p3], ['p3', 'p1', 'p2']);
+    expect(r.map((p) => p.codigo)).toEqual(['K', 'PH', 'MO']);
+  });
+
+  /* Elemento novo no escopo não pode sumir do laudo só porque
+     ninguém lembrou de acrescentá-lo ao modelo. */
+  it('o que o modelo não lista vai depois, não some', () => {
+    const r = ordenarPeloModelo([p1, p2, p3], ['p3']);
+    expect(r.map((p) => p.codigo)).toEqual(['K', 'PH', 'MO']);
+    expect(r).toHaveLength(3);
+  });
+
+  it('modelo sem ordem mantém a do cadastro', () => {
+    expect(ordenarPeloModelo([p1, p2, p3], []).map((p) => p.codigo)).toEqual(['PH', 'MO', 'K']);
+  });
+
+  it('id que não está mais no escopo é ignorado', () => {
+    const r = ordenarPeloModelo([p1, p2], ['p9', 'p2', 'p1']);
+    expect(r.map((p) => p.codigo)).toEqual(['MO', 'PH']);
   });
 });

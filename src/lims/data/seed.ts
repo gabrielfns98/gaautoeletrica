@@ -13,7 +13,7 @@ import { iniciais } from '../lib/format';
 import type {
   Amostra, AmostraControle, Calibracao, Cliente, Contato, Ensaio, Equipamento,
   GrupoAnalise, GrupoAnaliseId, Interacao, ItemEstoque, Laudo, LeituraPh,
-  Formula, ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
+  Formula, ModeloImportacao, ModeloLaudo, TipoEquipamento, VerificacaoEquipamento,
   LoteReagente, LoteRecepcao, MovimentoEstoque, NotaFiscal, Oportunidade,
   Orcamento, Papel, Parametro, PontoTrace, RegistroAuditoria, RegistroCQ,
   StatusAmostra, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario,
@@ -1062,6 +1062,51 @@ for (let l = 0; l < 210; l++) {
     }
   }
 }
+
+/* ---------------- Modelos de laudo ---------------- */
+
+/**
+ * O timbre e a forma do laudo, por análise. O de solo entrega a
+ * interpretação agronômica, que é o que o cliente lê; o de água
+ * entrega o número contra o limite legal e dispensa a faixa.
+ */
+export const modelosLaudo: ModeloLaudo[] = [
+  {
+    id: 'mdl-geral', nome: 'Padrão do laboratório',
+    cabecalho: 'Laudo emitido eletronicamente — confira pelo código de verificação.',
+    ordemParametros: [], agrupamento: 'nenhum',
+    observacaoIds: ['obs-01', 'obs-02', 'obs-03'],
+    mostrarIncerteza: true, mostrarInterpretacao: true, mostrarMetodos: true,
+    cargoAssinatura: 'Responsável técnico', disposicaoPadrao: 'amostra', ativo: true,
+  },
+  {
+    id: 'mdl-solo', nome: 'Solo — fertilidade',
+    grupoId: 'solo',
+    // A ordem que o agrônomo lê: acidez, matéria orgânica, macro, micro,
+    // e por último os calculados que resumem o conjunto.
+    ordemParametros: [
+      'PH-H2O', 'PH-CACL2', 'PH-SMP', 'MO', 'P-MEL', 'P-RES', 'K', 'CA', 'MG',
+      'S', 'H+AL', 'AL', 'B', 'CU', 'FE', 'MN', 'ZN', 'NA',
+      'SB', 'CTC', 'V', 'M', 'ARG',
+    ].map(idDe).filter(Boolean),
+    agrupamento: 'nenhum',
+    observacaoIds: ['obs-01', 'obs-03'],
+    mostrarIncerteza: true, mostrarInterpretacao: true, mostrarMetodos: true,
+    cargoAssinatura: 'Responsável técnico', disposicaoPadrao: 'amostra', ativo: true,
+  },
+  {
+    id: 'mdl-agua', nome: 'Água e efluentes',
+    grupoId: 'agua-efluentes',
+    ordemParametros: ['PH-AGUA', 'CE', 'TURB', 'DBO', 'DQO'].map(idDe).filter(Boolean),
+    agrupamento: 'nenhum',
+    observacaoIds: ['obs-01', 'obs-02'],
+    mostrarIncerteza: true,
+    // Em água o que vale é o limite legal, não a faixa agronômica.
+    mostrarInterpretacao: false,
+    mostrarMetodos: true,
+    cargoAssinatura: 'Responsável técnico', disposicaoPadrao: 'matriz', ativo: true,
+  },
+];
 
 /* ---------------- Fórmulas dos calculados ---------------- */
 

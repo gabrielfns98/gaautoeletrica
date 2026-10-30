@@ -628,6 +628,44 @@ export interface Importacao {
 }
 
 /**
+ * Modelo do laudo.
+ *
+ * O laudo é o único artefato que sai do laboratório e vira documento
+ * do cliente, e cada laboratório quer o seu: logotipo, cabeçalho,
+ * ordem e agrupamento dos ensaios, quais observações entram e como a
+ * assinatura aparece. Nada disso pode depender de quem escreve a tela.
+ */
+export interface ModeloLaudo {
+  id: UUID;
+  nome: string;
+  /** vale só para esta unidade, quando o grupo tem mais de um CNPJ */
+  unidadeId?: UUID;
+  /** vale só para esta análise, quando o laudo de solo difere do de água */
+  grupoId?: GrupoAnaliseId;
+  /** imagem do timbre; vazio usa só o nome da unidade */
+  logoUrl?: string;
+  /** linhas extras do cabeçalho, uma por linha */
+  cabecalho?: string;
+  rodape?: string;
+  /**
+   * Ordem dos ensaios no laudo. O que não estiver aqui vai depois,
+   * na ordem do cadastro — assim um elemento novo não some do laudo
+   * por não ter sido acrescentado ao modelo.
+   */
+  ordemParametros: UUID[];
+  agrupamento: 'nenhum' | 'metodologia';
+  /** observações fixas que entram neste laudo, na ordem escolhida */
+  observacaoIds: UUID[];
+  mostrarIncerteza: boolean;
+  mostrarInterpretacao: boolean;
+  mostrarMetodos: boolean;
+  /** cargo sob a assinatura */
+  cargoAssinatura: string;
+  disposicaoPadrao: 'amostra' | 'matriz';
+  ativo: boolean;
+}
+
+/**
  * Fórmula de um resultado calculado.
  *
  * SB, CTC, V%, m%, H+Al pelo SMP, PRNT: cada laboratório — às vezes
@@ -722,7 +760,7 @@ export type ColecaoCadastro =
   | 'unidades' | 'grupos' | 'parametros' | 'tiposAnalise' | 'metodologias'
   | 'bandejas' | 'profundidades' | 'culturas' | 'tiposCliente'
   | 'observacoesFixas' | 'convenios' | 'regrasDesconto' | 'criterios'
-  | 'tiposEquipamento' | 'modelosImportacao' | 'formulas';
+  | 'tiposEquipamento' | 'modelosImportacao' | 'formulas' | 'modelosLaudo';
 
 export interface RegistroAuditoria {
   id: UUID;

@@ -17,7 +17,7 @@ import { ChipPh } from '../../components/ph-visual';
 import { TOM_SEVERIDADE } from '../../lib/interpretacao';
 import { dataExtenso, numero } from '../../lib/format';
 import type { LaudoMontado, ResultadoLaudo } from './montar';
-import type { Cliente, GrupoAnalise, ItemSimples, Laudo, Unidade, Usuario } from '../../types';
+import type { Cliente, GrupoAnalise, ItemSimples, Laudo, ModeloLaudo, Unidade, Usuario } from '../../types';
 
 export type Disposicao = 'amostra' | 'matriz';
 
@@ -42,7 +42,7 @@ function Interpretacao({ r }: { r: ResultadoLaudo }) {
 }
 
 export function FolhaLaudo({
-  laudo, montado, cliente, grupo, unidade, assinante, observacoes, disposicao,
+  laudo, montado, cliente, grupo, unidade, assinante, observacoes, disposicao, modelo,
 }: {
   laudo: Laudo;
   montado: LaudoMontado;
@@ -52,6 +52,7 @@ export function FolhaLaudo({
   assinante: Usuario | undefined;
   observacoes: ItemSimples[];
   disposicao: Disposicao;
+  modelo: ModeloLaudo;
 }) {
   const vazio = montado.totalResultados === 0;
 
@@ -60,12 +61,26 @@ export function FolhaLaudo({
       {/* --- Papel timbrado --- */}
       <div className="border-b border-[hsl(var(--line-soft))] bg-[hsl(var(--surface-sunken))] px-6 py-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+          <div className="flex min-w-0 items-start gap-3">
+            {modelo.logoUrl && (
+              /* O logotipo é do laboratório; um endereço quebrado não
+                 pode deixar um buraco no timbre do documento. */
+              <img
+                src={modelo.logoUrl} alt=""
+                className="h-10 w-auto max-w-[9rem] shrink-0 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            )}
+            <div className="min-w-0">
             <p className="font-display text-xl leading-tight text-foreground">{unidade.nome}</p>
             <p className="num mt-1 text-[0.68rem] text-muted-foreground">
               CNPJ {unidade.cnpj} · {unidade.municipio}/{unidade.uf}
             </p>
             <p className="mt-0.5 text-[0.68rem] text-muted-foreground">{unidade.acreditacao}</p>
+            {modelo.cabecalho?.split('\n').filter((l) => l.trim()).map((linha) => (
+              <p key={linha} className="text-[0.68rem] text-muted-foreground">{linha}</p>
+            ))}
+            </div>
           </div>
           <div className="text-right">
             <p className="label-micro">Laudo nº</p>
@@ -99,15 +114,15 @@ export function FolhaLaudo({
             />
           </div>
         ) : disposicao === 'amostra' ? (
-          <PorAmostra montado={montado} />
+          <PorAmostra montado={montado} modelo={modelo} />
         ) : (
-          <Matriz montado={montado} />
+          <Matriz montado={montado} modelo={modelo} />
         )}
 
-        {!vazio && (
+        {!vazio && modelo.mostrarMetodos && (
           <>
             <Metodos montado={montado} />
-            {montado.fontes.length > 0 && (
+            {modelo.mostrarInterpretacao && montado.fontes.length > 0 && (
               <div className="mt-5 border-t border-[hsl(var(--line-soft))] pt-4">
                 <p className="label-micro mb-2">Referências de interpretação</p>
                 <ul className="space-y-0.5">
@@ -144,8 +159,8 @@ export function FolhaLaudo({
         {/* --- Assinatura --- */}
         <div className="mt-8 flex flex-wrap items-end justify-between gap-6 border-t border-[hsl(var(--line-soft))] pt-6">
           <p className="max-w-sm text-[0.62rem] leading-relaxed text-muted-foreground">
-            Este documento tem validade apenas na íntegra. A autenticidade pode ser conferida
-            no portal do laboratório pelo código de verificação.
+            {modelo.rodape?.trim()
+              || 'Este documento tem validade apenas na íntegra. A autenticidade pode ser conferida no portal do laboratório pelo código de verificação.'}
           </p>
           <div className="shrink-0 text-center">
             <div className="mb-1.5 h-10 w-44 border-b border-[hsl(var(--line-strong))]" />
@@ -159,7 +174,7 @@ export function FolhaLaudo({
               {assinante?.crq ?? unidade.crq}
             </p>
             <p className="mt-0.5 text-[0.6rem] uppercase tracking-wide text-muted-foreground/70">
-              Responsável técnico
+              {modelo.cargoAssinatura}
             </p>
           </div>
         </div>
@@ -171,7 +186,7 @@ export function FolhaLaudo({
 /* ---------------- Disposição por amostra ---------------- */
 
 /** Uma tabela por amostra — a leitura que o agrônomo faz em campo. */
-function PorAmostra({ montado }: { montado: LaudoMontado }) {
+function PorAmostra({ montado, modelo }: { montado: LaudoMontado; modelo: ModeloLaudo }) {
   return (
     <div className="mt-6 space-y-5">
       {montado.amostras.map(({ amostra, resultados }) => (
@@ -196,9 +211,15 @@ function PorAmostra({ montado }: { montado: LaudoMontado }) {
                     <th className="label-micro px-2 py-1.5 text-left">Ensaio</th>
                     <th className="label-micro px-2 py-1.5 text-right">Resultado</th>
                     <th className="label-micro px-2 py-1.5 text-left">Unidade</th>
-                    <th className="label-micro px-2 py-1.5 text-left">Interpretação</th>
-                    <th className="label-micro px-2 py-1.5 text-right">Incerteza</th>
-                    <th className="label-micro px-2 py-1.5 text-left">Método</th>
+                    {modelo.mostrarInterpretacao && (
+                      <th className="label-micro px-2 py-1.5 text-left">Interpretação</th>
+                    )}
+                    {modelo.mostrarIncerteza && (
+                      <th className="label-micro px-2 py-1.5 text-right">Incerteza</th>
+                    )}
+                    {modelo.mostrarMetodos && (
+                      <th className="label-micro px-2 py-1.5 text-left">Método</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -214,17 +235,23 @@ function PorAmostra({ montado }: { montado: LaudoMontado }) {
                       <td className="num px-2 py-1.5 text-[0.68rem] text-muted-foreground">
                         {r.parametro.unidade || '—'}
                       </td>
-                      <td className="px-2 py-1.5">
-                        <Interpretacao r={r} />
-                      </td>
-                      <td className="num px-2 py-1.5 text-right text-[0.68rem] text-muted-foreground">
-                        {r.parametro.incerteza === undefined
-                          ? '—'
-                          : `± ${numero(r.parametro.incerteza, 2)}`}
-                      </td>
-                      <td className="max-w-[14rem] truncate px-2 py-1.5 text-[0.66rem] text-muted-foreground">
-                        {r.parametro.metodo}
-                      </td>
+                      {modelo.mostrarInterpretacao && (
+                        <td className="px-2 py-1.5">
+                          <Interpretacao r={r} />
+                        </td>
+                      )}
+                      {modelo.mostrarIncerteza && (
+                        <td className="num px-2 py-1.5 text-right text-[0.68rem] text-muted-foreground">
+                          {r.parametro.incerteza === undefined
+                            ? '—'
+                            : `± ${numero(r.parametro.incerteza, 2)}`}
+                        </td>
+                      )}
+                      {modelo.mostrarMetodos && (
+                        <td className="max-w-[14rem] truncate px-2 py-1.5 text-[0.66rem] text-muted-foreground">
+                          {r.parametro.metodo}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -240,7 +267,7 @@ function PorAmostra({ montado }: { montado: LaudoMontado }) {
 /* ---------------- Disposição em matriz ---------------- */
 
 /** Amostras nas linhas, ensaios nas colunas — a conferência do lote. */
-function Matriz({ montado }: { montado: LaudoMontado }) {
+function Matriz({ montado, modelo }: { montado: LaudoMontado; modelo: ModeloLaudo }) {
   return (
     <div className="mt-6 overflow-x-auto">
       <table className="w-full border-collapse text-xs">
@@ -274,7 +301,7 @@ function Matriz({ montado }: { montado: LaudoMontado }) {
                       ) : (
                         <>
                           <Valor r={r} />
-                          {r.interpretacao && (
+                          {modelo.mostrarInterpretacao && r.interpretacao && (
                             <span
                               className={cn(
                                 'mt-0.5 block text-[0.58rem] leading-tight',

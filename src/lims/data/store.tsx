@@ -38,7 +38,7 @@ import type {
   StatusAmostra, StatusEnsaio, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario, UUID,
   Bandeja, ColecaoCadastro, Convenio, CriterioAceitacao, Curva, Importacao,
   Legenda, Metodologia, RegraDesconto, ItemSimples,
-  Formula, ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
+  Formula, ModeloImportacao, ModeloLaudo, TipoEquipamento, VerificacaoEquipamento,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -76,6 +76,7 @@ export interface EstadoBancada {
   verificacoesEquipamento: VerificacaoEquipamento[];
   modelosImportacao: ModeloImportacao[];
   formulas: Formula[];
+  modelosLaudo: ModeloLaudo[];
   calibracoes: Calibracao[];
   amostrasControle: AmostraControle[];
   registrosCQ: RegistroCQ[];
@@ -125,6 +126,7 @@ function estadoInicial(): EstadoBancada {
     verificacoesEquipamento: seed.verificacoesEquipamento,
     modelosImportacao: seed.modelosImportacao,
     formulas: seed.formulas,
+    modelosLaudo: seed.modelosLaudo,
     calibracoes: seed.calibracoes,
     amostrasControle: seed.amostrasControle,
     registrosCQ: seed.registrosCQ,

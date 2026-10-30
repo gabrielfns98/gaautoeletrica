@@ -11,7 +11,7 @@ import type {
   LoteRecepcao, Papel, Parametro, Permissao, PontoCalibracao, PontoTrace,
   Prioridade, StatusAmostra, StatusCalibracao, StatusEnsaio, TabelaPreco,
   Unidade, Usuario, UUID,
-  Formula, ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
+  Formula, ModeloImportacao, ModeloLaudo, TipoEquipamento, VerificacaoEquipamento,
 } from '../types';
 
 /* ---------------- auxiliares ---------------- */
@@ -894,4 +894,39 @@ export const paraFormula = (f: Formula): LinhaFormula => ({
   id: f.id, parametro_id: f.parametroId, expressao: f.expressao,
   fonte: f.fonte ?? null, grupo_id: f.grupoId ?? null,
   ativa: f.ativa, observacao: f.observacao ?? null,
+});
+
+/* ---------------- Modelo do laudo ---------------- */
+
+export interface LinhaModeloLaudo {
+  id: string; nome: string; unidade_id: string | null; grupo_id: string | null;
+  logo_url: string | null; cabecalho: string | null; rodape: string | null;
+  ordem_parametros: string[] | null; agrupamento: string;
+  observacao_ids: string[] | null; mostrar_incerteza: boolean;
+  mostrar_interpretacao: boolean; mostrar_metodos: boolean;
+  cargo_assinatura: string; disposicao_padrao: string; ativo: boolean;
+}
+
+export const deModeloLaudo = (l: LinhaModeloLaudo): ModeloLaudo => ({
+  id: l.id, nome: l.nome, unidadeId: opc(l.unidade_id),
+  grupoId: opc(l.grupo_id) as ModeloLaudo['grupoId'],
+  logoUrl: opc(l.logo_url), cabecalho: opc(l.cabecalho), rodape: opc(l.rodape),
+  ordemParametros: l.ordem_parametros ?? [],
+  agrupamento: l.agrupamento as ModeloLaudo['agrupamento'],
+  observacaoIds: l.observacao_ids ?? [],
+  mostrarIncerteza: l.mostrar_incerteza,
+  mostrarInterpretacao: l.mostrar_interpretacao,
+  mostrarMetodos: l.mostrar_metodos,
+  cargoAssinatura: l.cargo_assinatura,
+  disposicaoPadrao: l.disposicao_padrao as ModeloLaudo['disposicaoPadrao'],
+  ativo: l.ativo,
+});
+
+export const paraModeloLaudo = (m: ModeloLaudo): LinhaModeloLaudo => ({
+  id: m.id, nome: m.nome, unidade_id: m.unidadeId ?? null, grupo_id: m.grupoId ?? null,
+  logo_url: m.logoUrl ?? null, cabecalho: m.cabecalho ?? null, rodape: m.rodape ?? null,
+  ordem_parametros: m.ordemParametros, agrupamento: m.agrupamento,
+  observacao_ids: m.observacaoIds, mostrar_incerteza: m.mostrarIncerteza,
+  mostrar_interpretacao: m.mostrarInterpretacao, mostrar_metodos: m.mostrarMetodos,
+  cargo_assinatura: m.cargoAssinatura, disposicao_padrao: m.disposicaoPadrao, ativo: m.ativo,
 });

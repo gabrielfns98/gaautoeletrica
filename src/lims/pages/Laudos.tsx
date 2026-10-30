@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
-import { montarLaudo } from './laudo/montar';
+import { modeloDoLaudo, montarLaudo, ordenarPeloModelo } from './laudo/montar';
 import { FolhaLaudo } from './laudo/Folha';
 import type { Disposicao } from './laudo/Folha';
 import { data as fData, tempoRelativo } from '../lib/format';
@@ -135,12 +135,17 @@ function PreVisualizacao({
   const { emitirLaudo } = useAcoes();
   const { clientePorId, grupoPorId, usuarioPorId } = useIndices();
 
-  const [disposicao, setDisposicao] = useState<Disposicao>('amostra');
+  const [disposicao, setDisposicao] = useState<Disposicao | undefined>();
 
   /* Pelo id, não pelo objeto: assinar tem de mudar a folha na hora. */
   const laudo = useMemo(
     () => estado.laudos.find((l) => l.id === laudoId) ?? null,
     [estado.laudos, laudoId],
+  );
+
+  const modelo = useMemo(
+    () => modeloDoLaudo(estado.modelosLaudo, unidade.id, laudo?.grupoId),
+    [estado.modelosLaudo, unidade.id, laudo?.grupoId],
   );
 
   const montado = useMemo(() => {
@@ -149,20 +154,31 @@ function PreVisualizacao({
       laudo,
       amostras: estado.amostras,
       ensaios: estado.ensaios,
-      parametros: estado.parametros,
+      /* A ordem entra aqui, antes da montagem: é o array de parâmetros
+         que define a sequência das colunas da matriz e também das
+         linhas de cada amostra. Reordenar só o resultado arrumaria a
+         matriz e deixaria a tabela por amostra na ordem do cadastro. */
+      parametros: ordenarPeloModelo(estado.parametros, modelo.ordemParametros),
       legendas: estado.legendas,
       // A legenda por cultura vale quando o laboratório cadastrou uma:
       // fósforo "baixo" para pastagem pode ser "médio" para soja.
       culturaDe: (a) => a.cultura,
     });
-  }, [laudo, estado.amostras, estado.ensaios, estado.parametros, estado.legendas]);
+  }, [laudo, estado.amostras, estado.ensaios, estado.parametros, estado.legendas, modelo]);
 
-  const observacoes = useMemo(
-    () => estado.observacoesFixas.filter((o) => o.ativo).slice(0, 3),
-    [estado.observacoesFixas],
-  );
+  /* O modelo escolhe quais observações entram e em que ordem; sem
+     escolha, valem as ativas do cadastro. */
+  const observacoes = useMemo(() => {
+    const ativas = estado.observacoesFixas.filter((o) => o.ativo);
+    if (modelo.observacaoIds.length === 0) return ativas.slice(0, 3);
+    return modelo.observacaoIds
+      .map((id) => ativas.find((o) => o.id === id))
+      .filter((o): o is NonNullable<typeof o> => Boolean(o));
+  }, [estado.observacoesFixas, modelo]);
 
   if (!laudo || !montado) return null;
+
+  const comoMostrar = disposicao ?? modelo.disposicaoPadrao;
 
   const cliente = clientePorId.get(laudo.clienteId);
   const grupo = grupoPorId.get(laudo.grupoId);
@@ -187,7 +203,7 @@ function PreVisualizacao({
             {montado.totalResultados > 0 && (
               <div className="mt-5 sem-impressao">
                 <Segmentos
-                  valor={disposicao}
+                  valor={comoMostrar}
                   aoMudar={setDisposicao}
                   opcoes={[
                     { valor: 'amostra', rotulo: 'Por amostra' },
@@ -206,7 +222,8 @@ function PreVisualizacao({
                 unidade={unidade}
                 assinante={assinante}
                 observacoes={observacoes}
-                disposicao={disposicao}
+                disposicao={comoMostrar}
+                modelo={modelo}
               />
             </div>
 

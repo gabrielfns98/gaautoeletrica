@@ -20,6 +20,7 @@ const migracoes = [
   '20251030140000_bancada_criterios.sql',
   '20251030150000_bancada_equipamentos.sql',
   '20251030160000_bancada_formulas.sql',
+  '20251030170000_bancada_modelo_laudo.sql',
 ];
 const sql = migracoes
   .map((arquivo) => readFileSync(resolve(aqui, '../../../supabase/migrations', arquivo), 'utf8'))
@@ -43,6 +44,7 @@ const TABELA: Record<string, string> = {
   LinhaVerificacao: 'lab_verificacoes_equipamento',
   LinhaModeloImportacao: 'lab_modelos_importacao',
   LinhaFormula: 'lab_formulas',
+  LinhaModeloLaudo: 'lab_modelos_laudo',
   LinhaCalibracao: 'lab_calibracoes',
   LinhaLeituraPh: 'lab_leituras_ph',
   LinhaContato: 'lab_contatos',

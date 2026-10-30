@@ -8,7 +8,7 @@
 
 import { interpretar } from '../../lib/interpretacao';
 import type { Interpretacao } from '../../lib/interpretacao';
-import type { Amostra, Ensaio, Laudo, Legenda, Parametro } from '../../types';
+import type { Amostra, Ensaio, Laudo, Legenda, ModeloLaudo, Parametro } from '../../types';
 
 export interface ResultadoLaudo {
   ensaio: Ensaio;
@@ -98,4 +98,59 @@ export function montarLaudo({
     totalResultados,
     fontes: [...fontes].sort((a, b) => a.localeCompare(b, 'pt-BR')),
   };
+}
+
+/* ---------------- Modelo do laudo ---------------- */
+
+/** O que a folha usa quando o laboratório não cadastrou modelo. */
+export const MODELO_PADRAO: ModeloLaudo = {
+  id: 'mdl-padrao',
+  nome: 'Padrão do sistema',
+  ordemParametros: [],
+  agrupamento: 'nenhum',
+  observacaoIds: [],
+  mostrarIncerteza: true,
+  mostrarInterpretacao: true,
+  mostrarMetodos: true,
+  cargoAssinatura: 'Responsável técnico',
+  disposicaoPadrao: 'amostra',
+  ativo: true,
+};
+
+/**
+ * Qual modelo vale para este laudo.
+ *
+ * Precedência: unidade + análise > análise > unidade > geral. Um
+ * grupo com dois CNPJs quer timbre diferente por unidade, e o laudo
+ * de água não se parece com o de solo — os dois casos somados pedem
+ * esta ordem, e não uma lista de regras.
+ */
+export function modeloDoLaudo(
+  modelos: ModeloLaudo[],
+  unidadeId: string | undefined,
+  grupoId: string | undefined,
+): ModeloLaudo {
+  const candidatos = modelos.filter((m) => m.ativo)
+    .filter((m) => !m.unidadeId || m.unidadeId === unidadeId)
+    .filter((m) => !m.grupoId || m.grupoId === grupoId);
+
+  const peso = (m: ModeloLaudo) => (m.unidadeId ? 2 : 0) + (m.grupoId ? 1 : 0);
+  return [...candidatos].sort((a, b) => peso(b) - peso(a))[0] ?? MODELO_PADRAO;
+}
+
+/**
+ * Reordena os parâmetros do laudo conforme o modelo.
+ *
+ * O que o modelo não lista vai depois, na ordem do cadastro: um
+ * elemento acrescentado ao escopo não pode sumir do laudo só porque
+ * ninguém lembrou de incluí-lo no modelo.
+ */
+export function ordenarPeloModelo(parametros: Parametro[], ordem: string[]): Parametro[] {
+  if (ordem.length === 0) return parametros;
+  const posicao = new Map(ordem.map((id, i) => [id, i]));
+  return [...parametros].sort((a, b) => {
+    const pa = posicao.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+    const pb = posicao.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+    return pa - pb;
+  });
 }
