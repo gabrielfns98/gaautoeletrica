@@ -1,3 +1,4 @@
+import { expect, it } from 'vitest';
 import {
   CRITERIOS_CURVA, ajustarCurva, concentracaoDaLeitura, leituraDaConcentracao,
   situacaoDoResultado, rotuloSituacao,
@@ -96,5 +97,8 @@ igual(ajustarCurva([]).aprovada, false, 'curva vazia');
 igual(ajustarCurva([{ concentracao: 1, leitura: 1 }]).aprovada, false, 'um ponto só');
 igual(Number.isNaN(concentracaoDaLeitura(NaN, aj)), true, 'leitura inválida');
 
-console.log(falhas === 0 ? '\nTODOS OS TESTES DE CURVA PASSARAM' : `\n${falhas} FALHA(S)`);
-if (falhas) process.exit(1);
+/* As verificações acima correm na carga do módulo e somam em `falhas`.
+   Este caso é o que leva o total ao relatório do vitest. */
+it('curva analítica', () => {
+  expect(falhas).toBe(0);
+});

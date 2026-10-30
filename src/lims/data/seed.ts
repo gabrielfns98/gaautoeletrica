@@ -174,6 +174,44 @@ export const parametros: Parametro[] = [
   { id: 'par-fe-fol', codigo: 'FE-FOL', nome: 'Ferro foliar', grupoId: 'foliar', unidade: 'mg/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 0, preco: 10.5, ativo: true },
   { id: 'par-mn-fol', codigo: 'MN-FOL', nome: 'Manganês foliar', grupoId: 'foliar', unidade: 'mg/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 0, preco: 10.5, ativo: true },
   { id: 'par-zn-fol', codigo: 'ZN-FOL', nome: 'Zinco foliar', grupoId: 'foliar', unidade: 'mg/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 1, preco: 10.5, ativo: true },
+
+  // --- Bromatologia: a análise de forragem que o pecuarista pede ---
+  { id: 'par-ms', codigo: 'MS', nome: 'Matéria seca', grupoId: 'bromatologia', unidade: '%', tipo: 'numerico', metodo: 'AOAC 934.01 — estufa a 105 °C', casasDecimais: 2, preco: 16.0, ativo: true },
+  { id: 'par-pb', codigo: 'PB', nome: 'Proteína bruta', grupoId: 'bromatologia', unidade: '%', tipo: 'numerico', metodo: 'AOAC 984.13 — Kjeldahl, N × 6,25', casasDecimais: 2, preco: 28.0, ativo: true },
+  { id: 'par-fdn', codigo: 'FDN', nome: 'Fibra em detergente neutro', grupoId: 'bromatologia', unidade: '%', tipo: 'numerico', metodo: 'Van Soest (1991) — detergente neutro', casasDecimais: 2, preco: 34.0, ativo: true },
+  { id: 'par-fda', codigo: 'FDA', nome: 'Fibra em detergente ácido', grupoId: 'bromatologia', unidade: '%', tipo: 'numerico', metodo: 'Van Soest (1991) — detergente ácido', casasDecimais: 2, preco: 32.0, ativo: true },
+  { id: 'par-ee', codigo: 'EE', nome: 'Extrato etéreo', grupoId: 'bromatologia', unidade: '%', tipo: 'numerico', metodo: 'AOAC 920.39 — Soxhlet', casasDecimais: 2, preco: 26.0, ativo: true },
+  { id: 'par-mm', codigo: 'MM', nome: 'Matéria mineral', grupoId: 'bromatologia', unidade: '%', tipo: 'numerico', metodo: 'AOAC 942.05 — incineração a 600 °C', casasDecimais: 2, preco: 18.0, ativo: true },
+  { id: 'par-ndt', codigo: 'NDT', nome: 'Nutrientes digestíveis totais', grupoId: 'bromatologia', unidade: '%', tipo: 'numerico', metodo: 'Cálculo: 87,84 − (0,70 × FDA)', casasDecimais: 1, preco: 0, ativo: true },
+  { id: 'par-ph-silagem', codigo: 'PH-SIL', nome: 'pH da silagem', grupoId: 'bromatologia', unidade: '', tipo: 'numerico', metodo: 'Potenciometria em extrato aquoso 1:10', casasDecimais: 2, incerteza: 0.06, preco: 14.0, ativo: true, ehPh: true, extrator: 'H2O', proporcao: '1:10' },
+
+  // --- Gesso agrícola (IN SDA 05/2007) ---
+  { id: 'par-ca-gesso', codigo: 'CA-GES', nome: 'Cálcio', grupoId: 'gesso', unidade: '%', tipo: 'numerico', metodo: 'IN SDA 05/2007 — complexometria com EDTA', casasDecimais: 2, preco: 24.0, ativo: true },
+  { id: 'par-s-gesso', codigo: 'S-GES', nome: 'Enxofre', grupoId: 'gesso', unidade: '%', tipo: 'numerico', metodo: 'IN SDA 05/2007 — gravimetria do sulfato de bário', casasDecimais: 2, preco: 26.0, ativo: true },
+  { id: 'par-umid-gesso', codigo: 'UMID-GES', nome: 'Umidade', grupoId: 'gesso', unidade: '%', tipo: 'numerico', metodo: 'IN SDA 05/2007 — estufa a 65 °C', casasDecimais: 2, preco: 14.0, ativo: true },
+  { id: 'par-gran-gesso', codigo: 'GRAN-GES', nome: 'Granulometria — passante ABNT 50', grupoId: 'gesso', unidade: '%', tipo: 'numerico', metodo: 'IN SDA 05/2007 — peneiramento', casasDecimais: 1, preco: 18.0, ativo: true },
+  { id: 'par-ph-gesso', codigo: 'PH-GES', nome: 'pH da suspensão', grupoId: 'gesso', unidade: '', tipo: 'numerico', metodo: 'Potenciometria, suspensão 1:5', casasDecimais: 2, incerteza: 0.06, preco: 13.0, ativo: true, ehPh: true, extrator: 'H2O', proporcao: '1:5' },
+
+  // --- Produtos biológicos: inoculantes e defensivos microbiológicos ---
+  { id: 'par-ufc', codigo: 'UFC', nome: 'Contagem de células viáveis', grupoId: 'produtos-biologicos', unidade: 'UFC/mL', tipo: 'numerico', metodo: 'IN SDA 13/2011 — plaqueamento em meio seletivo', casasDecimais: 0, preco: 88.0, ativo: true },
+  { id: 'par-pureza-bio', codigo: 'PUR-BIO', nome: 'Pureza microbiológica', grupoId: 'produtos-biologicos', unidade: '%', tipo: 'numerico', metodo: 'IN SDA 13/2011 — ausência de contaminantes', casasDecimais: 1, preco: 62.0, ativo: true },
+  { id: 'par-contam-bio', codigo: 'CONT-BIO', nome: 'Contaminantes totais', grupoId: 'produtos-biologicos', unidade: 'UFC/mL', tipo: 'numerico', metodo: 'IN SDA 13/2011 — plaqueamento em meio geral', casasDecimais: 0, preco: 58.0, ativo: true },
+  { id: 'par-ph-bio', codigo: 'PH-BIO', nome: 'pH do produto', grupoId: 'produtos-biologicos', unidade: '', tipo: 'numerico', metodo: 'Potenciometria direta no produto formulado', casasDecimais: 2, incerteza: 0.05, preco: 12.0, ativo: true, ehPh: true, extrator: 'direto', proporcao: 'direto' },
+
+  // --- Cromatografia: resíduos de agrotóxicos ---
+  { id: 'par-res-glifo', codigo: 'RES-GLIFO', nome: 'Glifosato e AMPA', grupoId: 'cromatografia', unidade: 'mg/kg', tipo: 'numerico', metodo: 'LC-MS/MS — QuEChERS modificado', casasDecimais: 3, preco: 320.0, ativo: true },
+  { id: 'par-res-multi', codigo: 'RES-MULTI', nome: 'Multirresíduo (mais de 180 analitos)', grupoId: 'cromatografia', unidade: 'mg/kg', tipo: 'numerico', metodo: 'GC-MS/MS e LC-MS/MS — QuEChERS', casasDecimais: 3, preco: 480.0, ativo: true },
+  { id: 'par-res-piretr', codigo: 'RES-PIRETR', nome: 'Piretroides', grupoId: 'cromatografia', unidade: 'mg/kg', tipo: 'numerico', metodo: 'GC-MS/MS — extração com acetonitrila', casasDecimais: 3, preco: 260.0, ativo: true },
+
+  // --- Patologia: sanidade de sementes e tecidos ---
+  { id: 'par-incid-fungo', codigo: 'INC-FUN', nome: 'Incidência de fungos', grupoId: 'patologia', unidade: '%', tipo: 'numerico', metodo: 'Blotter test — RAS/MAPA 2009', casasDecimais: 1, preco: 72.0, ativo: true },
+  { id: 'par-incid-bact', codigo: 'INC-BAC', nome: 'Incidência de bactérias', grupoId: 'patologia', unidade: '%', tipo: 'numerico', metodo: 'Isolamento em meio semisseletivo', casasDecimais: 1, preco: 78.0, ativo: true },
+  { id: 'par-sanidade', codigo: 'SAN', nome: 'Sementes sadias', grupoId: 'patologia', unidade: '%', tipo: 'numerico', metodo: 'RAS/MAPA 2009 — análise sanitária', casasDecimais: 1, preco: 64.0, ativo: true },
+
+  // --- Terceirizadas: o laboratório parceiro devolve o número, este
+  //     laboratório responde pelo laudo e registra a subcontratação ---
+  { id: 'par-sub-metais', codigo: 'SUB-METAIS', nome: 'Metais pesados (subcontratado)', grupoId: 'terceirizadas', unidade: 'mg/kg', tipo: 'numerico', metodo: 'ICP-MS em laboratório subcontratado acreditado', casasDecimais: 3, preco: 420.0, ativo: true },
+  { id: 'par-sub-dioxina', codigo: 'SUB-DIOX', nome: 'Dioxinas e furanos (subcontratado)', grupoId: 'terceirizadas', unidade: 'ng/kg', tipo: 'numerico', metodo: 'HRGC/HRMS em laboratório subcontratado', casasDecimais: 2, preco: 1850.0, ativo: true },
 ];
 
 export const parametrosPh = parametros.filter((p) => p.ehPh);
@@ -254,9 +292,9 @@ const TIPOS_ANALISE: TipoAnalise[] = [
     parametroIds: todosDo('fertilizantes'),
   },
   {
-    id: 'tpa-bro-nitro', codigo: 'BR GP NITROGÊNIO', nome: 'Nitrogênio e proteína bruta',
+    id: 'tpa-bro-nitro', codigo: 'BR GP FORRAGEM', nome: 'Análise de forragem completa',
     grupoId: 'bromatologia', prazoDias: 10, ativo: true,
-    parametroIds: todosDo('bromatologia'),
+    parametroIds: por('bromatologia', 'MS', 'PB', 'FDN', 'FDA', 'EE', 'MM', 'NDT'),
   },
   {
     id: 'tpa-cana-consecana', codigo: 'DCA GP CONSECANA', nome: 'Pagamento CONSECANA',
@@ -292,6 +330,26 @@ const TIPOS_ANALISE: TipoAnalise[] = [
     id: 'tpa-bio-ufc', codigo: 'BIO GP UFC', nome: 'Contagem de UFC',
     grupoId: 'produtos-biologicos', prazoDias: 14, ativo: true,
     parametroIds: todosDo('produtos-biologicos'),
+  },
+  {
+    id: 'tpa-bro-silagem', codigo: 'BR GP SILAGEM', nome: 'Qualidade de silagem',
+    grupoId: 'bromatologia', prazoDias: 8, ativo: true,
+    parametroIds: por('bromatologia', 'MS', 'PB', 'PH-SIL'),
+  },
+  {
+    id: 'tpa-cro-multi', codigo: 'CRO GP MULTIRRESÍDUO', nome: 'Multirresíduo de agrotóxicos',
+    grupoId: 'cromatografia', prazoDias: 15, ativo: true,
+    parametroIds: por('cromatografia', 'RES-MULTI', 'RES-GLIFO'),
+  },
+  {
+    id: 'tpa-pat-sanidade', codigo: 'PAT GP SANIDADE', nome: 'Análise sanitária de sementes',
+    grupoId: 'patologia', prazoDias: 12, ativo: true,
+    parametroIds: por('patologia', 'INC-FUN', 'INC-BAC', 'SAN'),
+  },
+  {
+    id: 'tpa-ter-metais', codigo: 'TER GP METAIS', nome: 'Metais pesados (subcontratado)',
+    grupoId: 'terceirizadas', prazoDias: 25, ativo: true,
+    parametroIds: por('terceirizadas', 'SUB-METAIS'),
   },
 ];
 
@@ -708,6 +766,56 @@ function perfilQuimico(grupoId: GrupoAnaliseId): Record<string, number> {
   if (grupoId === 'fertilizantes') return { 'N-TOT': entre(8, 46) };
   if (grupoId === 'sementes') return { GERM: entre(72, 99) };
   if (grupoId === 'nematoides') return { NEMA: entre(0, 1800) };
+
+  if (grupoId === 'bromatologia') {
+    // Fibra e proteína andam em sentidos opostos: capim maduro tem muita
+    // FDN e pouca PB. Um só eixo de maturidade mantém o laudo coerente.
+    const maturidade = entre(0, 1);
+    const fda = 24 + maturidade * 18;
+    return {
+      MS: entre(22, 92), PB: 20 - maturidade * 13, FDN: 46 + maturidade * 26,
+      FDA: fda, EE: entre(1.2, 4.6), MM: entre(5.2, 12.4),
+      NDT: 87.84 - 0.7 * fda,
+      // Silagem bem fermentada fica entre 3,6 e 4,2.
+      'PH-SIL': entre(3.6, 4.6),
+    };
+  }
+
+  if (grupoId === 'gesso') {
+    // Gesso agrícola comercial gira em torno de CaSO₄·2H₂O: ~17 % Ca e ~13 % S.
+    return {
+      'CA-GES': entre(16.2, 20.4), 'S-GES': entre(13.0, 17.2),
+      'UMID-GES': entre(4.8, 14.6), 'GRAN-GES': entre(68, 98),
+      'PH-GES': entre(5.8, 7.4),
+    };
+  }
+
+  if (grupoId === 'produtos-biologicos') {
+    return {
+      UFC: entre(1e8, 9e9), 'PUR-BIO': entre(96.4, 100),
+      'CONT-BIO': entre(0, 4e5), 'PH-BIO': entre(5.4, 7.2),
+    };
+  }
+
+  if (grupoId === 'cromatografia') {
+    // A maioria das amostras dá abaixo do limite de quantificação.
+    const traco = () => (chance(0.72) ? entre(0, 0.01) : entre(0.01, 0.42));
+    return { 'RES-GLIFO': traco(), 'RES-MULTI': traco(), 'RES-PIRETR': traco() };
+  }
+
+  if (grupoId === 'patologia') {
+    const fungos = entre(0, 26);
+    const bacterias = entre(0, 9);
+    return {
+      'INC-FUN': fungos, 'INC-BAC': bacterias,
+      SAN: Math.max(0, 100 - fungos - bacterias),
+    };
+  }
+
+  if (grupoId === 'terceirizadas') {
+    return { 'SUB-METAIS': entre(0.002, 1.8), 'SUB-DIOX': entre(0.04, 2.6) };
+  }
+
   return {};
 }
 
@@ -1350,6 +1458,198 @@ export const legendas: Legenda[] = [
       { ate: 5, rotulo: 'Fora do padrão', descricao: 'Abaixo do limite de lançamento', severidade: 'critico' },
       { de: 5, ate: 9, rotulo: 'Conforme', descricao: 'Dentro do padrão de lançamento', severidade: 'ideal' },
       { de: 9, rotulo: 'Fora do padrão', descricao: 'Acima do limite de lançamento', severidade: 'critico' },
+    ],
+  },
+
+  {
+    id: 'leg-ca', codigo: 'LEG-CA', nome: 'Cálcio trocável',
+    parametroId: idDe('CA'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 0.41, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 0.41, ate: 1.21, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 1.21, ate: 2.41, rotulo: 'Médio', severidade: 'bom' },
+      { de: 2.41, ate: 4.01, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 4.01, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-mg', codigo: 'LEG-MG', nome: 'Magnésio trocável',
+    parametroId: idDe('MG'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 0.16, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 0.16, ate: 0.46, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 0.46, ate: 0.91, rotulo: 'Médio', severidade: 'bom' },
+      { de: 0.91, ate: 1.51, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 1.51, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-sb', codigo: 'LEG-SB', nome: 'Soma de bases',
+    parametroId: idDe('SB'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 0.61, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 0.61, ate: 1.81, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 1.81, ate: 3.61, rotulo: 'Médio', severidade: 'bom' },
+      { de: 3.61, ate: 6.01, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 6.01, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-ctc', codigo: 'LEG-CTC', nome: 'CTC a pH 7,0',
+    parametroId: idDe('CTC'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 1.61, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 1.61, ate: 4.31, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 4.31, ate: 8.61, rotulo: 'Médio', severidade: 'bom' },
+      { de: 8.61, ate: 15.01, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 15.01, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-hal', codigo: 'LEG-HAL', nome: 'Acidez potencial (H+Al)',
+    parametroId: idDe('H+AL'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 1.01, rotulo: 'Muito baixa', severidade: 'ideal' },
+      { de: 1.01, ate: 2.51, rotulo: 'Baixa', severidade: 'bom' },
+      { de: 2.51, ate: 5.01, rotulo: 'Média', severidade: 'atencao' },
+      { de: 5.01, ate: 9.01, rotulo: 'Alta', descricao: 'Calagem indicada', severidade: 'critico' },
+      { de: 9.01, rotulo: 'Muito alta', descricao: 'Calagem pesada indicada', severidade: 'critico' },
+    ],
+  },
+  {
+    id: 'leg-al', codigo: 'LEG-AL', nome: 'Alumínio trocável',
+    parametroId: idDe('AL'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 0.21, rotulo: 'Muito baixo', severidade: 'ideal' },
+      { de: 0.21, ate: 0.51, rotulo: 'Baixo', severidade: 'bom' },
+      { de: 0.51, ate: 1.01, rotulo: 'Médio', severidade: 'atencao' },
+      { de: 1.01, ate: 2.01, rotulo: 'Alto', descricao: 'Risco de toxidez por alumínio', severidade: 'critico' },
+      { de: 2.01, rotulo: 'Muito alto', descricao: 'Toxidez por alumínio provável', severidade: 'critico' },
+    ],
+  },
+  {
+    id: 'leg-m', codigo: 'LEG-M', nome: 'Saturação por alumínio',
+    parametroId: idDe('M'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 15.1, rotulo: 'Muito baixa', descricao: 'Sem restrição ao desenvolvimento radicular', severidade: 'ideal' },
+      { de: 15.1, ate: 30.1, rotulo: 'Baixa', severidade: 'bom' },
+      { de: 30.1, ate: 50.1, rotulo: 'Média', severidade: 'atencao' },
+      { de: 50.1, ate: 75.1, rotulo: 'Alta', descricao: 'Restrição ao crescimento de raízes', severidade: 'critico' },
+      { de: 75.1, rotulo: 'Muito alta', descricao: 'Restrição severa — calagem urgente', severidade: 'critico' },
+    ],
+  },
+  {
+    id: 'leg-s', codigo: 'LEG-S', nome: 'Enxofre disponível',
+    parametroId: idDe('S'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 2.1, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 2.1, ate: 5.1, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 5.1, ate: 10.1, rotulo: 'Médio', severidade: 'bom' },
+      { de: 10.1, ate: 20.1, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 20.1, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-b', codigo: 'LEG-B', nome: 'Boro disponível',
+    parametroId: idDe('B'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 0.16, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 0.16, ate: 0.36, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 0.36, ate: 0.61, rotulo: 'Médio', severidade: 'bom' },
+      { de: 0.61, ate: 0.91, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 0.91, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-cu', codigo: 'LEG-CU', nome: 'Cobre disponível',
+    parametroId: idDe('CU'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 0.4, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 0.4, ate: 0.8, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 0.8, ate: 1.3, rotulo: 'Médio', severidade: 'bom' },
+      { de: 1.3, ate: 1.9, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 1.9, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-fe', codigo: 'LEG-FE', nome: 'Ferro disponível',
+    parametroId: idDe('FE'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 9, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 9, ate: 19, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 19, ate: 31, rotulo: 'Médio', severidade: 'bom' },
+      { de: 31, ate: 46, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 46, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-mn', codigo: 'LEG-MN', nome: 'Manganês disponível',
+    parametroId: idDe('MN'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 3, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 3, ate: 6, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 6, ate: 9, rotulo: 'Médio', severidade: 'bom' },
+      { de: 9, ate: 13, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 13, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-zn', codigo: 'LEG-ZN', nome: 'Zinco disponível',
+    parametroId: idDe('ZN'), fonte: 'CFSEMG, 5ª aproximação', padrao: true, ativa: true,
+    faixas: [
+      { ate: 0.5, rotulo: 'Muito baixo', severidade: 'critico' },
+      { de: 0.5, ate: 1.0, rotulo: 'Baixo', severidade: 'atencao' },
+      { de: 1.0, ate: 1.6, rotulo: 'Médio', severidade: 'bom' },
+      { de: 1.6, ate: 2.3, rotulo: 'Bom', severidade: 'ideal' },
+      { de: 2.3, rotulo: 'Muito bom', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-arg', codigo: 'LEG-ARG', nome: 'Classe textural',
+    parametroId: idDe('ARG'), fonte: 'Embrapa — Sistema Brasileiro de Classificação de Solos', padrao: true, ativa: true,
+    faixas: [
+      { ate: 151, rotulo: 'Arenosa', descricao: 'Baixa retenção de água e nutrientes', severidade: 'atencao' },
+      { de: 151, ate: 351, rotulo: 'Média', severidade: 'bom' },
+      { de: 351, ate: 601, rotulo: 'Argilosa', severidade: 'ideal' },
+      { de: 601, rotulo: 'Muito argilosa', descricao: 'Alta retenção — atenção ao preparo', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-prnt', codigo: 'LEG-PRNT', nome: 'PRNT do corretivo',
+    parametroId: idDe('PRNT'), fonte: 'IN SDA 05/2007', padrao: true, ativa: true,
+    faixas: [
+      { ate: 45, rotulo: 'Fora de especificação', descricao: 'Abaixo do mínimo legal de 45 %', severidade: 'critico' },
+      { de: 45, ate: 60, rotulo: 'Classe C', severidade: 'atencao' },
+      { de: 60, ate: 80, rotulo: 'Classe B', severidade: 'bom' },
+      { de: 80, rotulo: 'Classe A', severidade: 'ideal' },
+    ],
+  },
+  {
+    id: 'leg-pb', codigo: 'LEG-PB', nome: 'Proteína bruta da forragem',
+    parametroId: idDe('PB'), fonte: 'NRC — exigência de ruminantes', padrao: true, ativa: true,
+    faixas: [
+      { ate: 7, rotulo: 'Limitante', descricao: 'Abaixo de 7 % compromete a fermentação ruminal', severidade: 'critico' },
+      { de: 7, ate: 12, rotulo: 'Baixa', severidade: 'atencao' },
+      { de: 12, ate: 18, rotulo: 'Adequada', severidade: 'ideal' },
+      { de: 18, rotulo: 'Alta', severidade: 'bom' },
+    ],
+  },
+  {
+    id: 'leg-fdn', codigo: 'LEG-FDN', nome: 'Fibra em detergente neutro',
+    parametroId: idDe('FDN'), fonte: 'Van Soest — consumo de matéria seca', padrao: true, ativa: true,
+    faixas: [
+      { ate: 55, rotulo: 'Baixa', severidade: 'ideal' },
+      { de: 55, ate: 65, rotulo: 'Média', severidade: 'bom' },
+      { de: 65, rotulo: 'Alta', descricao: 'Acima de 65 % limita o consumo voluntário', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-germ', codigo: 'LEG-GERM', nome: 'Germinação',
+    parametroId: idDe('GERM'), fonte: 'MAPA — padrão de comercialização de sementes', padrao: true, ativa: true,
+    faixas: [
+      { ate: 70, rotulo: 'Reprovado', descricao: 'Abaixo do padrão mínimo para comercialização', severidade: 'critico' },
+      { de: 70, ate: 80, rotulo: 'Limítrofe', severidade: 'atencao' },
+      { de: 80, rotulo: 'Aprovado', severidade: 'ideal' },
     ],
   },
 ];

@@ -5,7 +5,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Lock, Search, SlidersHorizontal } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -178,6 +178,44 @@ export function Vazio({
       {descricao && <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">{descricao}</p>}
       {acao && <div className="mt-4">{acao}</div>}
     </div>
+  );
+}
+
+/**
+ * Bloco gasto quando o papel do usuário não alcança a ação.
+ *
+ * Esconder a seção calada custou caro: a tela de recepção ficou só de
+ * leitura para quem entrou como responsável técnico, e a conclusão de
+ * quem revisou foi que o sistema não tinha cadastro de lote. Dizer qual
+ * papel abre a ação é mais honesto do que não desenhar nada.
+ */
+export function SemPermissao({
+  titulo, acao, papeis,
+}: {
+  titulo: string;
+  /** o que o usuário tentaria fazer, em português: "protocolar um lote" */
+  acao: string;
+  /** papéis que alcançam a ação, para o usuário saber a quem pedir */
+  papeis?: string[];
+}) {
+  return (
+    <Secao titulo={titulo}>
+      <div className="flex gap-3">
+        <div className="panel-sunken flex h-9 w-9 shrink-0 items-center justify-center">
+          <Lock className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+          <p>
+            Seu papel não permite {acao}. A lista abaixo continua disponível para consulta.
+          </p>
+          {papeis && papeis.length > 0 && (
+            <p className="mt-1.5">
+              Alcançam esta ação: <span className="text-foreground">{papeis.join(', ')}</span>.
+            </p>
+          )}
+        </div>
+      </div>
+    </Secao>
   );
 }
 

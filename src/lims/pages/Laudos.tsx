@@ -11,12 +11,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
-import { data as fData, dataExtenso, numero, tempoRelativo } from '../lib/format';
-import { classificarPh } from '../lib/ph';
+import { montarLaudo } from './laudo/montar';
+import { FolhaLaudo } from './laudo/Folha';
+import type { Disposicao } from './laudo/Folha';
+import { data as fData, tempoRelativo } from '../lib/format';
 import {
   BarraFiltros, CabecalhoPagina, Indicador, Pilula, Secao, Segmentos, Tabela, Vazio, filtrar,
 } from '../components/primitivos';
-import { ChipPh } from '../components/ph-visual';
 import type { TomStatus } from '../components/primitivos';
 import type { Laudo, StatusLaudo } from '../types';
 
@@ -132,32 +133,38 @@ function PreVisualizacao({
 }: { laudo: Laudo | null; aoFechar: () => void; podeEmitir: boolean }) {
   const { estado, unidade } = useBancada();
   const { emitirLaudo } = useAcoes();
-  const { clientePorId, grupoPorId, usuarioPorId, parametroPorId } = useIndices();
+  const { clientePorId, grupoPorId, usuarioPorId } = useIndices();
 
-  const amostras = useMemo(
-    () => (laudo ? estado.amostras.filter((a) => laudo.amostraIds.includes(a.id)) : []),
-    [estado.amostras, laudo],
+  const [disposicao, setDisposicao] = useState<Disposicao>('amostra');
+
+  const montado = useMemo(() => {
+    if (!laudo) return undefined;
+    return montarLaudo({
+      laudo,
+      amostras: estado.amostras,
+      ensaios: estado.ensaios,
+      parametros: estado.parametros,
+      legendas: estado.legendas,
+      // A legenda por cultura vale quando o laboratório cadastrou uma:
+      // fósforo "baixo" para pastagem pode ser "médio" para soja.
+      culturaDe: (a) => a.cultura,
+    });
+  }, [laudo, estado.amostras, estado.ensaios, estado.parametros, estado.legendas]);
+
+  const observacoes = useMemo(
+    () => estado.observacoesFixas.filter((o) => o.ativo).slice(0, 3),
+    [estado.observacoesFixas],
   );
 
-  const assinante = laudo?.assinadoPorId ? usuarioPorId.get(laudo.assinadoPorId) : undefined;
+  if (!laudo || !montado) return null;
 
-  const parametrosUsados = useMemo(() => {
-    const ids = new Set<string>();
-    for (const a of amostras) {
-      for (const e of estado.ensaios.filter((x) => x.amostraId === a.id && x.status === 'aprovado')) {
-        ids.add(e.parametroId);
-      }
-    }
-    return [...ids].map((id) => parametroPorId.get(id)!).filter(Boolean);
-  }, [amostras, estado.ensaios, parametroPorId]);
-
-  if (!laudo) return null;
   const cliente = clientePorId.get(laudo.clienteId);
   const grupo = grupoPorId.get(laudo.grupoId);
+  const assinante = laudo.assinadoPorId ? usuarioPorId.get(laudo.assinadoPorId) : undefined;
 
   return (
     <Sheet open onOpenChange={(a) => { if (!a) aoFechar(); }}>
-      <SheetContent className="bancada w-full overflow-hidden border-l border-[hsl(var(--line-soft))] bg-background p-0 sm:max-w-3xl">
+      <SheetContent className="bancada w-full overflow-hidden border-l border-[hsl(var(--line-soft))] bg-background p-0 sm:max-w-4xl">
         <ScrollArea className="h-full">
           <div className="p-6">
             <SheetHeader className="space-y-2 text-left">
@@ -166,147 +173,51 @@ function PreVisualizacao({
                 <span className="num">{laudo.numero}</span>
               </SheetTitle>
               <SheetDescription className="text-sm">
-                {cliente?.nome} · {grupo?.nome} · {amostras.length} amostras
+                {cliente?.nome} · {grupo?.nome} · {montado.amostras.length} amostras ·{' '}
+                <span className="num">{montado.totalResultados}</span> determinações
               </SheetDescription>
             </SheetHeader>
 
-            {/* --- Papel timbrado --- */}
-            <div className="mt-6 panel overflow-hidden">
-              <div className="border-b border-[hsl(var(--line-soft))] bg-[hsl(var(--surface-sunken))] px-6 py-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-display text-xl leading-tight text-foreground">{unidade.nome}</p>
-                    <p className="num mt-1 text-[0.68rem] text-muted-foreground">
-                      CNPJ {unidade.cnpj} · {unidade.municipio}/{unidade.uf}
-                    </p>
-                    <p className="mt-0.5 text-[0.68rem] text-muted-foreground">{unidade.acreditacao}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="label-micro">Laudo nº</p>
-                    <p className="num text-sm font-semibold text-foreground">{laudo.numero}</p>
-                    <p className="num mt-1 text-[0.66rem] text-muted-foreground">versão {laudo.versao}</p>
-                  </div>
-                </div>
-                <span className="ph-spectrum mt-4 block h-px w-full opacity-60" aria-hidden />
+            {montado.totalResultados > 0 && (
+              <div className="mt-5 sem-impressao">
+                <Segmentos
+                  valor={disposicao}
+                  aoMudar={setDisposicao}
+                  opcoes={[
+                    { valor: 'amostra', rotulo: 'Por amostra' },
+                    { valor: 'matriz', rotulo: 'Matriz do lote' },
+                  ]}
+                />
               </div>
+            )}
 
-              <div className="px-6 py-5">
-                <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-                  <Linha rotulo="Cliente" valor={cliente?.nome ?? '—'} />
-                  <Linha rotulo="CNPJ" valor={cliente?.documento ?? '—'} mono />
-                  <Linha rotulo="Município" valor={`${cliente?.municipio ?? ''}/${cliente?.uf ?? ''}`} />
-                  <Linha rotulo="Grupo de análise" valor={grupo?.nome ?? '—'} />
-                  <Linha rotulo="Emissão" valor={laudo.emitidoEm ? dataExtenso(laudo.emitidoEm) : 'não emitido'} />
-                  <Linha rotulo="Código de verificação" valor={laudo.hashDocumento ?? '—'} mono />
-                </div>
-
-                {/* --- Tabela de resultados --- */}
-                <div className="mt-6 overflow-x-auto">
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="border-b border-[hsl(var(--line-strong))]">
-                        <th className="label-micro px-2 py-2 text-left">Protocolo</th>
-                        <th className="label-micro px-2 py-2 text-left">Identificação</th>
-                        {parametrosUsados.map((p) => (
-                          <th key={p.id} className="label-micro px-2 py-2 text-right">
-                            {p.codigo}
-                            {p.unidade && <span className="ml-0.5 normal-case">({p.unidade})</span>}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {amostras.map((a) => (
-                        <tr key={a.id} className="border-b border-[hsl(var(--line-soft))]">
-                          <td className="num px-2 py-2 text-foreground">{a.protocolo}</td>
-                          <td className="max-w-[12rem] truncate px-2 py-2 text-muted-foreground">{a.identificacaoCampo}</td>
-                          {parametrosUsados.map((p) => {
-                            const e = estado.ensaios.find(
-                              (x) => x.amostraId === a.id && x.parametroId === p.id && x.status === 'aprovado',
-                            );
-                            return (
-                              <td key={p.id} className="px-2 py-2 text-right">
-                                {e?.valor === undefined ? (
-                                  <span className="text-muted-foreground">—</span>
-                                ) : p.ehPh ? (
-                                  <ChipPh valor={e.valor} extrator={p.extrator ?? 'H2O'} tamanho="sm" />
-                                ) : (
-                                  <span className="num text-foreground">{numero(e.valor, p.casasDecimais)}</span>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* --- Interpretação do pH --- */}
-                {parametrosUsados.some((p) => p.ehPh) && (
-                  <div className="mt-6 rounded-[var(--radius-sm)] border border-[hsl(var(--line-soft))] bg-[hsl(var(--surface-sunken))] p-4">
-                    <p className="label-micro mb-2.5">Interpretação da acidez</p>
-                    <ul className="space-y-1.5">
-                      {amostras.slice(0, 6).map((a) => {
-                        const pPh = parametrosUsados.find((p) => p.ehPh);
-                        const e = estado.ensaios.find(
-                          (x) => x.amostraId === a.id && x.parametroId === pPh?.id && x.status === 'aprovado',
-                        );
-                        if (!e?.valor || !pPh) return null;
-                        const f = classificarPh(e.valor, pPh.extrator ?? 'H2O');
-                        return (
-                          <li key={a.id} className="flex items-center gap-2.5 text-[0.7rem]">
-                            <span className="num w-20 shrink-0 text-muted-foreground">{a.protocolo}</span>
-                            <ChipPh valor={e.valor} extrator={pPh.extrator ?? 'H2O'} tamanho="sm" />
-                            <span className="truncate text-muted-foreground">{f.rotulo} — {f.descricao}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
-
-                {/* --- Métodos --- */}
-                <div className="mt-6 border-t border-[hsl(var(--line-soft))] pt-4">
-                  <p className="label-micro mb-2.5">Métodos empregados</p>
-                  <ul className="space-y-1">
-                    {parametrosUsados.map((p) => (
-                      <li key={p.id} className="text-[0.68rem] leading-relaxed text-muted-foreground">
-                        <span className="num text-foreground">{p.codigo}</span> — {p.nome}: {p.metodo}
-                        {p.incerteza !== undefined && ` · incerteza expandida ±${numero(p.incerteza, 2)}`}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* --- Assinatura --- */}
-                <div className="mt-8 flex items-end justify-between gap-6 border-t border-[hsl(var(--line-soft))] pt-6">
-                  <p className="max-w-sm text-[0.62rem] leading-relaxed text-muted-foreground">
-                    Os resultados referem-se exclusivamente às amostras recebidas e identificadas neste
-                    documento. A reprodução parcial deste laudo só é permitida com autorização escrita do
-                    laboratório.
-                  </p>
-                  <div className="shrink-0 text-center">
-                    <div className="mb-1.5 h-10 w-44 border-b border-[hsl(var(--line-strong))]" />
-                    <p className="text-[0.68rem] font-medium text-foreground">
-                      {assinante?.nome ?? unidade.responsavelTecnico}
-                    </p>
-                    {/* O registro é da pessoa que assina, não da unidade:
-                        laudo com o nome de um e o CRQ de outro não se
-                        sustenta numa auditoria. */}
-                    <p className="num text-[0.62rem] text-muted-foreground">
-                      {assinante?.crq ?? unidade.crq}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-6">
+              <FolhaLaudo
+                laudo={laudo}
+                montado={montado}
+                cliente={cliente}
+                grupo={grupo}
+                unidade={unidade}
+                assinante={assinante}
+                observacoes={observacoes}
+                disposicao={disposicao}
+              />
             </div>
 
             {/* --- Ações --- */}
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-wrap gap-2 sem-impressao">
               {podeEmitir && laudo.status !== 'emitido' && (
                 <Button
-                  onClick={() => { emitirLaudo(laudo.id); toast.success(`${laudo.numero} assinado e emitido.`); }}
+                  onClick={() => {
+                    if (montado.totalResultados === 0) {
+                      toast.error('Laudo sem resultado aprovado', {
+                        description: 'Aprove os ensaios na tela de Revisão antes de assinar.',
+                      });
+                      return;
+                    }
+                    emitirLaudo(laudo.id);
+                    toast.success(`${laudo.numero} assinado e emitido.`);
+                  }}
                   className="gap-2"
                 >
                   <PenLine className="h-4 w-4" /> Assinar e emitir
@@ -327,7 +238,7 @@ function PreVisualizacao({
             </div>
 
             {laudo.hashDocumento && (
-              <p className="mt-4 flex items-center gap-2 text-[0.68rem] text-muted-foreground">
+              <p className="mt-4 flex items-center gap-2 text-[0.68rem] text-muted-foreground sem-impressao">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Verificação pública pelo código <span className="num text-foreground">{laudo.hashDocumento}</span>
                 {laudo.emitidoEm && ` · emitido ${tempoRelativo(laudo.emitidoEm)}`}
@@ -337,14 +248,5 @@ function PreVisualizacao({
         </ScrollArea>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function Linha({ rotulo, valor, mono }: { rotulo: string; valor: string; mono?: boolean }) {
-  return (
-    <div>
-      <p className="label-micro mb-0.5">{rotulo}</p>
-      <p className={mono ? 'num text-xs text-foreground' : 'text-xs text-foreground'}>{valor}</p>
-    </div>
   );
 }

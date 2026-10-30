@@ -333,7 +333,13 @@
 
   body * { visibility: hidden; }
   .folha-etiquetas,
-  .folha-etiquetas * { visibility: visible; }
+  .folha-etiquetas *,
+  .folha-laudo,
+  .folha-laudo * { visibility: visible; }
+
+  /* Botão e seletor de disposição não existem no papel. */
+  .sem-impressao,
+  .sem-impressao * { visibility: hidden; }
 
   .folha-etiquetas {
     position: absolute;
@@ -350,6 +356,30 @@
     break-inside: avoid;
     page-break-inside: avoid;
   }
+
+  /* O laudo sai no fluxo normal, não absoluto: ele tem várias
+     páginas, e `position: absolute` corta tudo que passa da
+     primeira. A margem da @page já dá a borda do papel. */
+  .folha-laudo {
+    position: static;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: #fff;
+    color: #000;
+    box-shadow: none;
+  }
+
+  /* Uma amostra não se parte entre duas folhas: o agrônomo lê o
+     bloco inteiro ou não lê. */
+  .folha-laudo .bloco-amostra {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .folha-laudo table { width: 100%; }
+  .folha-laudo thead { display: table-header-group; }
+  .folha-laudo tr { break-inside: avoid; page-break-inside: avoid; }
 }
 
 /* ============================================================

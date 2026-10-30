@@ -1,6 +1,7 @@
 /* O arquivo de teste é montado aqui, com zipSync: assim o leitor é
    exercitado contra um .xlsx de verdade, e não contra um XML solto. */
 
+import { expect, it } from 'vitest';
 import { strToU8, zipSync } from 'fflate';
 import { dataDoSerial, indiceDaColuna, lerXlsx, matrizParaTexto } from './xlsx';
 import { lerTabela } from './importacao';
@@ -96,5 +97,8 @@ let recusou = false;
 try { lerXlsx(strToU8('isto não é um zip')); } catch { recusou = true; }
 igual(recusou, true, 'arquivo que não é .xlsx é recusado com erro claro');
 
-console.log(falhas === 0 ? '\nTODOS OS TESTES DE XLSX PASSARAM' : `\n${falhas} FALHA(S)`);
-if (falhas) process.exit(1);
+/* As verificações acima correm na carga do módulo e somam em `falhas`.
+   Este caso é o que leva o total ao relatório do vitest. */
+it('leitura de .xlsx', () => {
+  expect(falhas).toBe(0);
+});

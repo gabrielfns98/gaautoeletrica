@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
 import { data as fData, dataHora, moeda, tempoRelativo } from '../lib/format';
-import { BarraFiltros, CabecalhoPagina, Pilula, Secao, Tabela, Vazio, filtrar } from '../components/primitivos';
+import { BarraFiltros, CabecalhoPagina, Pilula, Secao, SemPermissao, Tabela, Vazio, filtrar } from '../components/primitivos';
 import type { Amostra, Ensaio, GrupoAnaliseId, LoteRecepcao, Prioridade } from '../types';
 
 export default function Recepcao() {
@@ -147,6 +147,14 @@ export default function Recepcao() {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_23rem]">
         <div className="space-y-5">
+          {!pode('recepcao:criar') && (
+            <SemPermissao
+              titulo="Novo protocolo"
+              acao="protocolar lotes"
+              papeis={['Recepção de amostras', 'Responsável Técnico', 'Administrador']}
+            />
+          )}
+
           {pode('recepcao:criar') && (
             <Secao titulo="Novo protocolo" descricao="Os ensaios são abertos conforme o escopo escolhido.">
               <div className="grid gap-5 sm:grid-cols-2">

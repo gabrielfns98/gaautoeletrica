@@ -7,6 +7,7 @@
    das tabelas em que a aplicação insere fique de fora.
    ============================================================ */
 
+import { expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -136,7 +137,8 @@ for (const tabela of [...new Set(citadas)]) {
   relatar(sql.includes(`create table public.${tabela} (`), `repositório cita ${tabela}`);
 }
 
-console.log(falhas === 0
-  ? '\nMAPEAMENTO CONFERE COM A MIGRAÇÃO'
-  : `\n${falhas} divergência(s) entre o código e a migração`);
-process.exit(falhas === 0 ? 0 : 1);
+/* As verificações acima correm na carga do módulo e somam em `falhas`.
+   Este caso é o que leva o total ao relatório do vitest. */
+it('esquema das migrações', () => {
+  expect(falhas).toBe(0);
+});

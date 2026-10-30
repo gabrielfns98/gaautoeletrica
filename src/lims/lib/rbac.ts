@@ -36,8 +36,11 @@ export const PAPEIS_PADRAO: Papel[] = [
     cor: '172 66% 46%',
     permissoes: [
       ...todas('dashboard', 'ver'),
-      ...todas('recepcao', 'ver'),
-      ...todas('amostras', 'ver', 'editar', 'exportar'),
+      // Em laboratório pequeno é o RT que recebe a amostra quando a
+      // recepção não está na bancada — sem isto, a tela de recepção
+      // aparece só de leitura para quem responde pelo laboratório.
+      ...todas('recepcao', 'ver', 'criar', 'editar', 'exportar'),
+      ...todas('amostras', 'ver', 'criar', 'editar', 'exportar'),
       ...todas('ph', 'ver', 'criar', 'editar', 'aprovar', 'exportar'),
       ...todas('analises', 'ver', 'criar', 'editar', 'aprovar', 'exportar'),
       ...todas('laudos', 'ver', 'criar', 'editar', 'aprovar', 'exportar'),

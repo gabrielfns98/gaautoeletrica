@@ -1,3 +1,4 @@
+import { expect, it } from 'vitest';
 import {
   slopeTeorico, valorTampao, calcularCalibracao, phDeMv, mvDePh,
   analisarEstabilidade, avaliarCQ, classificarPh, hMaisAlPorSmp,
@@ -118,5 +119,8 @@ eq(hMaisAlPorSmp(4.5) > hMaisAlPorSmp(6.5), true, 'H+Al cai quando pH SMP sobe')
 near(necessidadeCalagem(8.0, 40, 70, 85), (8 * 30) / 85, 1e-9, 'necessidade de calagem');
 eq(necessidadeCalagem(8.0, 80, 70, 85), 0, 'V atual acima do desejado => NC 0');
 
-console.log(fails === 0 ? '\nTODOS OS TESTES PASSARAM' : `\n${fails} FALHA(S)`);
-if (fails) process.exit(1);
+/* As verificações acima correm na carga do módulo e somam em `fails`.
+   Este caso é o que leva o total ao relatório do vitest. */
+it('pH e agronomia', () => {
+  expect(fails).toBe(0);
+});

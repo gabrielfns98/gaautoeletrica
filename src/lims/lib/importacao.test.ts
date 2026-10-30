@@ -1,3 +1,4 @@
+import { expect, it } from 'vitest';
 import {
   detectarSeparador, lerData, lerNumero, lerTabela, pareceCabecalho,
   sugerirMapeamento, resumir, ALVOS_AMOSTRA,
@@ -116,5 +117,8 @@ igual(resumir([
   { numero: 4, dados: {}, situacao: 'pronta' as const },
 ]), { total: 4, prontas: 2, alertas: 1, erros: 1 }, 'resumo das situações');
 
-console.log(falhas === 0 ? '\nTODOS OS TESTES DE IMPORTAÇÃO PASSARAM' : `\n${falhas} FALHA(S)`);
-if (falhas) process.exit(1);
+/* As verificações acima correm na carga do módulo e somam em `falhas`.
+   Este caso é o que leva o total ao relatório do vitest. */
+it('importação', () => {
+  expect(falhas).toBe(0);
+});
