@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Pilula, Vazio } from '../../components/primitivos';
 import { ChipPh } from '../../components/ph-visual';
 import { TOM_SEVERIDADE } from '../../lib/interpretacao';
+import { textoDaUnidade, textoDoResultado } from '../../lib/resultado';
 import { dataExtenso, numero } from '../../lib/format';
 import type { LaudoMontado, ResultadoLaudo } from './montar';
 import type { Cliente, GrupoAnalise, ItemSimples, Laudo, ModeloLaudo, Unidade, Usuario } from '../../types';
@@ -28,7 +29,7 @@ function Valor({ r, tamanho = 'sm' }: { r: ResultadoLaudo; tamanho?: 'sm' | 'md'
   if (parametro.ehPh) {
     return <ChipPh valor={ensaio.valor} extrator={parametro.extrator ?? 'H2O'} tamanho={tamanho} />;
   }
-  return <span className="num text-foreground">{numero(ensaio.valor, parametro.casasDecimais)}</span>;
+  return <span className="num text-foreground">{textoDoResultado(ensaio.valor, parametro)}</span>;
 }
 
 function Interpretacao({ r }: { r: ResultadoLaudo }) {
@@ -233,7 +234,7 @@ function PorAmostra({ montado, modelo }: { montado: LaudoMontado; modelo: Modelo
                         <Valor r={r} />
                       </td>
                       <td className="num px-2 py-1.5 text-[0.68rem] text-muted-foreground">
-                        {r.parametro.unidade || '—'}
+                        {textoDaUnidade(r.parametro)}
                       </td>
                       {modelo.mostrarInterpretacao && (
                         <td className="px-2 py-1.5">

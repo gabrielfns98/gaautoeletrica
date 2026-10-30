@@ -99,6 +99,21 @@ export interface Parametro {
   limiteSuperior?: number;
   /** incerteza expandida do método */
   incerteza?: number;
+  /**
+   * Limite de quantificação do método. Abaixo dele o laudo imprime
+   * "< LQ": o laboratório não mediu zero, mediu menos do que o método
+   * consegue afirmar, e num laudo de fertilizante essa diferença é a
+   * que aprova ou reprova um lote.
+   */
+  lq?: number;
+  /**
+   * Relação entre elementos (C/N, N/P, Ca/Mg). É adimensional, então
+   * o laudo não imprime unidade — os laudos atuais trazem "%" na C/N,
+   * sugerindo uma porcentagem que não existe.
+   */
+  ehRelacao?: boolean;
+  /** método do cadastro de metodologias, para o código sair sempre igual */
+  metodologiaId?: UUID;
   preco: number;
   ativo: boolean;
   /** marca os parâmetros resolvidos pela estação de pH */
