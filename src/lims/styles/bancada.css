@@ -351,3 +351,16 @@
     page-break-inside: avoid;
   }
 }
+
+/* ============================================================
+   Telas estreitas
+   Filho de grid nasce com min-width:auto, então ele cresce até o
+   conteúdo em vez de encolher — uma tabela larga dentro de uma
+   coluna empurra a página inteira para fora da tela do celular.
+   A regra usa :where() para ter especificidade zero: qualquer
+   min-w- explícito do componente continua vencendo.
+   ============================================================ */
+
+:where(.bancada) :where(.grid) > * {
+  min-width: 0;
+}

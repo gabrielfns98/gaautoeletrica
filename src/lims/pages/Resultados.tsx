@@ -224,7 +224,7 @@ export default function Resultados() {
       {/* ---------------- Filtros ---------------- */}
       <Secao className="mb-5">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Campo id="f-barras" rotulo="Código de barras" dica="bica a etiqueta do copo">
+          <Campo id="f-barras" rotulo="Código de barras" dica="bipe a etiqueta do copo">
             <Input
               id="f-barras"
               value={filtros.codigoBarras}

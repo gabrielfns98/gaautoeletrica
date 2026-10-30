@@ -135,8 +135,12 @@ export default function Etiquetas() {
           />
         </Secao>
       ) : (
+        /* A folha tem medida de papel, não de tela: no celular ela rola
+           dentro da caixa em vez de empurrar a página. Na impressão o
+           contêiner some junto com o resto da casca. */
+        <div className="mt-5 overflow-x-auto rounded-[var(--radius-lg)]">
         <div
-          className="folha-etiquetas mt-5 grid justify-start gap-2 rounded-[var(--radius-lg)] bg-white p-3"
+          className="folha-etiquetas grid w-max justify-start gap-2 bg-white p-3"
           style={{ gridTemplateColumns: `repeat(${medidas.colunas}, ${medidas.largura})` }}
         >
           {amostras.map((a) => (
@@ -149,6 +153,7 @@ export default function Etiquetas() {
               barras={medidas.barras}
             />
           ))}
+        </div>
         </div>
       )}
     </>

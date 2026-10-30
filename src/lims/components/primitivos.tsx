@@ -3,7 +3,7 @@
    Vocabulário visual reutilizado por todos os módulos.
    ============================================================ */
 
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Search, SlidersHorizontal } from 'lucide-react';
 
@@ -243,6 +243,26 @@ export function Tabela<T>({
   rodape?: ReactNode;
 }) {
   const [ordem, setOrdem] = useState(ordenacaoInicial);
+  const caixa = useRef<HTMLDivElement>(null);
+  const [sobraEsquerda, setSobraEsquerda] = useState(false);
+  const [sobraDireita, setSobraDireita] = useState(false);
+
+  useEffect(() => {
+    const el = caixa.current;
+    if (!el) return;
+    const medir = () => {
+      setSobraEsquerda(el.scrollLeft > 4);
+      setSobraDireita(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    };
+    medir();
+    el.addEventListener('scroll', medir, { passive: true });
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    return () => {
+      el.removeEventListener('scroll', medir);
+      observador.disconnect();
+    };
+  }, [dados.length, colunas.length]);
 
   const ordenados = useMemo(() => {
     if (!ordem) return dados;
@@ -273,7 +293,8 @@ export function Tabela<T>({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative">
+      <div ref={caixa} className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-[hsl(var(--line-soft))]">
@@ -325,7 +346,9 @@ export function Tabela<T>({
                 <td
                   key={c.chave}
                   className={cn(
-                    'px-4 align-middle',
+                    // Código de lote e protocolo não podem quebrar em três
+                    // linhas: a tabela rola, o texto não se parte.
+                    'whitespace-nowrap px-4 align-middle',
                     denso ? 'py-2' : 'py-3',
                     alinhar(c.alinhamento),
                     c.secundaria && 'hidden lg:table-cell',
@@ -343,7 +366,28 @@ export function Tabela<T>({
           </tfoot>
         )}
       </table>
+      </div>
+
+      {/* Numa tela estreita a tabela rola de lado, e sem indicação ninguém
+          descobre que há coluna escondida. A sombra aparece só do lado em
+          que ainda há conteúdo. */}
+      {sobraEsquerda && <Sombra lado="esquerda" />}
+      {sobraDireita && <Sombra lado="direita" />}
     </div>
+  );
+}
+
+function Sombra({ lado }: { lado: 'esquerda' | 'direita' }) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        'pointer-events-none absolute inset-y-0 w-8',
+        lado === 'direita'
+          ? 'right-0 bg-gradient-to-l from-[hsl(var(--card))] to-transparent'
+          : 'left-0 bg-gradient-to-r from-[hsl(var(--card))] to-transparent',
+      )}
+    />
   );
 }
 
