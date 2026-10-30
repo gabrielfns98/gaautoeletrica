@@ -705,3 +705,56 @@ export const paraImportacao = (i: Importacao): LinhaImportacao => ({
   gravados: i.gravados, usuario_id: i.usuarioId || null, unidade_id: i.unidadeId,
   data: i.data, reimportacao: i.reimportacao,
 });
+
+/* ---------------- Cadastros editáveis: domínio → banco ---------------- */
+
+export const paraUnidade = (u: Unidade): LinhaUnidade => ({
+  id: u.id, codigo: u.codigo, sigla: u.sigla, nome: u.nome, cnpj: u.cnpj,
+  municipio: u.municipio, uf: u.uf, responsavel_tecnico: u.responsavelTecnico,
+  crq: u.crq || null, acreditacao: u.acreditacao ?? null,
+});
+
+export const paraGrupo = (g: GrupoAnalise): LinhaGrupo => ({
+  id: g.id, nome: g.nome, abreviacao: g.abreviacao, descricao: g.descricao || null,
+  prazo_padrao_dias: g.prazoPadraoDias, tem_ph: g.temPh, ativo: g.ativo,
+});
+
+export const paraParametro = (p: Parametro): LinhaParametro => ({
+  id: p.id, codigo: p.codigo, nome: p.nome, grupo_id: p.grupoId,
+  unidade_medida: p.unidade, metodo: p.metodo, casas_decimais: p.casasDecimais,
+  limite_inferior: p.limiteInferior ?? null, limite_superior: p.limiteSuperior ?? null,
+  incerteza: p.incerteza ?? null, preco: p.preco, ativo: p.ativo,
+  eh_ph: p.ehPh ?? false, extrator: p.extrator ?? null, proporcao: p.proporcao ?? null,
+});
+
+export const paraTipoAnalise = (t: TipoAnalise): LinhaTipoAnalise => ({
+  id: t.id, codigo: t.codigo, nome: t.nome, grupo_id: t.grupoId,
+  prazo_dias: t.prazoDias, preco: t.preco ?? null, ativo: t.ativo,
+});
+
+export const paraMetodologia = (m: Metodologia): LinhaMetodologia => ({
+  id: m.id, codigo: m.codigo, nome: m.nome, norma: m.norma, versao: m.versao,
+  vigente_desde: m.vigenteDesde, ativa: m.ativa,
+});
+
+export const paraBandeja = (b: Bandeja): LinhaBandeja => ({
+  id: b.id, codigo: b.codigo, nome: b.nome, linhas: b.linhas,
+  colunas: b.colunas, setor: b.setor || null, ativa: b.ativa,
+});
+
+export const paraItemCadastro = (i: ItemSimples, especie: string): LinhaItemCadastro => ({
+  id: i.id, especie, codigo: i.codigo, nome: i.nome, ativo: i.ativo,
+  observacao: i.observacao ?? null,
+});
+
+export const paraConvenio = (c: Convenio): LinhaConvenio => ({
+  id: c.id, codigo: c.codigo, nome: c.nome, ativo: c.ativo,
+  observacao: c.observacao ?? null, tabela_preco_id: c.tabelaPrecoId ?? null,
+  desconto: c.desconto, valido_ate: c.validoAte ?? null,
+});
+
+export const paraRegraDesconto = (r: RegraDesconto): LinhaRegraDesconto => ({
+  id: r.id, codigo: r.codigo, nome: r.nome, ativo: r.ativo,
+  observacao: r.observacao ?? null, quantidade_minima: r.quantidadeMinima,
+  percentual: r.percentual,
+});

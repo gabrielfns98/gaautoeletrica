@@ -44,7 +44,11 @@ export const PAPEIS_PADRAO: Papel[] = [
       ...todas('equipamentos', 'ver', 'criar', 'editar', 'aprovar'),
       ...todas('estoque', 'ver'),
       ...todas('auditoria', 'ver', 'exportar'),
-      ...todas('configuracoes', 'ver'),
+      // Método, critério de aceitação e tabela de interpretação são
+      // responsabilidade técnica — quem responde pelo laboratório define.
+      // Excluir fica de fora: cadastro se desativa, para não quebrar o
+      // histórico de quem já usou.
+      ...todas('configuracoes', 'ver', 'criar', 'editar'),
     ],
   },
   {

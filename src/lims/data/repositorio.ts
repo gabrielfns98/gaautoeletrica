@@ -15,7 +15,9 @@ import {
   deOportunidade, deOrcamento, dePapel, deParametro, deRegistroCQ,
   deImportacao, deRegraDesconto, deTabelaPreco, deTipoAnalise, deTitulo, deUnidade,
   paraAmostra, paraCalibracao, paraCliente, paraCurva, paraEnsaio, paraLegenda,
-  paraImportacao, paraLeituraPh, paraLote, paraMembro, paraMovimentoEstoque, paraNotaFiscal,
+  paraBandeja, paraConvenio, paraGrupo, paraImportacao, paraItemCadastro,
+  paraLeituraPh, paraLote, paraMembro, paraMetodologia, paraMovimentoEstoque,
+  paraNotaFiscal, paraParametro, paraRegraDesconto, paraTipoAnalise, paraUnidade,
   paraPapel, paraRegistroCQ, paraTitulo,
 } from './mapas';
 import type {
@@ -31,7 +33,8 @@ import type {
 } from './mapas';
 import type {
   Amostra, AmostraControle, Bandeja, Calibracao, Cliente, Contato, Convenio,
-  Curva, Ensaio, Equipamento, GrupoAnalise, Importacao, Interacao, ItemEstoque, ItemSimples,
+  ColecaoCadastro, Curva, Ensaio, Equipamento, GrupoAnalise, Importacao,
+  Interacao, ItemEstoque, ItemSimples,
   Laudo, Legenda, LeituraPh, LoteReagente, LoteRecepcao, Metodologia,
   MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento, Papel, Parametro,
   RegistroAuditoria, RegistroCQ, RegraDesconto, StatusAmostra, TabelaPreco,
@@ -514,5 +517,48 @@ export async function gravarImportacao(importacao: Importacao): Promise<void> {
       importacao_id: importacao.id, ensaio_id: t.ensaioId, valor: t.valor,
     }));
     estourar('itens da importação', (await banco.from('lab_importacoes_ensaios').insert(bloco)).error);
+  }
+}
+
+/* ---------------- Cadastros ---------------- */
+
+/**
+ * Onde cada coleção de cadastro mora. As listas de uma coluna só dividem
+ * a mesma tabela, separadas pela espécie — quatro tabelas idênticas e
+ * quatro CRUDs iguais não se justificariam.
+ */
+const DESTINO_CADASTRO: Record<ColecaoCadastro, { tabela: string; linha: (item: never) => object }> = {
+  unidades: { tabela: 'lab_unidades', linha: paraUnidade as (i: never) => object },
+  grupos: { tabela: 'lab_grupos_analise', linha: paraGrupo as (i: never) => object },
+  parametros: { tabela: 'lab_parametros', linha: paraParametro as (i: never) => object },
+  tiposAnalise: { tabela: 'lab_tipos_analise', linha: paraTipoAnalise as (i: never) => object },
+  metodologias: { tabela: 'lab_metodologias', linha: paraMetodologia as (i: never) => object },
+  bandejas: { tabela: 'lab_bandejas', linha: paraBandeja as (i: never) => object },
+  profundidades: { tabela: 'lab_itens_cadastro', linha: ((i: ItemSimples) => paraItemCadastro(i, 'profundidade')) as (i: never) => object },
+  culturas: { tabela: 'lab_itens_cadastro', linha: ((i: ItemSimples) => paraItemCadastro(i, 'cultura')) as (i: never) => object },
+  tiposCliente: { tabela: 'lab_itens_cadastro', linha: ((i: ItemSimples) => paraItemCadastro(i, 'tipo-cliente')) as (i: never) => object },
+  observacoesFixas: { tabela: 'lab_itens_cadastro', linha: ((i: ItemSimples) => paraItemCadastro(i, 'observacao-fixa')) as (i: never) => object },
+  convenios: { tabela: 'lab_convenios', linha: paraConvenio as (i: never) => object },
+  regrasDesconto: { tabela: 'lab_regras_desconto', linha: paraRegraDesconto as (i: never) => object },
+};
+
+export async function gravarCadastro(colecao: ColecaoCadastro, item: unknown): Promise<void> {
+  const destino = DESTINO_CADASTRO[colecao];
+  const banco = exigirBanco();
+  estourar(colecao, (await banco.from(destino.tabela).upsert(destino.linha(item as never))).error);
+
+  // O pacote guarda seus elementos numa tabela de ligação, com a ordem
+  // em que o laboratório quer vê-los no laudo.
+  if (colecao === 'tiposAnalise') {
+    const tipo = item as TipoAnalise;
+    estourar('elementos do pacote',
+      (await banco.from('lab_tipos_analise_parametros').delete().eq('tipo_id', tipo.id)).error);
+    if (tipo.parametroIds.length > 0) {
+      estourar('elementos do pacote', (await banco.from('lab_tipos_analise_parametros').insert(
+        tipo.parametroIds.map((parametroId, ordem) => ({
+          tipo_id: tipo.id, parametro_id: parametroId, ordem,
+        })),
+      )).error);
+    }
   }
 }

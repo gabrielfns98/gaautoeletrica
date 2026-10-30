@@ -18,8 +18,8 @@ import { toast } from 'sonner';
 import * as seed from './seed';
 import { COM_BANCO, supabase } from './supabase';
 import {
-  carregarBancada, gravarCalibracao, gravarCliente, gravarCurva, gravarEnsaio,
-  gravarImportacao,
+  carregarBancada, gravarCadastro, gravarCalibracao, gravarCliente, gravarCurva,
+  gravarEnsaio, gravarImportacao,
   gravarEstagio, gravarLaudo, gravarLegenda, gravarLeitura, gravarMovimento,
   gravarNota, gravarPapel, gravarRecepcao, gravarRegistroCQ, gravarResultados,
   gravarStatusAmostra, gravarTitulo, gravarUsuario,
@@ -35,7 +35,8 @@ import type {
   LoteRecepcao, Modulo, MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento,
   Papel, Parametro, Permissao, PontoCalibracao, RegistroAuditoria, RegistroCQ,
   StatusAmostra, StatusEnsaio, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario, UUID,
-  Bandeja, Convenio, Curva, Importacao, Legenda, Metodologia, RegraDesconto, ItemSimples,
+  Bandeja, ColecaoCadastro, Convenio, Curva, Importacao, Legenda, Metodologia,
+  RegraDesconto, ItemSimples,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -154,6 +155,7 @@ type Acao =
   | { tipo: 'salvar-curva'; curva: Curva }
   | { tipo: 'salvar-legenda'; legenda: Legenda }
   | { tipo: 'registrar-cq'; registro: RegistroCQ }
+  | { tipo: 'salvar-cadastro'; colecao: ColecaoCadastro; item: { id: UUID } }
   | { tipo: 'registrar-importacao'; importacao: Importacao }
   | { tipo: 'auditar'; registro: RegistroAuditoria }
   | { tipo: 'carregar'; carga: CargaBancada }
@@ -176,6 +178,12 @@ function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
         ...acao.carga,
         unidadeAtivaId: acao.carga.unidades[0]?.id ?? estado.unidadeAtivaId,
       };
+
+    /* Qualquer cadastro, pela mesma porta: a coleção é o endereço. */
+    case 'salvar-cadastro': {
+      const lista = estado[acao.colecao] as Array<{ id: UUID }>;
+      return { ...estado, [acao.colecao]: substituir(lista, acao.item) };
+    }
 
     case 'registrar-importacao':
       return { ...estado, importacoes: [acao.importacao, ...estado.importacoes] };
@@ -823,6 +831,19 @@ export function useAcoes() {
     return importacao;
   }, [despachar, usuario.id, estado.unidadeAtivaId, auditar, persistir]);
 
+  /**
+   * Cria ou altera um item de cadastro. Desativar é alterar `ativo`, nunca
+   * excluir: amostra antiga referencia o elemento que já não se vende, e
+   * laudo emitido não pode perder o método que o gerou.
+   */
+  const salvarCadastro = useCallback(<T extends { id: UUID }>(
+    colecao: ColecaoCadastro, item: T, rotulo?: string,
+  ) => {
+    despachar({ tipo: 'salvar-cadastro', colecao, item });
+    persistir('cadastro', () => gravarCadastro(colecao, item));
+    auditar('Salvou cadastro', colecao, item.id, rotulo ?? item.id);
+  }, [despachar, auditar, persistir]);
+
   const criarRecepcao = useCallback((
     lote: LoteRecepcao, novasAmostras: Amostra[], novosEnsaios: Ensaio[],
   ) => {
@@ -844,7 +865,7 @@ export function useAcoes() {
     registrarLeitura, salvarCalibracao, lancarResultados, aprovarEnsaio, repetirEnsaio,
     mudarStatusAmostra, registrarCQ, emitirLaudo, emitirNota, baixarTitulo,
     moverOportunidade, movimentarEstoque, salvarUsuario, salvarPapel,
-    salvarCliente, salvarCurva, salvarLegenda, criarRecepcao, registrarImportacao,
+    salvarCliente, salvarCurva, salvarLegenda, salvarCadastro, criarRecepcao, registrarImportacao,
     trocarUsuario, trocarUnidade,
   };
 }

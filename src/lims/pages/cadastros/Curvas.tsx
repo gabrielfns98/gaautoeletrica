@@ -3,7 +3,7 @@
    O instrumento devolve um sinal; a curva traduz em concentração.
    ============================================================ */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   CartesianGrid, Line, ReferenceLine, ResponsiveContainer, Scatter,
   ComposedChart, Tooltip, XAxis, YAxis,
@@ -15,6 +15,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 import { useAcoes, useBancada, useIndices } from '../../data/store';
 import {
@@ -23,6 +26,7 @@ import {
 } from '../../lib/curva';
 import { data as fData, diasAte, numero, tempoRelativo } from '../../lib/format';
 import { Indicador, Pilula, Secao, Vazio } from '../../components/primitivos';
+import { Formulario, novoId } from '../../components/editor';
 import type { Curva, PontoCurva } from '../../types';
 
 export default function Curvas() {
@@ -33,6 +37,7 @@ export default function Curvas() {
   const [selecionadaId, setSelecionadaId] = useState(estado.curvas[0]?.id ?? '');
   const [rascunho, setRascunho] = useState<PontoCurva[] | null>(null);
   const [leituraTeste, setLeituraTeste] = useState('');
+  const [nova, setNova] = useState<Curva | null>(null);
 
   const curva = estado.curvas.find((c) => c.id === selecionadaId);
   const pontos = rascunho ?? curva?.pontos ?? [];
@@ -131,7 +136,19 @@ export default function Curvas() {
   return (
     <div className="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)]">
       {/* ---- lista ---- */}
-      <Secao titulo="Curvas" descricao={`${estado.curvas.length} cadastradas`} semPadding>
+      <Secao
+        titulo="Curvas"
+        descricao={`${estado.curvas.length} cadastradas`}
+        semPadding
+        acoes={podeEditar ? (
+          <Button
+            size="sm" className="h-8 gap-1.5 text-xs"
+            onClick={() => setNova(curvaEmBranco(estado.parametros.find((p) => !p.ehPh)?.id ?? ''))}
+          >
+            <Plus className="h-3.5 w-3.5" /> Nova
+          </Button>
+        ) : undefined}
+      >
         <ul className="divide-y divide-[hsl(var(--line-soft))]">
           {estado.curvas.map((c) => {
             const ativo = c.id === selecionadaId;
@@ -417,7 +434,172 @@ export default function Curvas() {
           </div>
         </div>
       )}
+      <NovaCurva
+        curva={nova}
+        aoFechar={() => setNova(null)}
+        aoCriar={(c) => {
+          salvarCurva(c);
+          setSelecionadaId(c.id);
+          setRascunho(null);
+          setNova(null);
+          toast.success('Curva criada', {
+            description: `${c.codigo} · R² ${c.r2.toFixed(5)} · ${c.pontos.length} padrões.`,
+          });
+        }}
+      />
     </div>
+  );
+}
+
+/** Curva em branco com três padrões, que é o mínimo que o critério aceita. */
+function curvaEmBranco(parametroId: string): Curva {
+  const validade = new Date();
+  validade.setDate(validade.getDate() + CRITERIOS_CURVA.validadeDias);
+  return {
+    id: novoId('cva'), codigo: '', nome: '', parametroId,
+    tipoAjuste: 'linear',
+    pontos: [
+      { concentracao: 0, leitura: 0 },
+      { concentracao: 0, leitura: 0 },
+      { concentracao: 0, leitura: 0 },
+    ],
+    coefAngular: 0, coefLinear: 0, r2: 0, diluicao: 1,
+    data: new Date().toISOString(), validaAte: validade.toISOString(),
+    ativa: false,
+  };
+}
+
+/**
+ * Curva nasce com os padrões: curva sem leitura de padrão não é curva, e
+ * o ajuste já sai calculado para o analista ver o R² antes de gravar.
+ */
+function NovaCurva({ curva, aoFechar, aoCriar }: {
+  curva: Curva | null; aoFechar: () => void; aoCriar: (c: Curva) => void;
+}) {
+  const { estado } = useBancada();
+  const [rascunho, setRascunho] = useState<Curva | null>(null);
+  const atual = rascunho ?? curva;
+
+  useEffect(() => { setRascunho(curva); }, [curva]);
+
+  const ajuste = useMemo(
+    () => (atual ? ajustarCurva(atual.pontos, atual.tipoAjuste) : undefined),
+    [atual],
+  );
+
+  if (!atual || !ajuste) return null;
+
+  const definirPonto = (i: number, campo: 'concentracao' | 'leitura', valor: number) => {
+    setRascunho({
+      ...atual,
+      pontos: atual.pontos.map((p, k) => (k === i ? { ...p, [campo]: valor } : p)),
+    });
+  };
+
+  const preenchidos = atual.pontos.filter((p) => p.concentracao > 0 || p.leitura > 0);
+  const erro = !atual.codigo.trim() ? 'Dê um código à curva.'
+    : !atual.nome.trim() ? 'Dê um nome à curva.'
+    : preenchidos.length < CRITERIOS_CURVA.pontosMin
+      ? `São necessários ao menos ${CRITERIOS_CURVA.pontosMin} padrões preenchidos.`
+      : undefined;
+
+  return (
+    <Dialog open onOpenChange={(a) => { if (!a) aoFechar(); }}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Nova curva analítica</DialogTitle>
+          <DialogDescription>
+            Os padrões entram aqui; o ajuste, o R² e os limites de detecção saem do que você digitar.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Formulario
+          campos={[
+            { tipo: 'texto', chave: 'codigo', rotulo: 'Código' },
+            { tipo: 'texto', chave: 'nome', rotulo: 'Nome' },
+            { tipo: 'selecao', chave: 'parametroId', rotulo: 'Elemento',
+              opcoes: estado.parametros.filter((p) => !p.ehPh).map((p) => ({ valor: p.id, rotulo: `${p.codigo} — ${p.nome}` })) },
+            { tipo: 'selecao', chave: 'equipamentoId', rotulo: 'Equipamento',
+              opcoes: estado.equipamentos.map((e) => ({ valor: e.id, rotulo: `${e.tag} — ${e.nome}` })) },
+            { tipo: 'selecao', chave: 'tipoAjuste', rotulo: 'Ajuste',
+              opcoes: [
+                { valor: 'linear', rotulo: 'Linear com intercepto' },
+                { valor: 'linear-sem-intercepto', rotulo: 'Linear pela origem' },
+              ] },
+            { tipo: 'numero', chave: 'diluicao', rotulo: 'Diluição', passo: 0.1, min: 0.01, sufixo: '×' },
+          ]}
+          valor={atual}
+          aoMudar={setRascunho}
+          extra={
+            <div className="sm:col-span-2">
+              <div className="mb-2 flex items-baseline justify-between">
+                <Label className="text-xs text-muted-foreground">Padrões</Label>
+                <button
+                  type="button"
+                  className="text-[0.68rem] text-primary hover:underline"
+                  onClick={() => setRascunho({ ...atual, pontos: [...atual.pontos, { concentracao: 0, leitura: 0 }] })}
+                >
+                  adicionar padrão
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                {atual.pontos.map((ponto, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="number" step="any" className="num h-8 text-xs"
+                      aria-label={`Concentração do padrão ${i + 1}`}
+                      placeholder="concentração"
+                      value={ponto.concentracao || ''}
+                      onChange={(e) => definirPonto(i, 'concentracao', Number(e.target.value))}
+                    />
+                    <Input
+                      type="number" step="any" className="num h-8 text-xs"
+                      aria-label={`Leitura do padrão ${i + 1}`}
+                      placeholder="leitura"
+                      value={ponto.leitura || ''}
+                      onChange={(e) => definirPonto(i, 'leitura', Number(e.target.value))}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <p className="num mt-2 text-[0.68rem] text-muted-foreground">
+                R² {ajuste.r2 ? ajuste.r2.toFixed(5) : '—'} · coeficiente angular{' '}
+                {ajuste.coefAngular ? ajuste.coefAngular.toFixed(5) : '—'}
+                {ajuste.avisos[0] ? ` · ${ajuste.avisos[0]}` : ''}
+              </p>
+            </div>
+          }
+        />
+
+        {erro && (
+          <p role="alert" className="rounded-[var(--radius-sm)] bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {erro}
+          </p>
+        )}
+
+        <DialogFooter className="gap-2">
+          <Button variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button
+            disabled={Boolean(erro)}
+            onClick={() => aoCriar({
+              ...atual,
+              pontos: preenchidos,
+              coefAngular: ajuste.coefAngular,
+              coefLinear: ajuste.coefLinear,
+              r2: ajuste.r2,
+              lod: ajuste.lod,
+              loq: ajuste.loq,
+              ativa: ajuste.aprovada,
+              observacao: ajuste.avisos[0],
+            })}
+          >
+            Criar curva
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

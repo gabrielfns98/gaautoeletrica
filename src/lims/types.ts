@@ -564,6 +564,16 @@ export interface Importacao {
   itens: Array<{ ensaioId: UUID; valor: number }>;
 }
 
+/**
+ * Coleções de cadastro que o laboratório edita pela própria tela. Cada
+ * laboratório tem seus métodos, preços e tabelas: nada disso pode exigir
+ * um programador.
+ */
+export type ColecaoCadastro =
+  | 'unidades' | 'grupos' | 'parametros' | 'tiposAnalise' | 'metodologias'
+  | 'bandejas' | 'profundidades' | 'culturas' | 'tiposCliente'
+  | 'observacoesFixas' | 'convenios' | 'regrasDesconto';
+
 export interface RegistroAuditoria {
   id: UUID;
   data: ISODate;
