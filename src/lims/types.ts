@@ -265,6 +265,68 @@ export interface Ensaio {
 
 export type OrigemLeitura = 'instrumento' | 'manual' | 'importacao';
 
+/**
+ * Como se verifica que o aparelho ainda mede certo. Cada família tem
+ * o seu rito: o potenciômetro calibra em vários tampões, a balança
+ * confere contra massa padrão, a estufa contra termômetro aferido, e
+ * o espectro roda a curva e olha o R².
+ */
+export type FormaVerificacao =
+  | 'calibracao-multiponto'
+  | 'curva-analitica'
+  | 'massa-padrao'
+  | 'padrao-de-verificacao'
+  | 'temperatura'
+  | 'nenhuma';
+
+/**
+ * Tipo de equipamento, como cadastro e não como união no código.
+ *
+ * O laboratório compra um ICP, um analisador elementar ou um
+ * destilador de nitrogênio sem avisar o programador, e precisa que o
+ * aparelho novo entre com o mesmo controle metrológico dos outros.
+ */
+export interface TipoEquipamento {
+  id: UUID;                     // 'phmetro', 'espectrofotometro', ...
+  codigo: string;               // "PHM"
+  nome: string;
+  /** a grandeza que o aparelho entrega em bruto: "absorbância", "mV" */
+  grandeza: string;
+  /** o resultado só existe passando por curva de calibração */
+  exigeCurva: boolean;
+  verificacao: FormaVerificacao;
+  /** de quantos em quantos dias a verificação tem de ser refeita */
+  periodicidadeDias: number;
+  /** leitura bloqueada enquanto a verificação estiver vencida */
+  bloqueiaVencido: boolean;
+  /** protocolos de comunicação que o laboratório usa com esta família */
+  protocolos: string[];
+  ativo: boolean;
+}
+
+/**
+ * Um registro de verificação metrológica, para qualquer família de
+ * aparelho. É o que dá ao espectro e à balança o mesmo controle que
+ * hoje só o potenciômetro tem.
+ */
+export interface VerificacaoEquipamento {
+  id: UUID;
+  equipamentoId: UUID;
+  forma: FormaVerificacao;
+  data: ISODate;
+  analistaId: UUID;
+  /** o que o padrão vale e o que o aparelho leu */
+  valorNominal?: number;
+  valorMedido?: number;
+  /** erro relativo em %, calculado na entrada */
+  erroPercentual?: number;
+  /** R² da curva, quando a forma é curva analítica */
+  r2?: number;
+  resultado: 'aprovada' | 'alerta' | 'reprovada';
+  validaAte: ISODate;
+  observacao?: string;
+}
+
 export interface Equipamento {
   id: UUID;
   tag: string;                  // "PHM-02"
@@ -272,11 +334,12 @@ export interface Equipamento {
   fabricante: string;
   modelo: string;
   numeroSerie: string;
-  tipo: 'phmetro' | 'balanca' | 'estufa' | 'espectrofotometro' | 'agitador' | 'outro';
+  /** aponta para o cadastro de TipoEquipamento */
+  tipo: string;
   unidadeId: UUID;
   setor: string;
   /** integração serial: baud rate e protocolo do fabricante */
-  protocolo?: 'generico-ascii' | 'mettler' | 'hanna' | 'digimed' | 'tecnal';
+  protocolo?: string;
   baudRate?: number;
   ativo: boolean;
   dataAquisicao: ISODate;

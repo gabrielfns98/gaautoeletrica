@@ -8,10 +8,12 @@ import { PAPEIS_PADRAO } from '../lib/rbac';
 import { calcularCalibracao, mvDePh, phDeMv, corrigirPara25C, avaliarCQ, hMaisAlPorSmp } from '../lib/ph';
 import { apurarNotaServico } from '../lib/fiscal';
 import { ajustarCurva } from '../lib/curva';
+import { avaliarVerificacao } from '../lib/equipamento';
 import { iniciais } from '../lib/format';
 import type {
   Amostra, AmostraControle, Calibracao, Cliente, Contato, Ensaio, Equipamento,
   GrupoAnalise, GrupoAnaliseId, Interacao, ItemEstoque, Laudo, LeituraPh,
+  TipoEquipamento, VerificacaoEquipamento,
   LoteReagente, LoteRecepcao, MovimentoEstoque, NotaFiscal, Oportunidade,
   Orcamento, Papel, Parametro, PontoTrace, RegistroAuditoria, RegistroCQ,
   StatusAmostra, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario,
@@ -523,6 +525,68 @@ export const interacoes: Interacao[] = oportunidades.flatMap((o, i) =>
 
 /* ---------------- Equipamentos e calibrações ---------------- */
 
+/* ---------------- Tipos de equipamento ---------------- */
+
+/**
+ * O rito de verificação de cada família. É cadastro porque o
+ * laboratório compra aparelho novo sem avisar o programador — e o
+ * aparelho novo precisa entrar com o mesmo controle dos outros.
+ */
+export const tiposEquipamento: TipoEquipamento[] = [
+  {
+    id: 'phmetro', codigo: 'PHM', nome: 'Potenciômetro (pHmetro)', grandeza: 'pH e mV',
+    exigeCurva: false, verificacao: 'calibracao-multiponto', periodicidadeDias: 1,
+    bloqueiaVencido: true, protocolos: ['mettler', 'digimed', 'hanna', 'tecnal', 'generico-ascii'],
+    ativo: true,
+  },
+  {
+    id: 'espectrofotometro', codigo: 'ESP', nome: 'Espectrofotômetro UV-Vis', grandeza: 'absorbância',
+    exigeCurva: true, verificacao: 'curva-analitica', periodicidadeDias: 30,
+    bloqueiaVencido: true, protocolos: ['generico-ascii', 'thermo'], ativo: true,
+  },
+  {
+    id: 'absorcao-atomica', codigo: 'AA', nome: 'Absorção atômica', grandeza: 'absorbância',
+    exigeCurva: true, verificacao: 'curva-analitica', periodicidadeDias: 30,
+    bloqueiaVencido: true, protocolos: ['generico-ascii', 'agilent', 'perkinelmer'], ativo: true,
+  },
+  {
+    id: 'icp-oes', codigo: 'ICP', nome: 'ICP-OES / MP-AES', grandeza: 'intensidade',
+    exigeCurva: true, verificacao: 'curva-analitica', periodicidadeDias: 30,
+    bloqueiaVencido: true, protocolos: ['generico-ascii', 'agilent'], ativo: true,
+  },
+  {
+    id: 'fotometro-chama', codigo: 'FTC', nome: 'Fotômetro de chama', grandeza: 'intensidade',
+    exigeCurva: true, verificacao: 'curva-analitica', periodicidadeDias: 7,
+    bloqueiaVencido: true, protocolos: ['generico-ascii', 'digimed'], ativo: true,
+  },
+  {
+    id: 'balanca', codigo: 'BAL', nome: 'Balança analítica', grandeza: 'massa (g)',
+    exigeCurva: false, verificacao: 'massa-padrao', periodicidadeDias: 1,
+    bloqueiaVencido: true, protocolos: ['mettler', 'shimadzu', 'generico-ascii'], ativo: true,
+  },
+  {
+    id: 'destilador-n', codigo: 'DEN', nome: 'Destilador de nitrogênio', grandeza: 'volume titulado (mL)',
+    exigeCurva: false, verificacao: 'padrao-de-verificacao', periodicidadeDias: 30,
+    bloqueiaVencido: true, protocolos: [], ativo: true,
+  },
+  {
+    id: 'analisador-elementar', codigo: 'ANE', nome: 'Analisador elementar CHNS', grandeza: '% em massa',
+    exigeCurva: true, verificacao: 'padrao-de-verificacao', periodicidadeDias: 15,
+    bloqueiaVencido: true, protocolos: ['generico-ascii'], ativo: true,
+  },
+  {
+    id: 'estufa', codigo: 'EST', nome: 'Estufa de secagem', grandeza: 'temperatura (°C)',
+    exigeCurva: false, verificacao: 'temperatura', periodicidadeDias: 90,
+    // Estufa vencida atrasa um ensaio; não produz número errado sozinha.
+    bloqueiaVencido: false, protocolos: [], ativo: true,
+  },
+  {
+    id: 'agitador', codigo: 'AGI', nome: 'Agitador / mesa orbital', grandeza: '—',
+    exigeCurva: false, verificacao: 'nenhuma', periodicidadeDias: 0,
+    bloqueiaVencido: false, protocolos: [], ativo: true,
+  },
+];
+
 export const equipamentos: Equipamento[] = [
   {
     id: 'eq-phm-01', tag: 'PHM-01', nome: 'Potenciômetro de bancada — Acidez I',
@@ -556,6 +620,12 @@ export const equipamentos: Equipamento[] = [
   { id: 'eq-est-01', tag: 'EST-01', nome: 'Estufa de secagem 100 L', fabricante: 'Marconi', modelo: 'MA033', numeroSerie: 'MC0339912', tipo: 'estufa', unidadeId: 'un-13', setor: 'Preparo', ativo: true, dataAquisicao: diasAtras(1600), proximaManutencao: diasAFrente(-6) },
   { id: 'eq-esp-01', tag: 'ESP-01', nome: 'Espectrofotômetro UV-Vis', fabricante: 'Thermo Fisher', modelo: 'Genesys 150', numeroSerie: 'TF1500277', tipo: 'espectrofotometro', unidadeId: 'un-13', setor: 'Físico-Química', ativo: true, dataAquisicao: diasAtras(760), proximaManutencao: diasAFrente(96) },
   { id: 'eq-agi-01', tag: 'AGI-01', nome: 'Mesa agitadora orbital 30 provas', fabricante: 'Marconi', modelo: 'MA140', numeroSerie: 'MC1404456', tipo: 'agitador', unidadeId: 'un-13', setor: 'Bancada de Acidez', ativo: true, dataAquisicao: diasAtras(980), proximaManutencao: diasAFrente(60) },
+  { id: 'eq-aa-01', tag: 'AA-01', nome: 'Espectrômetro de absorção atômica', fabricante: 'Agilent', modelo: '240FS AA', numeroSerie: 'AG2401190', tipo: 'absorcao-atomica', unidadeId: 'un-13', setor: 'Instrumental', protocolo: 'agilent', baudRate: 19200, ativo: true, dataAquisicao: diasAtras(1240), proximaManutencao: diasAFrente(38) },
+  { id: 'eq-icp-01', tag: 'ICP-01', nome: 'MP-AES', fabricante: 'Agilent', modelo: '4210 MP-AES', numeroSerie: 'AG4210077', tipo: 'icp-oes', unidadeId: 'un-13', setor: 'Instrumental', protocolo: 'agilent', baudRate: 19200, ativo: true, dataAquisicao: diasAtras(420), proximaManutencao: diasAFrente(112) },
+  { id: 'eq-ftc-01', tag: 'FTC-01', nome: 'Fotômetro de chama', fabricante: 'Digimed', modelo: 'DM-62', numeroSerie: 'DG6218803', tipo: 'fotometro-chama', unidadeId: 'un-13', setor: 'Instrumental', protocolo: 'digimed', baudRate: 9600, ativo: true, dataAquisicao: diasAtras(1510), proximaManutencao: diasAFrente(26) },
+  { id: 'eq-den-01', tag: 'DEN-01', nome: 'Destilador de nitrogênio Kjeldahl', fabricante: 'Tecnal', modelo: 'TE-0363', numeroSerie: 'TC0363441', tipo: 'destilador-n', unidadeId: 'un-13', setor: 'Úmidos', ativo: true, dataAquisicao: diasAtras(2100), proximaManutencao: diasAFrente(54) },
+  { id: 'eq-ane-01', tag: 'ANE-01', nome: 'Analisador elementar CHNS', fabricante: 'Elementar', modelo: 'vario MACRO cube', numeroSerie: 'EL8802213', tipo: 'analisador-elementar', unidadeId: 'un-13', setor: 'Instrumental', protocolo: 'generico-ascii', baudRate: 9600, ativo: true, dataAquisicao: diasAtras(300), proximaManutencao: diasAFrente(144) },
+  { id: 'eq-bal-02', tag: 'BAL-02', nome: 'Balança semianalítica', fabricante: 'Mettler Toledo', modelo: 'ME4002', numeroSerie: 'MT4002618', tipo: 'balanca', unidadeId: 'un-13', setor: 'Preparo', protocolo: 'mettler', baudRate: 9600, ativo: true, dataAquisicao: diasAtras(640), proximaManutencao: diasAFrente(80) },
 ];
 
 export const phmetros = equipamentos.filter((e) => e.tipo === 'phmetro');
@@ -986,6 +1056,67 @@ for (let l = 0; l < 210; l++) {
       }
 
       ensaios.push(ensaio);
+    }
+  }
+}
+
+/* ---------------- Verificação metrológica ---------------- */
+
+/**
+ * O histórico que dá ao espectro, à balança e ao destilador o mesmo
+ * controle que o potenciômetro já tinha. A tolerância é por forma de
+ * verificação, porque pesar massa padrão e rodar curva não se julgam
+ * pelo mesmo critério.
+ */
+const TOLERANCIA: Record<string, number> = {
+  'curva-analitica': 5,
+  'massa-padrao': 0.1,
+  'padrao-de-verificacao': 4,
+  temperatura: 2,
+};
+
+export const verificacoesEquipamento: VerificacaoEquipamento[] = [];
+{
+  const porTipo = new Map(tiposEquipamento.map((t) => [t.id, t]));
+
+  for (const eq of equipamentos) {
+    const tipo = porTipo.get(eq.tipo);
+    // O potenciômetro tem a sua própria trilha em `calibracoes`.
+    if (!tipo || tipo.verificacao === 'nenhuma' || tipo.verificacao === 'calibracao-multiponto') continue;
+
+    const tolerancia = TOLERANCIA[tipo.verificacao] ?? 5;
+    const nominal = tipo.verificacao === 'massa-padrao' ? 100
+      : tipo.verificacao === 'temperatura' ? 105
+      : 10;
+
+    /* Seis verificações para trás, uma por período. A mais recente é a
+       que decide, e ela fica dentro da validade — menos no destilador,
+       deixado vencido de propósito para a tela ter o que mostrar. */
+    /* Atrasar só o registro mais novo não o deixaria vencido: ele
+       passaria a ser o penúltimo, e o anterior viraria o vigente.
+       O histórico inteiro recua. */
+    const atraso = eq.id === 'eq-den-01' ? tipo.periodicidadeDias + 6 : 0;
+    for (let i = 5; i >= 0; i -= 1) {
+      const atrasoDias = i * tipo.periodicidadeDias + atraso;
+      // `deslocar(n)` recua n dias: verificação é evento passado.
+      const quando = deslocar(atrasoDias, inteiro(8, 16));
+      const erro = (rnd() - 0.5) * tolerancia * 1.4;
+      const medido = nominal * (1 + erro / 100);
+
+      verificacoesEquipamento.push({
+        id: `vrf-${eq.id}-${i}`,
+        equipamentoId: eq.id,
+        forma: tipo.verificacao,
+        data: quando.toISOString(),
+        analistaId: escolher(analistas).id,
+        valorNominal: nominal,
+        valorMedido: Number(medido.toFixed(4)),
+        erroPercentual: Number(erro.toFixed(3)),
+        r2: tipo.verificacao === 'curva-analitica' ? Number((0.9985 + rnd() * 0.0014).toFixed(5)) : undefined,
+        resultado: avaliarVerificacao(erro, tolerancia),
+        validaAte: new Date(+quando + tipo.periodicidadeDias * 86_400_000).toISOString(),
+        observacao: tipo.verificacao === 'massa-padrao' ? 'Massa padrão classe E2 rastreada ao INMETRO.' : undefined,
+      });
     }
   }
 }

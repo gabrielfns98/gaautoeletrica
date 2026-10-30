@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 
 import { useBancada } from '../data/store';
 import { CRITERIOS } from '../lib/ph';
+import { podeLer, situacaoMetrologica } from '../lib/equipamento';
 import { data as fData, dataHora, diasAte, numero, tempoRelativo } from '../lib/format';
 import {
   BarraFiltros, CabecalhoPagina, Campos, Indicador, Pilula, Secao, Tabela, Vazio, filtrar,
@@ -18,9 +19,23 @@ import {
 import type { Calibracao, Equipamento } from '../types';
 import { rota } from '../base';
 
+const ROTULO_VERIFICACAO: Record<string, string> = {
+  'calibracao-multiponto': 'Calibração multiponto',
+  'curva-analitica': 'Curva analítica',
+  'massa-padrao': 'Massa padrão',
+  'padrao-de-verificacao': 'Padrão de verificação',
+  temperatura: 'Termômetro aferido',
+  nenhuma: '—',
+};
+
 export default function Equipamentos() {
   const { estado, unidade } = useBancada();
   const [busca, setBusca] = useState('');
+
+  const tipoPorId = useMemo(
+    () => new Map(estado.tiposEquipamento.map((t) => [t.id, t])),
+    [estado.tiposEquipamento],
+  );
 
   const comEstado = useMemo(() => {
     const agora = new Date();
@@ -28,22 +43,40 @@ export default function Equipamentos() {
       const calibracao = estado.calibracoes
         .filter((c) => c.equipamentoId === e.id)
         .sort((a, b) => +new Date(b.data) - +new Date(a.data))[0];
+      const tipo = tipoPorId.get(e.tipo);
+
+      /* O potenciômetro continua julgado pela própria calibração, que
+         tem slope e offset; os demais, pela verificação metrológica
+         genérica. A liberação para ler é a mesma pergunta para todos. */
+      const ehPh = tipo?.verificacao === 'calibracao-multiponto';
+      const situacao = situacaoMetrologica(e.id, estado.verificacoesEquipamento, agora);
+      const calibracaoOk = calibracao
+        ? calibracao.status === 'valida' && new Date(calibracao.validaAte) > agora
+        : undefined;
+
       return {
         equipamento: e,
+        tipo,
         calibracao,
-        calibracaoOk: calibracao ? calibracao.status === 'valida' && new Date(calibracao.validaAte) > agora : undefined,
+        calibracaoOk,
+        situacao,
+        liberacao: ehPh
+          ? { permitido: calibracaoOk !== false, motivo: calibracaoOk === false ? `A calibração de ${e.tag} não está válida.` : undefined }
+          : podeLer(e, tipo, estado.verificacoesEquipamento, agora),
         manutencaoVencida: diasAte(e.proximaManutencao) < 0,
         manutencaoProxima: diasAte(e.proximaManutencao) >= 0 && diasAte(e.proximaManutencao) <= 30,
       };
     });
-  }, [estado.equipamentos, estado.calibracoes]);
+  }, [estado.equipamentos, estado.calibracoes, estado.verificacoesEquipamento, tipoPorId]);
 
   const phmetros = comEstado.filter((x) => x.equipamento.tipo === 'phmetro');
   const outros = comEstado.filter((x) => x.equipamento.tipo !== 'phmetro');
+  /* Só entra aqui quem tem rito de verificação: agitador não se verifica. */
+  const comVerificacao = outros.filter((x) => x.tipo && x.tipo.verificacao !== 'nenhuma');
 
   const kpis = useMemo(() => ({
     total: estado.equipamentos.length,
-    semCalibracao: phmetros.filter((x) => x.calibracaoOk === false).length,
+    bloqueados: comEstado.filter((x) => !x.liberacao.permitido).length,
     manutencaoVencida: comEstado.filter((x) => x.manutencaoVencida).length,
     eletrodosVelhos: phmetros.filter((x) => {
       const el = x.equipamento.eletrodo;
@@ -58,7 +91,7 @@ export default function Equipamentos() {
       <CabecalhoPagina
         eyebrow="Metrologia"
         titulo="Equipamentos"
-        descricao="Parque instalado, estado metrológico dos potenciômetros e cronograma de manutenção preventiva."
+        descricao="Parque instalado, controle metrológico de todo aparelho que gera resultado e cronograma de manutenção preventiva."
         acoes={
           <Button asChild variant="outline" className="gap-2">
             <Link to={rota('/ph')}><Gauge className="h-4 w-4" /> Calibrar pHmetro</Link>
@@ -68,7 +101,7 @@ export default function Equipamentos() {
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Indicador rotulo="Equipamentos" valor={kpis.total} detalhe={`${phmetros.length} potenciômetros`} />
-        <Indicador rotulo="Sem calibração válida" valor={kpis.semCalibracao} destaque={kpis.semCalibracao > 0} detalhe="bloqueados para leitura" />
+        <Indicador rotulo="Bloqueados para leitura" valor={kpis.bloqueados} destaque={kpis.bloqueados > 0} detalhe="verificação vencida ou reprovada" />
         <Indicador rotulo="Manutenção vencida" valor={kpis.manutencaoVencida} destaque={kpis.manutencaoVencida > 0} icone={Wrench} />
         <Indicador rotulo="Eletrodos no fim da vida" valor={kpis.eletrodosVelhos} detalhe="acima de 75% da vida útil" />
       </div>
@@ -156,6 +189,73 @@ export default function Equipamentos() {
           );
         })}
       </div>
+
+      {comVerificacao.length > 0 && (
+        <>
+          <h2 className="label-micro mb-3">Controle metrológico</h2>
+          <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {comVerificacao.map(({ equipamento, tipo, situacao, liberacao }) => (
+              <div key={equipamento.id} className="panel p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="num text-xs font-semibold text-foreground">{equipamento.tag}</p>
+                    <p className="truncate text-[0.68rem] text-muted-foreground">{tipo?.nome}</p>
+                  </div>
+                  <Pilula
+                    tom={!liberacao.permitido ? 'erro' : situacao.vencendo ? 'alerta' : 'sucesso'}
+                    pontinho
+                    className="shrink-0 px-1.5 py-0 text-[0.6rem]"
+                  >
+                    {!liberacao.permitido ? 'bloqueado' : situacao.vencendo ? 'vence logo' : 'liberado'}
+                  </Pilula>
+                </div>
+
+                <div className="panel-sunken mt-3 grid grid-cols-2 gap-3 p-3">
+                  <div>
+                    <p className="label-micro mb-1">Verificação</p>
+                    <p className="text-[0.68rem] text-foreground">{ROTULO_VERIFICACAO[tipo!.verificacao]}</p>
+                  </div>
+                  <div>
+                    <p className="label-micro mb-1">Validade</p>
+                    <p className="num text-[0.68rem] text-foreground">
+                      {situacao.semHistorico
+                        ? 'nunca verificado'
+                        : situacao.vencida
+                          ? `venceu há ${Math.abs(situacao.diasParaVencer ?? 0)} d`
+                          : `${situacao.diasParaVencer} d`}
+                    </p>
+                  </div>
+                  {situacao.ultima?.r2 !== undefined && (
+                    <div>
+                      <p className="label-micro mb-1">R² da curva</p>
+                      <p className="num text-[0.68rem] text-foreground">{numero(situacao.ultima.r2, 5)}</p>
+                    </div>
+                  )}
+                  {situacao.ultima?.erroPercentual !== undefined && (
+                    <div>
+                      <p className="label-micro mb-1">Erro</p>
+                      <p className="num text-[0.68rem] text-foreground">
+                        {numero(situacao.ultima.erroPercentual, 3)}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {!liberacao.permitido && (
+                  <p className="mt-2.5 text-[0.66rem] leading-relaxed text-[hsl(var(--danger))]">
+                    {liberacao.motivo}
+                  </p>
+                )}
+                {situacao.ultima && liberacao.permitido && (
+                  <p className="mt-2.5 text-[0.66rem] text-muted-foreground">
+                    Última {tempoRelativo(situacao.ultima.data)} · {situacao.ultima.resultado}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <Secao titulo="Parque completo" semPadding>

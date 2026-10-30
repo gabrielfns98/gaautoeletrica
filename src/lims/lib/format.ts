@@ -129,8 +129,12 @@ export function tempoRelativo(d: string | Date): string {
   if (dias === 1) return 'ontem';
   if (dias < 0) return `em ${-dias} dia${dias === -1 ? '' : 's'}`;
   if (dias < 30) return `há ${dias} dias`;
-  if (dias < 365) return `há ${Math.floor(dias / 30)} meses`;
-  return `há ${Math.floor(dias / 365)} ano(s)`;
+  if (dias < 365) {
+    const meses = Math.floor(dias / 30);
+    return `há ${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  }
+  const anos = Math.floor(dias / 365);
+  return `há ${anos} ${anos === 1 ? 'ano' : 'anos'}`;
 }
 
 /** Duração em segundos → "1 m 24 s" */

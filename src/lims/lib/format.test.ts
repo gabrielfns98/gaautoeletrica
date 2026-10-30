@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dataISOLocal, diasEntre } from './format';
+import { dataISOLocal, diasEntre, tempoRelativo } from './format';
 
 /* O laboratório trabalha em Brasília (UTC-3). Depois das 21h local
    já é o dia seguinte em UTC, e é aí que `toISOString().slice(0,10)`
@@ -43,5 +43,26 @@ describe('diasEntre', () => {
 
   it('é zero no mesmo dia', () => {
     expect(diasEntre('2026-03-10T12:00:00.000Z', '2026-03-10T23:00:00.000Z')).toBe(0);
+  });
+});
+
+describe('tempoRelativo', () => {
+  const diasAtras = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    d.setHours(12, 0, 0, 0);
+    return d;
+  };
+
+  it('concorda o singular de mês e ano', () => {
+    expect(tempoRelativo(diasAtras(35))).toBe('há 1 mês');
+    expect(tempoRelativo(diasAtras(70))).toBe('há 2 meses');
+    expect(tempoRelativo(diasAtras(400))).toBe('há 1 ano');
+    expect(tempoRelativo(diasAtras(800))).toBe('há 2 anos');
+  });
+
+  it('usa dias e ontem para o passado recente', () => {
+    expect(tempoRelativo(diasAtras(1))).toBe('ontem');
+    expect(tempoRelativo(diasAtras(5))).toBe('há 5 dias');
   });
 });
