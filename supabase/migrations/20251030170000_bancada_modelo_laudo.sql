@@ -23,6 +23,18 @@ create table public.lab_modelos_laudo (
   ordem_parametros uuid[] not null default '{}',
   agrupamento text not null default 'nenhum'
     check (agrupamento in ('nenhum', 'metodologia')),
+  -- A forma do documento. O laboratório tem dois padrões próprios — o
+  -- laudo analítico de fertilizante, com coluna de garantia, e o de
+  -- tecido vegetal, com barra de suficiência por cultura — além do
+  -- genérico, que serve solo e água.
+  layout text not null default 'generico'
+    check (layout in ('generico', 'analitico', 'foliar')),
+  -- registro no MAPA, impresso no cabeçalho do laudo analítico
+  registro_mapa text,
+  -- selo do programa interlaboratorial, no laudo foliar
+  selo text,
+  mostrar_tabela_referencia boolean not null default false,
+  fonte_referencia text,
   observacao_ids uuid[] not null default '{}',
   mostrar_incerteza boolean not null default true,
   mostrar_interpretacao boolean not null default true,

@@ -669,6 +669,21 @@ export interface ModeloLaudo {
    */
   ordemParametros: UUID[];
   agrupamento: 'nenhum' | 'metodologia';
+  /**
+   * A forma do documento. O laboratório tem dois padrões — o laudo
+   * analítico de fertilizante, com coluna de garantia, e o de tecido
+   * vegetal, com barra de suficiência por cultura — e o genérico, que
+   * serve para solo e água. Outros entram como modelo, sem código novo.
+   */
+  layout: 'generico' | 'analitico' | 'foliar';
+  /** registro no MAPA, impresso no cabeçalho do laudo analítico */
+  registroMapa?: string;
+  /** selo do programa interlaboratorial, no laudo foliar */
+  selo?: string;
+  /** imprime a tabela de referência da cultura no rodapé do foliar */
+  mostrarTabelaReferencia: boolean;
+  /** fonte citada nessa tabela */
+  fonteReferencia?: string;
   /** observações fixas que entram neste laudo, na ordem escolhida */
   observacaoIds: UUID[];
   mostrarIncerteza: boolean;

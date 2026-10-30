@@ -902,6 +902,8 @@ export interface LinhaModeloLaudo {
   id: string; nome: string; unidade_id: string | null; grupo_id: string | null;
   logo_url: string | null; cabecalho: string | null; rodape: string | null;
   ordem_parametros: string[] | null; agrupamento: string;
+  layout: string | null; registro_mapa: string | null; selo: string | null;
+  mostrar_tabela_referencia: boolean | null; fonte_referencia: string | null;
   observacao_ids: string[] | null; mostrar_incerteza: boolean;
   mostrar_interpretacao: boolean; mostrar_metodos: boolean;
   cargo_assinatura: string; disposicao_padrao: string; ativo: boolean;
@@ -913,6 +915,10 @@ export const deModeloLaudo = (l: LinhaModeloLaudo): ModeloLaudo => ({
   logoUrl: opc(l.logo_url), cabecalho: opc(l.cabecalho), rodape: opc(l.rodape),
   ordemParametros: l.ordem_parametros ?? [],
   agrupamento: l.agrupamento as ModeloLaudo['agrupamento'],
+  layout: (l.layout ?? 'generico') as ModeloLaudo['layout'],
+  registroMapa: opc(l.registro_mapa), selo: opc(l.selo),
+  mostrarTabelaReferencia: l.mostrar_tabela_referencia ?? false,
+  fonteReferencia: opc(l.fonte_referencia),
   observacaoIds: l.observacao_ids ?? [],
   mostrarIncerteza: l.mostrar_incerteza,
   mostrarInterpretacao: l.mostrar_interpretacao,
@@ -926,6 +932,9 @@ export const paraModeloLaudo = (m: ModeloLaudo): LinhaModeloLaudo => ({
   id: m.id, nome: m.nome, unidade_id: m.unidadeId ?? null, grupo_id: m.grupoId ?? null,
   logo_url: m.logoUrl ?? null, cabecalho: m.cabecalho ?? null, rodape: m.rodape ?? null,
   ordem_parametros: m.ordemParametros, agrupamento: m.agrupamento,
+  layout: m.layout, registro_mapa: m.registroMapa ?? null, selo: m.selo ?? null,
+  mostrar_tabela_referencia: m.mostrarTabelaReferencia,
+  fonte_referencia: m.fonteReferencia ?? null,
   observacao_ids: m.observacaoIds, mostrar_incerteza: m.mostrarIncerteza,
   mostrar_interpretacao: m.mostrarInterpretacao, mostrar_metodos: m.mostrarMetodos,
   cargo_assinatura: m.cargoAssinatura, disposicao_padrao: m.disposicaoPadrao, ativo: m.ativo,

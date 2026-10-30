@@ -13,8 +13,12 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { useAcoes, useBancada, useIndices } from '../data/store';
 import { modeloDoLaudo, montarLaudo, ordenarPeloModelo } from './laudo/montar';
 import { FolhaLaudo } from './laudo/Folha';
+import { FolhaFoliar } from './laudo/Foliar';
 import type { Disposicao } from './laudo/Folha';
 import { data as fData, tempoRelativo } from '../lib/format';
+import {
+  calcularRelacoes, conferirLaudo, faixaAdequada, podeEmitir as laudoLiberado,
+} from '../lib/resultado';
 import {
   BarraFiltros, CabecalhoPagina, Indicador, Pilula, Secao, Segmentos, Tabela, Vazio, filtrar,
 } from '../components/primitivos';
@@ -166,6 +170,42 @@ function PreVisualizacao({
     });
   }, [laudo, estado.amostras, estado.ensaios, estado.parametros, estado.legendas, modelo]);
 
+  /* Relações entre elementos, uma lista por amostra. Só o laudo
+     foliar as imprime, então só ele paga a conta. */
+  const relacoes = useMemo(() => {
+    const mapa = new Map<string, ReturnType<typeof calcularRelacoes>>();
+    if (!montado || modelo.layout !== 'foliar') return mapa;
+    for (const { amostra, resultados } of montado.amostras) {
+      const valores: Record<string, { valor: number | undefined; unidade: string }> = {};
+      for (const r of resultados) {
+        const chave = r.parametro.codigo.replace(/-(FOL|FOLIAR)$/i, '').toUpperCase();
+        valores[chave] = { valor: r.ensaio.valor, unidade: r.parametro.unidade };
+      }
+      mapa.set(amostra.id, calcularRelacoes(valores));
+    }
+    return mapa;
+  }, [montado, modelo.layout]);
+
+  /* O que impede a assinatura. A faixa da cultura é obrigatória no
+     laudo foliar: sem ela o documento sai com intervalo inventado. */
+  const problemas = useMemo(() => {
+    if (!montado) return [];
+    return montado.amostras.flatMap(({ amostra, resultados }) =>
+      conferirLaudo({
+        cultura: amostra.cultura,
+        itens: resultados.map((r) => ({
+          codigo: r.parametro.codigo,
+          valor: r.ensaio.valor,
+          lq: r.parametro.lq,
+          // A faixa que importa é a adequada da legenda da cultura,
+          // não aquela em que o resultado caiu.
+          faixa: faixaAdequada(r.interpretacao?.legenda.faixas),
+          exigeFaixa: modelo.layout === 'foliar',
+          metodo: r.parametro.metodo,
+        })),
+      }).map((p) => ({ ...p, onde: `${amostra.protocolo}: ${p.onde ?? ''}` })));
+  }, [montado, modelo.layout]);
+
   /* O modelo escolhe quais observações entram e em que ordem; sem
      escolha, valem as ativas do cadastro. */
   const observacoes = useMemo(() => {
@@ -200,7 +240,7 @@ function PreVisualizacao({
               </SheetDescription>
             </SheetHeader>
 
-            {montado.totalResultados > 0 && (
+            {montado.totalResultados > 0 && modelo.layout === 'generico' && (
               <div className="mt-5 sem-impressao">
                 <Segmentos
                   valor={comoMostrar}
@@ -214,17 +254,35 @@ function PreVisualizacao({
             )}
 
             <div className="mt-6">
-              <FolhaLaudo
-                laudo={laudo}
-                montado={montado}
-                cliente={cliente}
-                grupo={grupo}
-                unidade={unidade}
-                assinante={assinante}
-                observacoes={observacoes}
-                disposicao={comoMostrar}
-                modelo={modelo}
-              />
+              {modelo.layout === 'foliar' ? (
+                <FolhaFoliar
+                  laudo={laudo}
+                  montado={montado}
+                  cliente={cliente}
+                  unidade={unidade}
+                  assinante={assinante}
+                  observacoes={observacoes}
+                  modelo={modelo}
+                  lote={estado.lotesRecepcao.find((l) => l.id === montado.amostras[0]?.amostra.loteRecepcaoId)}
+                  solicitante={
+                    estado.contatos.find((c) => c.clienteId === laudo.clienteId && c.principal)?.nome
+                    ?? estado.contatos.find((c) => c.clienteId === laudo.clienteId)?.nome
+                  }
+                  relacoes={relacoes}
+                />
+              ) : (
+                <FolhaLaudo
+                  laudo={laudo}
+                  montado={montado}
+                  cliente={cliente}
+                  grupo={grupo}
+                  unidade={unidade}
+                  assinante={assinante}
+                  observacoes={observacoes}
+                  disposicao={comoMostrar}
+                  modelo={modelo}
+                />
+              )}
             </div>
 
             {/* --- Ações --- */}
@@ -235,6 +293,13 @@ function PreVisualizacao({
                     if (montado.totalResultados === 0) {
                       toast.error('Laudo sem resultado aprovado', {
                         description: 'Aprove os ensaios na tela de Revisão antes de assinar.',
+                      });
+                      return;
+                    }
+                    if (!laudoLiberado(problemas)) {
+                      const impedem = problemas.filter((p) => p.gravidade === 'impede');
+                      toast.error('O laudo não pode ser emitido', {
+                        description: impedem[0].mensagem,
                       });
                       return;
                     }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  abaixoDoLq, conferirLaudo, cumpreGarantia, faixaAdequada, lerGarantia, nivelDeSuficiencia,
+  abaixoDoLq, calcularRelacoes, conferirLaudo, cumpreGarantia, faixaAdequada, lerGarantia, nivelDeSuficiencia,
   podeEmitir, textoDaFaixa, textoDaGarantia, textoDaUnidade, textoDoResultado,
 } from './resultado';
 import type { EntradaConferencia } from './resultado';
@@ -292,5 +292,78 @@ describe('conferirLaudo', () => {
   it('zero é resultado, não ausência', () => {
     const p = conferirLaudo({ itens: [item({ valor: 0 })] });
     expect(p).toEqual([]);
+  });
+});
+
+describe('calcularRelacoes', () => {
+  /* Os números do laudo 2474 (cacau, amostra 5177): N 23,34 g/kg,
+     P 2,15 g/kg, K 2,16 g/kg, Cu 11,24 mg/kg, B 41,35 mg/kg. */
+  const amostra = {
+    N: { valor: 23.34, unidade: 'g/Kg' },
+    P: { valor: 2.15, unidade: 'g/Kg' },
+    K: { valor: 2.16, unidade: 'g/Kg' },
+    CA: { valor: 9.12, unidade: 'g/Kg' },
+    MG: { valor: 4.23, unidade: 'g/Kg' },
+    S: { valor: 1.86, unidade: 'g/Kg' },
+    B: { valor: 41.35, unidade: 'mg/Kg' },
+    CU: { valor: 11.24, unidade: 'mg/Kg' },
+    FE: { valor: 152.31, unidade: 'mg/Kg' },
+    MN: { valor: 55.62, unidade: 'mg/Kg' },
+    ZN: { valor: 35.25, unidade: 'mg/Kg' },
+  };
+
+  const valorDe = (nome: string) => calcularRelacoes(amostra).find((r) => r.nome === nome)?.valor;
+
+  it('relação entre dois macronutrientes bate com o laudo', () => {
+    // N/P = 23,34 / 2,15 = 10,86
+    expect(valorDe('N/P')).toBeCloseTo(10.86, 2);
+    expect(valorDe('N/K')).toBeCloseTo(10.81, 2);
+    expect(valorDe('N/S')).toBeCloseTo(12.55, 2);
+    expect(valorDe('N/Mg')).toBeCloseTo(5.52, 2);
+    expect(valorDe('Ca/Mg')).toBeCloseTo(2.16, 2);
+  });
+
+  /* Relação entre unidades diferentes: o laboratório divide os
+     números como foram reportados, sem converter. Dimensionalmente
+     inconsistente, mas é o que os laudos dele trazem e o que as
+     normas de referência que ele usa pressupõem. */
+  it('divide os valores reportados, sem converter unidade', () => {
+    expect(valorDe('N/Cu')).toBeCloseTo(2.08, 2);
+    expect(valorDe('N/B')).toBeCloseTo(0.56, 2);
+    expect(valorDe('P/Zn')).toBeCloseTo(0.06, 2);
+    expect(valorDe('P/Cu')).toBeCloseTo(0.19, 2);
+  });
+
+  it('relação entre dois micronutrientes bate com o laudo', () => {
+    expect(valorDe('Fe/Mn')).toBeCloseTo(2.74, 2);
+    expect(valorDe('K/Mn')).toBeCloseTo(0.04, 2);
+    expect(valorDe('Ca/Mn')).toBeCloseTo(0.16, 2);
+  });
+
+  it('entrega as quinze relações quando tudo foi analisado', () => {
+    expect(calcularRelacoes(amostra)).toHaveLength(15);
+  });
+
+  it('relação com elemento não analisado não aparece', () => {
+    const r = calcularRelacoes({ ...amostra, S: undefined });
+    expect(r.find((x) => x.nome === 'N/S')).toBeUndefined();
+    expect(r.find((x) => x.nome === 'N/P')).toBeDefined();
+  });
+
+  it('não divide por zero', () => {
+    const r = calcularRelacoes({ ...amostra, MN: { valor: 0, unidade: 'mg/Kg' } });
+    expect(r.find((x) => x.nome === 'Fe/Mn')).toBeUndefined();
+  });
+
+  it('a unidade não entra na conta', () => {
+    const emPorcento = calcularRelacoes({
+      N: { valor: 23.34, unidade: '%' },
+      P: { valor: 2.15, unidade: '%' },
+    });
+    expect(emPorcento.find((x) => x.nome === 'N/P')?.valor).toBeCloseTo(10.86, 2);
+  });
+
+  it('amostra sem nada não produz relação', () => {
+    expect(calcularRelacoes({})).toEqual([]);
   });
 });

@@ -108,6 +108,8 @@ export const MODELO_PADRAO: ModeloLaudo = {
   nome: 'Padrão do sistema',
   ordemParametros: [],
   agrupamento: 'nenhum',
+  layout: 'generico',
+  mostrarTabelaReferencia: false,
   observacaoIds: [],
   mostrarIncerteza: true,
   mostrarInterpretacao: true,

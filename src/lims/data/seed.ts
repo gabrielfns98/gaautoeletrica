@@ -694,6 +694,9 @@ export const calibracaoVigente = new Map<string, Calibracao>(
 /* ---------------- Amostras, ensaios e leituras ---------------- */
 
 const FAZENDAS = ['Serra Azul', 'Boa Esperança', 'Três Marias', 'Nova Canaã', 'Campo Belo', 'Santa Rita', 'Alto da Serra', 'Vale Verde', 'Rio Preto', 'Chapadão'];
+/** Culturas com faixa foliar cadastrada — ver `legendas`. */
+const CULTURAS_FOLIARES = ['SOJA', 'CAFE', 'CACAU', 'LARANJA'];
+
 const TALHOES = ['T-01', 'T-02', 'T-03', 'T-04A', 'T-04B', 'T-07', 'T-11', 'T-12', 'T-15', 'T-22', 'Pivô 3', 'Pivô 8'];
 const CULTURAS = ['Soja', 'Milho 2ª safra', 'Algodão', 'Cana-de-açúcar', 'Café', 'Pastagem', 'Feijão', 'Sorgo'];
 const PROFUNDIDADES = ['0-20 cm', '20-40 cm', '40-60 cm', '0-10 cm'];
@@ -957,7 +960,15 @@ for (let l = 0; l < 210; l++) {
       fazenda: grupoLote === 'solo' || grupoLote === 'foliar' ? fazenda : undefined,
       talhao: grupoLote === 'solo' ? escolher(TALHOES) : undefined,
       profundidade: grupoLote === 'solo' ? escolher(PROFUNDIDADES) : undefined,
-      cultura: ['solo', 'foliar', 'seiva', 'nematoides'].includes(grupoLote) ? escolher(CULTURAS) : undefined,
+      /* A cultura é o que resolve a faixa de interpretação no laudo
+         foliar. Amostra de folha sai só com cultura que tem faixa
+         cadastrada, senão o laudo nasce bloqueado na conferência —
+         que é o comportamento certo, mas não ajuda a demonstração. */
+      cultura: grupoLote === 'foliar'
+        ? escolher(CULTURAS_FOLIARES)
+        : ['solo', 'seiva', 'nematoides'].includes(grupoLote)
+          ? escolher(CULTURAS)
+          : undefined,
       dataColeta: diasAtras(diasAtrasRecepcao + inteiro(1, 6)),
       dataRecepcao: lote.dataRecepcao,
       // Amostra recente ainda tem prazo pela frente; antiga já venceu.
@@ -1074,7 +1085,8 @@ export const modelosLaudo: ModeloLaudo[] = [
   {
     id: 'mdl-geral', nome: 'Padrão do laboratório',
     cabecalho: 'Laudo emitido eletronicamente — confira pelo código de verificação.',
-    ordemParametros: [], agrupamento: 'nenhum',
+    ordemParametros: [], agrupamento: 'nenhum', layout: 'generico',
+    mostrarTabelaReferencia: false,
     observacaoIds: ['obs-01', 'obs-02', 'obs-03'],
     mostrarIncerteza: true, mostrarInterpretacao: true, mostrarMetodos: true,
     cargoAssinatura: 'Responsável técnico', disposicaoPadrao: 'amostra', ativo: true,
@@ -1089,7 +1101,7 @@ export const modelosLaudo: ModeloLaudo[] = [
       'S', 'H+AL', 'AL', 'B', 'CU', 'FE', 'MN', 'ZN', 'NA',
       'SB', 'CTC', 'V', 'M', 'ARG',
     ].map(idDe).filter(Boolean),
-    agrupamento: 'nenhum',
+    agrupamento: 'nenhum', layout: 'generico', mostrarTabelaReferencia: false,
     observacaoIds: ['obs-01', 'obs-03'],
     mostrarIncerteza: true, mostrarInterpretacao: true, mostrarMetodos: true,
     cargoAssinatura: 'Responsável técnico', disposicaoPadrao: 'amostra', ativo: true,
@@ -1098,13 +1110,41 @@ export const modelosLaudo: ModeloLaudo[] = [
     id: 'mdl-agua', nome: 'Água e efluentes',
     grupoId: 'agua-efluentes',
     ordemParametros: ['PH-AGUA', 'CE', 'TURB', 'DBO', 'DQO'].map(idDe).filter(Boolean),
-    agrupamento: 'nenhum',
+    agrupamento: 'nenhum', layout: 'generico', mostrarTabelaReferencia: false,
     observacaoIds: ['obs-01', 'obs-02'],
     mostrarIncerteza: true,
     // Em água o que vale é o limite legal, não a faixa agronômica.
     mostrarInterpretacao: false,
     mostrarMetodos: true,
     cargoAssinatura: 'Responsável técnico', disposicaoPadrao: 'matriz', ativo: true,
+  },
+  {
+    id: 'mdl-analitico', nome: 'Laudo Analítico — fertilizantes e corretivos',
+    grupoId: 'fertilizantes',
+    layout: 'analitico',
+    registroMapa: 'CCE – MAPA: BA-00959',
+    ordemParametros: [], agrupamento: 'nenhum',
+    observacaoIds: [],
+    mostrarIncerteza: false, mostrarInterpretacao: false, mostrarMetodos: false,
+    mostrarTabelaReferencia: false,
+    cargoAssinatura: 'Responsável Técnico', disposicaoPadrao: 'amostra', ativo: true,
+  },
+  {
+    id: 'mdl-foliar', nome: 'Tecido Vegetal (Foliar)',
+    grupoId: 'foliar',
+    layout: 'foliar',
+    selo: 'PIATV 2026',
+    ordemParametros: [
+      'N-FOL', 'P-FOL', 'K-FOL', 'CA-FOL', 'MG-FOL', 'S-FOL',
+      'B-FOL', 'CU-FOL', 'FE-FOL', 'MN-FOL', 'ZN-FOL',
+    ].map(idDe).filter(Boolean),
+    agrupamento: 'nenhum',
+    observacaoIds: ['obs-06', 'obs-01', 'obs-07', 'obs-08'],
+    mostrarIncerteza: false, mostrarInterpretacao: true, mostrarMetodos: false,
+    mostrarTabelaReferencia: true,
+    fonteReferencia: 'Boletim Técnico 100, IAC, 2022',
+    cargoAssinatura: 'Responsável Técnico — CREA/CRQ',
+    disposicaoPadrao: 'amostra', ativo: true,
   },
 ];
 
@@ -1939,6 +1979,496 @@ export const legendas: Legenda[] = [
       { de: 80, rotulo: 'Aprovado', severidade: 'ideal' },
     ],
   },
+
+  /* ---- Faixas foliares por cultura ----
+     Vêm dos laudos que o laboratório emite. Duas estavam escritas à
+     mão e saíram erradas: "04-20" no Ca da soja e "2,,0-3,0" no S da
+     laranja. Como faixa aqui é par de números, nenhuma das duas volta
+     a ser possível de escrever. */
+  {
+    id: 'leg-fol-n-cacau', codigo: 'LEG-N-CACAU',
+    nome: 'N foliar — Cacau',
+    parametroId: idDe('N-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 20, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 20, ate: 25, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 25, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-p-cacau', codigo: 'LEG-P-CACAU',
+    nome: 'P foliar — Cacau',
+    parametroId: idDe('P-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 1.8, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 1.8, ate: 2.5, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 2.5, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-k-cacau', codigo: 'LEG-K-CACAU',
+    nome: 'K foliar — Cacau',
+    parametroId: idDe('K-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 13, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 13, ate: 23, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 23, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-ca-cacau', codigo: 'LEG-CA-CACAU',
+    nome: 'CA foliar — Cacau',
+    parametroId: idDe('CA-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 8, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 8, ate: 12, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 12, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-mg-cacau', codigo: 'LEG-MG-CACAU',
+    nome: 'MG foliar — Cacau',
+    parametroId: idDe('MG-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 3, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 3, ate: 7, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 7, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-s-cacau', codigo: 'LEG-S-CACAU',
+    nome: 'S foliar — Cacau',
+    parametroId: idDe('S-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 1.6, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 1.6, ate: 2, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 2, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-b-cacau', codigo: 'LEG-B-CACAU',
+    nome: 'B foliar — Cacau',
+    parametroId: idDe('B-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 25, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 25, ate: 60, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 60, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-cu-cacau', codigo: 'LEG-CU-CACAU',
+    nome: 'CU foliar — Cacau',
+    parametroId: idDe('CU-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 8, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 8, ate: 15, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 15, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-fe-cacau', codigo: 'LEG-FE-CACAU',
+    nome: 'FE foliar — Cacau',
+    parametroId: idDe('FE-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 60, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 60, ate: 200, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 200, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-mn-cacau', codigo: 'LEG-MN-CACAU',
+    nome: 'MN foliar — Cacau',
+    parametroId: idDe('MN-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 50, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 50, ate: 250, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 250, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-zn-cacau', codigo: 'LEG-ZN-CACAU',
+    nome: 'ZN foliar — Cacau',
+    parametroId: idDe('ZN-FOL'), cultura: 'CACAU', fonte: 'CEPLAC — diagnose foliar do cacaueiro',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 30, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 30, ate: 80, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 80, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-n-cafe', codigo: 'LEG-N-CAFE',
+    nome: 'N foliar — Café',
+    parametroId: idDe('N-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 25, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 25, ate: 30, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 30, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-p-cafe', codigo: 'LEG-P-CAFE',
+    nome: 'P foliar — Café',
+    parametroId: idDe('P-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 1.5, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 1.5, ate: 2, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 2, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-k-cafe', codigo: 'LEG-K-CAFE',
+    nome: 'K foliar — Café',
+    parametroId: idDe('K-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 20, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 20, ate: 30, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 30, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-ca-cafe', codigo: 'LEG-CA-CAFE',
+    nome: 'CA foliar — Café',
+    parametroId: idDe('CA-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 10, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 10, ate: 15, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 15, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-mg-cafe', codigo: 'LEG-MG-CAFE',
+    nome: 'MG foliar — Café',
+    parametroId: idDe('MG-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 3, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 3, ate: 5, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 5, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-s-cafe', codigo: 'LEG-S-CAFE',
+    nome: 'S foliar — Café',
+    parametroId: idDe('S-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 1.5, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 1.5, ate: 2, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 2, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-b-cafe', codigo: 'LEG-B-CAFE',
+    nome: 'B foliar — Café',
+    parametroId: idDe('B-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 60, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 60, ate: 100, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 100, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-cu-cafe', codigo: 'LEG-CU-CAFE',
+    nome: 'CU foliar — Café',
+    parametroId: idDe('CU-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 10, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 10, ate: 20, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 20, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-fe-cafe', codigo: 'LEG-FE-CAFE',
+    nome: 'FE foliar — Café',
+    parametroId: idDe('FE-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 50, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 50, ate: 200, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 200, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-mn-cafe', codigo: 'LEG-MN-CAFE',
+    nome: 'MN foliar — Café',
+    parametroId: idDe('MN-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 50, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 50, ate: 200, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 200, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-zn-cafe', codigo: 'LEG-ZN-CAFE',
+    nome: 'ZN foliar — Café',
+    parametroId: idDe('ZN-FOL'), cultura: 'CAFE', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 20, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 20, ate: 40, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 40, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-n-soja', codigo: 'LEG-N-SOJA',
+    nome: 'N foliar — Soja',
+    parametroId: idDe('N-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 39, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 39, ate: 54, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 54, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-p-soja', codigo: 'LEG-P-SOJA',
+    nome: 'P foliar — Soja',
+    parametroId: idDe('P-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 2.5, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 2.5, ate: 5, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 5, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-k-soja', codigo: 'LEG-K-SOJA',
+    nome: 'K foliar — Soja',
+    parametroId: idDe('K-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 17, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 17, ate: 25, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 25, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-ca-soja', codigo: 'LEG-CA-SOJA',
+    nome: 'CA foliar — Soja',
+    parametroId: idDe('CA-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 4, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 4, ate: 20, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 20, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-mg-soja', codigo: 'LEG-MG-SOJA',
+    nome: 'MG foliar — Soja',
+    parametroId: idDe('MG-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 3, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 3, ate: 10, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 10, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-s-soja', codigo: 'LEG-S-SOJA',
+    nome: 'S foliar — Soja',
+    parametroId: idDe('S-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 2.1, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 2.1, ate: 4, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 4, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-b-soja', codigo: 'LEG-B-SOJA',
+    nome: 'B foliar — Soja',
+    parametroId: idDe('B-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 21, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 21, ate: 55, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 55, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-cu-soja', codigo: 'LEG-CU-SOJA',
+    nome: 'CU foliar — Soja',
+    parametroId: idDe('CU-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 10, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 10, ate: 30, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 30, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-fe-soja', codigo: 'LEG-FE-SOJA',
+    nome: 'FE foliar — Soja',
+    parametroId: idDe('FE-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 50, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 50, ate: 350, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 350, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-mn-soja', codigo: 'LEG-MN-SOJA',
+    nome: 'MN foliar — Soja',
+    parametroId: idDe('MN-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 20, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 20, ate: 100, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 100, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-zn-soja', codigo: 'LEG-ZN-SOJA',
+    nome: 'ZN foliar — Soja',
+    parametroId: idDe('ZN-FOL'), cultura: 'SOJA', fonte: 'Embrapa Soja — tecnologias de produção',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 20, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 20, ate: 50, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 50, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-n-laranja', codigo: 'LEG-N-LARANJA',
+    nome: 'N foliar — Laranja',
+    parametroId: idDe('N-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 25, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 25, ate: 30, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 30, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-p-laranja', codigo: 'LEG-P-LARANJA',
+    nome: 'P foliar — Laranja',
+    parametroId: idDe('P-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 1.2, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 1.2, ate: 1.6, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 1.6, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-k-laranja', codigo: 'LEG-K-LARANJA',
+    nome: 'K foliar — Laranja',
+    parametroId: idDe('K-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 10, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 10, ate: 15, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 15, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-ca-laranja', codigo: 'LEG-CA-LARANJA',
+    nome: 'CA foliar — Laranja',
+    parametroId: idDe('CA-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 35, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 35, ate: 50, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 50, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-mg-laranja', codigo: 'LEG-MG-LARANJA',
+    nome: 'MG foliar — Laranja',
+    parametroId: idDe('MG-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 3.5, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 3.5, ate: 5, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 5, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-s-laranja', codigo: 'LEG-S-LARANJA',
+    nome: 'S foliar — Laranja',
+    parametroId: idDe('S-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 2, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 2, ate: 3, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 3, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-b-laranja', codigo: 'LEG-B-LARANJA',
+    nome: 'B foliar — Laranja',
+    parametroId: idDe('B-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 50, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 50, ate: 150, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 150, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-cu-laranja', codigo: 'LEG-CU-LARANJA',
+    nome: 'CU foliar — Laranja',
+    parametroId: idDe('CU-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 10, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 10, ate: 20, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 20, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-fe-laranja', codigo: 'LEG-FE-LARANJA',
+    nome: 'FE foliar — Laranja',
+    parametroId: idDe('FE-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 50, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 50, ate: 150, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 150, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-mn-laranja', codigo: 'LEG-MN-LARANJA',
+    nome: 'MN foliar — Laranja',
+    parametroId: idDe('MN-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 30, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 30, ate: 60, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 60, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
+  {
+    id: 'leg-fol-zn-laranja', codigo: 'LEG-ZN-LARANJA',
+    nome: 'ZN foliar — Laranja',
+    parametroId: idDe('ZN-FOL'), cultura: 'LARANJA', fonte: 'Boletim Técnico 100, IAC, 2022',
+    padrao: false, ativa: true,
+    faixas: [
+      { ate: 35, rotulo: 'Baixo', severidade: 'critico' },
+      { de: 35, ate: 70, rotulo: 'Adequado', severidade: 'ideal' },
+      { de: 70, rotulo: 'Alto', severidade: 'atencao' },
+    ],
+  },
 ];
 
 /* ---------------- Cadastros simples ---------------- */
@@ -2010,4 +2540,8 @@ export const observacoesFixas: ItemSimples[] = [
   { id: 'obs-03', codigo: 'OBS-COLETA', nome: 'A coleta foi realizada pelo cliente; o laboratório não se responsabiliza pela representatividade da amostra.', ativo: true },
   { id: 'obs-04', codigo: 'OBS-SUBCONTRATADO', nome: 'Ensaio subcontratado a laboratório parceiro, identificado no corpo do laudo.', ativo: true },
   { id: 'obs-05', codigo: 'OBS-FORA-ESCOPO', nome: 'Ensaio fora do escopo de acreditação.', ativo: true },
+  { id: 'obs-06', codigo: 'OBS-DIGESTAO', nome: 'N — Digestão Sulfúrica; P, K, Ca, Mg, S, Cu, Fe, Mn, Zn, Na, Al e Ni — Digestão Nítrico-perclórica; B, Co e Mo — Incineração.', ativo: true },
+  { id: 'obs-07', codigo: 'OBS-JURIDICO', nome: 'Este laudo não tem fins jurídicos.', ativo: true },
+  { id: 'obs-08', codigo: 'OBS-DESCARTE', nome: 'Após 90 dias todas as amostras serão descartadas.', ativo: true },
+  { id: 'obs-09', codigo: 'OBS-IDENTIFICACAO', nome: 'A identificação da amostra é de exclusiva responsabilidade do remetente.', ativo: true },
 ];

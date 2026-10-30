@@ -395,6 +395,18 @@
     page-break-inside: avoid;
   }
 
+  /* O laudo foliar é uma página por amostra: é assim que o cliente
+     arquiva e é assim que o laboratório entrega hoje. */
+  .folha-laudo .pagina-laudo {
+    break-after: page;
+    page-break-after: always;
+    border-top: none;
+  }
+  .folha-laudo .pagina-laudo:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
   .folha-laudo table { width: 100%; }
   .folha-laudo thead { display: table-header-group; }
   .folha-laudo tr { break-inside: avoid; page-break-inside: avoid; }

@@ -286,3 +286,61 @@ export function conferirLaudo(entrada: EntradaConferencia): ProblemaLaudo[] {
 /** Atalho: o laudo pode ser assinado? */
 export const podeEmitir = (problemas: ProblemaLaudo[]) =>
   !problemas.some((p) => p.gravidade === 'impede');
+
+/* ---------------- Relações entre elementos (Modelo B) ---------------- */
+
+/**
+ * As relações que o laudo foliar traz, na ordem em que o laboratório
+ * as imprime. São quinze, e o agrônomo lê algumas delas — N/K, Ca/Mg,
+ * Fe/Mn — antes de olhar os valores absolutos: um Mg adequado com
+ * Ca/Mg de 10 ainda é deficiência de magnésio induzida.
+ */
+export const RELACOES_FOLIARES: Array<[string, string]> = [
+  ['N', 'P'], ['N', 'K'], ['N', 'S'], ['N', 'Mg'], ['N', 'Cu'], ['N', 'B'],
+  ['P', 'Mg'], ['P', 'Zn'], ['P', 'Cu'],
+  ['K', 'Ca'], ['K', 'Mg'], ['K', 'Mn'],
+  ['Ca', 'Mg'], ['Ca', 'Mn'],
+  ['Fe', 'Mn'],
+];
+
+export interface Relacao {
+  nome: string;
+  valor: number;
+}
+
+/**
+ * Calcula as relações a partir dos resultados da amostra.
+ *
+ * A divisão é feita sobre os números como foram reportados, sem
+ * converter unidade. Isso torna N/Cu — g/kg sobre mg/kg —
+ * dimensionalmente inconsistente, e foi uma escolha deliberada:
+ * é o que os laudos do laboratório trazem hoje (N/Cu 2,08 de
+ * 23,34 g/kg e 11,24 mg/kg), é como as normas de referência que
+ * ele usa estão tabeladas, e normalizar mudaria por mil vezes
+ * seis das quinze relações, quebrando a comparação com todo o
+ * histórico que o cliente já recebeu.
+ *
+ * Se o laboratório preferir a conta dimensional, é aqui que muda —
+ * e aí as faixas de referência precisam mudar junto.
+ *
+ * Relação só sai quando os dois elementos foram analisados: a que
+ * falta simplesmente não aparece, em vez de imprimir zero.
+ */
+export function calcularRelacoes(
+  valores: Record<string, { valor: number | undefined; unidade: string } | undefined>,
+): Relacao[] {
+  const reportado = (chave: string): number | undefined => {
+    const item = valores[chave.toUpperCase()];
+    if (!item || item.valor === undefined || !Number.isFinite(item.valor)) return undefined;
+    return item.valor;
+  };
+
+  const saida: Relacao[] = [];
+  for (const [a, b] of RELACOES_FOLIARES) {
+    const va = reportado(a);
+    const vb = reportado(b);
+    if (va === undefined || vb === undefined || vb === 0) continue;
+    saida.push({ nome: `${a}/${b}`, valor: va / vb });
+  }
+  return saida;
+}

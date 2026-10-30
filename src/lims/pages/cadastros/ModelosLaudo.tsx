@@ -119,6 +119,7 @@ export function ModelosLaudo() {
         id: novoId('mdl'), nome: '',
         unidadeId: QUALQUER, grupoId: QUALQUER as ModeloLaudo['grupoId'],
         ordemParametros: [], agrupamento: 'nenhum' as const, observacaoIds: [],
+        layout: 'generico' as const, mostrarTabelaReferencia: false,
         mostrarIncerteza: true, mostrarInterpretacao: true, mostrarMetodos: true,
         cargoAssinatura: 'Responsável técnico', disposicaoPadrao: 'amostra' as const, ativo: true,
       })}
