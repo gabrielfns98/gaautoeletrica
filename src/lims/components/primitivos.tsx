@@ -64,7 +64,7 @@ export function Indicador({
       )}
     >
       {destaque && (
-        <span className="ph-spectrum absolute inset-x-0 top-0 h-px opacity-70" aria-hidden />
+        <span className="faixa-marca absolute inset-x-0 top-0 h-px opacity-70" aria-hidden />
       )}
       <div className="flex items-start justify-between gap-3">
         <p className="label-micro">{rotulo}</p>

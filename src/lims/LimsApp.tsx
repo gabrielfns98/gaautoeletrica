@@ -19,7 +19,7 @@ import Recepcao from './pages/Recepcao';
 import Importacao from './pages/Importacao';
 import Etiquetas from './pages/Etiquetas';
 import Amostras from './pages/Amostras';
-import EstacaoPh from './pages/ph';
+import EstacaoAquisicao from './pages/ph';
 import Resultados from './pages/Resultados';
 import Ensaios from './pages/Ensaios';
 import Laudos from './pages/Laudos';
@@ -59,7 +59,10 @@ export default function LimsApp() {
           <Route path="importacao" element={<Protegido modulo="amostras"><Importacao /></Protegido>} />
           <Route path="etiquetas" element={<Protegido modulo="amostras"><Etiquetas /></Protegido>} />
           <Route path="amostras" element={<Protegido modulo="amostras"><Amostras /></Protegido>} />
-          <Route path="ph" element={<Protegido modulo="ph"><EstacaoPh /></Protegido>} />
+          <Route path="bancada" element={<Protegido modulo="ph"><EstacaoAquisicao /></Protegido>} />
+          {/* O endereço antigo continua respondendo: ele já está em
+              favorito e no histórico de quem usou a demonstração. */}
+          <Route path="ph" element={<Navigate to={rota('/bancada')} replace />} />
           <Route path="resultados" element={<Protegido modulo="analises"><Resultados /></Protegido>} />
           <Route path="ensaios" element={<Protegido modulo="analises"><Ensaios /></Protegido>} />
           <Route path="laudos" element={<Protegido modulo="laudos"><Laudos /></Protegido>} />

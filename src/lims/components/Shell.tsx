@@ -42,7 +42,7 @@ const GRUPOS_NAV: Array<{ titulo: string; itens: ItemNav[] }> = [
       { modulo: 'amostras', rotulo: 'Importação', caminho: rota('/importacao'), icone: Upload },
       { modulo: 'amostras', rotulo: 'Etiquetas', caminho: rota('/etiquetas'), icone: Barcode },
       { modulo: 'amostras', rotulo: 'Amostras', caminho: rota('/amostras'), icone: TestTubes },
-      { modulo: 'ph', rotulo: 'Leitura de pH', caminho: rota('/ph'), icone: Gauge },
+      { modulo: 'ph', rotulo: 'Bancada', caminho: rota('/bancada'), icone: Gauge },
       { modulo: 'analises', rotulo: 'Resultados', caminho: rota('/resultados'), icone: TableProperties },
       { modulo: 'analises', rotulo: 'Revisão', caminho: rota('/ensaios'), icone: FlaskConical },
       { modulo: 'laudos', rotulo: 'Laudos', caminho: rota('/laudos'), icone: FileCheck2 },
@@ -142,7 +142,7 @@ function Marca({ aoFechar }: { aoFechar: () => void }) {
           <X className="h-4 w-4" />
         </Button>
       </div>
-      <span className="ph-spectrum absolute inset-x-0 bottom-0 h-px opacity-60" aria-hidden />
+      <span className="faixa-marca absolute inset-x-0 bottom-0 h-px opacity-60" aria-hidden />
     </div>
   );
 }

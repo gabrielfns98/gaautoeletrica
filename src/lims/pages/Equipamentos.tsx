@@ -94,7 +94,7 @@ export default function Equipamentos() {
         descricao="Parque instalado, controle metrológico de todo aparelho que gera resultado e cronograma de manutenção preventiva."
         acoes={
           <Button asChild variant="outline" className="gap-2">
-            <Link to={rota('/ph')}><Gauge className="h-4 w-4" /> Calibrar pHmetro</Link>
+            <Link to={rota('/bancada')}><Gauge className="h-4 w-4" /> Abrir bancada</Link>
           </Button>
         }
       />

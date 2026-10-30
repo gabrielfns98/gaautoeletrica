@@ -231,6 +231,24 @@
   filter: saturate(1.1) brightness(0.82);
 }
 
+/**
+ * Faixa de marca do sistema.
+ *
+ * A casca usava o espectro de pH como identidade visual, e isso
+ * dizia ao laboratório que o produto é um pHmetro. O pH é um ensaio
+ * entre dezenas, então a casca ganha um gradiente próprio, tirado da
+ * cor primária; o espectro fica só onde a escala de pH é mesmo o
+ * assunto — a régua de acidez e a amostra de cores das configurações.
+ */
+.faixa-marca {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary) / 0.25) 0%,
+    hsl(var(--primary)) 45%,
+    hsl(var(--accent, var(--primary))) 100%
+  );
+}
+
 .ph-spectrum {
   background: linear-gradient(
     90deg,

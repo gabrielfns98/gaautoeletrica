@@ -1,6 +1,10 @@
 /* ============================================================
-   BANCADA — módulo de pH
-   Reúne bancada, calibração, controle de qualidade e importação.
+   BANCADA — aquisição de bancada
+
+   O potenciômetro é um aparelho entre vários, não o produto. Esta
+   tela é a estação de aquisição do laboratório: quem tem driver
+   lê direto, quem não tem entra por importação ou digitação, e o
+   controle metrológico vale para todos.
    ============================================================ */
 
 import { useMemo, useState } from 'react';
@@ -8,6 +12,7 @@ import { useMemo, useState } from 'react';
 import { CabecalhoPagina, Pilula, Segmentos } from '../../components/primitivos';
 import { useBancada, useFilaPh } from '../../data/store';
 import { CRITERIOS } from '../../lib/ph';
+import { podeLer } from '../../lib/equipamento';
 import { numero } from '../../lib/format';
 
 import Bancada from './Bancada';
@@ -22,35 +27,42 @@ export default function EstacaoPh() {
   const { estado } = useBancada();
   const fila = useFilaPh();
 
-  const calibracoesVigentes = useMemo(() => {
+  /* Quantos aparelhos do parque estão impedidos de ler agora — de
+     qualquer família, não só os potenciômetros. */
+  const bloqueados = useMemo(() => {
     const agora = new Date();
-    return estado.equipamentos
-      .filter((e) => e.tipo === 'phmetro' && e.ativo)
-      .map((e) => {
+    const tipoPorId = new Map(estado.tiposEquipamento.map((t) => [t.id, t]));
+
+    return estado.equipamentos.filter((e) => {
+      if (!e.ativo) return false;
+      const tipo = tipoPorId.get(e.tipo);
+      if (!tipo || tipo.verificacao === 'nenhuma') return false;
+
+      if (tipo.verificacao === 'calibracao-multiponto') {
         const c = estado.calibracoes
           .filter((x) => x.equipamentoId === e.id)
           .sort((a, b) => +new Date(b.data) - +new Date(a.data))[0];
-        return { equipamento: e, calibracao: c, ok: c?.status === 'valida' && new Date(c.validaAte) > agora };
-      });
-  }, [estado.equipamentos, estado.calibracoes]);
-
-  const semCalibracao = calibracoesVigentes.filter((c) => !c.ok).length;
+        return !(c?.status === 'valida' && new Date(c.validaAte) > agora);
+      }
+      return !podeLer(e, tipo, estado.verificacoesEquipamento, agora).permitido;
+    }).length;
+  }, [estado.equipamentos, estado.calibracoes, estado.tiposEquipamento, estado.verificacoesEquipamento]);
 
   return (
     <>
       <CabecalhoPagina
-        eyebrow="Potenciometria"
-        titulo="Leitura de pH"
-        descricao="Estação de bancada integrada ao potenciômetro: calibração rastreável, captura automática na estabilização, réplicas com controle de RSD e carta de controle."
+        eyebrow="Aquisição"
+        titulo="Bancada"
+        descricao="Estação de aquisição do laboratório: o aparelho com driver entrega a leitura direto, o resto entra por importação ou digitação, e nenhum deles lê com verificação vencida."
         acoes={
           <>
             <Pilula tom={fila.length > 0 ? 'primario' : 'neutro'} pontinho>
               {fila.length} na fila
             </Pilula>
-            <Pilula tom={semCalibracao === 0 ? 'sucesso' : 'alerta'} pontinho>
-              {semCalibracao === 0
-                ? 'Todos os pHmetros calibrados'
-                : `${semCalibracao} ${semCalibracao === 1 ? 'pHmetro' : 'pHmetros'} sem calibração válida`}
+            <Pilula tom={bloqueados === 0 ? 'sucesso' : 'alerta'} pontinho>
+              {bloqueados === 0
+                ? 'Parque liberado para leitura'
+                : `${bloqueados} ${bloqueados === 1 ? 'aparelho bloqueado' : 'aparelhos bloqueados'}`}
             </Pilula>
           </>
         }
@@ -60,7 +72,7 @@ export default function EstacaoPh() {
             valor={aba}
             aoMudar={setAba}
             opcoes={[
-              { valor: 'bancada', rotulo: 'Bancada', contagem: fila.length },
+              { valor: 'bancada', rotulo: 'Potenciometria', contagem: fila.length },
               { valor: 'calibracao', rotulo: 'Calibração' },
               { valor: 'cq', rotulo: 'Controle de qualidade' },
               { valor: 'importacao', rotulo: 'Importação' },
