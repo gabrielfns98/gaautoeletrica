@@ -8,22 +8,39 @@
 
 import { exigirBanco } from './supabase';
 import {
-  deAmostra, deCalibracao, deCliente, deEnsaio, deEquipamento, deGrupo,
-  deLeituraPh, deLote, deMembro, dePapel, deParametro, deTabelaPreco, deUnidade,
-  paraAmostra, paraCalibracao, paraEnsaio, paraLeituraPh, paraLote,
+  deAmostra, deAmostraControle, deAuditoria, deBandeja, deCalibracao, deCliente,
+  deContato, deConvenio, deCurva, deEnsaio, deEquipamento, deGrupo, deInteracao,
+  deItemCadastro, deItemEstoque, deLaudo, deLegenda, deLeituraPh, deLote,
+  deLoteReagente, deMembro, deMetodologia, deMovimentoEstoque, deNotaFiscal,
+  deOportunidade, deOrcamento, dePapel, deParametro, deRegistroCQ,
+  deRegraDesconto, deTabelaPreco, deTipoAnalise, deTitulo, deUnidade,
+  paraAmostra, paraCalibracao, paraCliente, paraCurva, paraEnsaio, paraLegenda,
+  paraLeituraPh, paraLote, paraMembro, paraMovimentoEstoque, paraNotaFiscal,
+  paraPapel, paraRegistroCQ, paraTitulo,
 } from './mapas';
 import type {
-  LinhaAmostra, LinhaCalibracao, LinhaCliente, LinhaEnsaio, LinhaEquipamento,
-  LinhaGrupo, LinhaLeituraPh, LinhaLote, LinhaMembro, LinhaPapel, LinhaParametro,
-  LinhaTabelaPreco, LinhaUnidade,
+  LinhaAmostra, LinhaAmostraControle, LinhaAuditoria, LinhaBandeja,
+  LinhaCalibracao, LinhaCliente, LinhaContato, LinhaConvenio, LinhaCurva,
+  LinhaEnsaio, LinhaEquipamento, LinhaGrupo, LinhaInteracao, LinhaItemCadastro,
+  LinhaItemEstoque, LinhaLaudo, LinhaLegenda, LinhaLeituraPh, LinhaLote,
+  LinhaLoteReagente, LinhaMembro, LinhaMetodologia, LinhaMovimentoEstoque,
+  LinhaNotaFiscal, LinhaOportunidade, LinhaOrcamento, LinhaPapel, LinhaParametro,
+  LinhaRegistroCQ, LinhaRegraDesconto, LinhaTabelaPreco, LinhaTipoAnalise,
+  LinhaTitulo, LinhaUnidade,
 } from './mapas';
 import type {
-  Amostra, Calibracao, Cliente, Ensaio, Equipamento, GrupoAnalise, LeituraPh,
-  LoteRecepcao, Papel, Parametro, StatusAmostra, TabelaPreco, Unidade, Usuario, UUID,
+  Amostra, AmostraControle, Bandeja, Calibracao, Cliente, Contato, Convenio,
+  Curva, Ensaio, Equipamento, GrupoAnalise, Interacao, ItemEstoque, ItemSimples,
+  Laudo, Legenda, LeituraPh, LoteReagente, LoteRecepcao, Metodologia,
+  MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento, Papel, Parametro,
+  RegistroAuditoria, RegistroCQ, RegraDesconto, StatusAmostra, TabelaPreco,
+  TipoAnalise, Titulo, Unidade, Usuario, UUID,
 } from '../types';
 
 /** Teto de amostras trazidas na carga inicial, das mais recentes para trás. */
 const TETO_AMOSTRAS = 5000;
+/** A trilha de auditoria é permanente; a tela mostra o período recente. */
+const TETO_AUDITORIA = 2000;
 const PAGINA = 1000;
 
 export interface CargaBancada {
@@ -41,6 +58,30 @@ export interface CargaBancada {
   equipamentos: Equipamento[];
   calibracoes: Calibracao[];
   leiturasPh: LeituraPh[];
+  contatos: Contato[];
+  oportunidades: Oportunidade[];
+  interacoes: Interacao[];
+  amostrasControle: AmostraControle[];
+  registrosCQ: RegistroCQ[];
+  laudos: Laudo[];
+  orcamentos: Orcamento[];
+  notasFiscais: NotaFiscal[];
+  titulos: Titulo[];
+  itensEstoque: ItemEstoque[];
+  lotesReagente: LoteReagente[];
+  movimentosEstoque: MovimentoEstoque[];
+  auditoria: RegistroAuditoria[];
+  tiposAnalise: TipoAnalise[];
+  curvas: Curva[];
+  legendas: Legenda[];
+  metodologias: Metodologia[];
+  bandejas: Bandeja[];
+  profundidades: ItemSimples[];
+  culturas: ItemSimples[];
+  tiposCliente: ItemSimples[];
+  observacoesFixas: ItemSimples[];
+  convenios: Convenio[];
+  regrasDesconto: RegraDesconto[];
 }
 
 /** PostgREST devolve no máximo mil linhas por vez; aqui a página é interna. */
@@ -138,6 +179,60 @@ export async function carregarBancada(): Promise<CargaBancada> {
     'lab_leituras_ph', COLUNAS_LEITURA, 'amostra_id', idsAmostra,
   );
 
+  const [
+    contatos, oportunidades, interacoes, controles, registrosCQ, linhasLaudo,
+    vinculosLaudo, orcamentos, linhasNota, vinculosNota, titulos,
+  ] = await Promise.all([
+    tudo<LinhaContato>('lab_contatos', '*'),
+    tudo<LinhaOportunidade>('lab_oportunidades', '*', { coluna: 'ultima_interacao', crescente: false }),
+    tudo<LinhaInteracao>('lab_interacoes', '*', { coluna: 'data', crescente: false }),
+    tudo<LinhaAmostraControle>('lab_amostras_controle', '*', { coluna: 'nome' }),
+    tudo<LinhaRegistroCQ>('lab_registros_cq', '*', { coluna: 'data', crescente: false }),
+    tudo<LinhaLaudo>('lab_laudos', '*', { coluna: 'criado_em', crescente: false }),
+    tudo<{ laudo_id: string; amostra_id: string }>('lab_laudos_amostras', '*'),
+    tudo<LinhaOrcamento>('lab_orcamentos', '*', { coluna: 'emitido_em', crescente: false }),
+    tudo<LinhaNotaFiscal>('lab_notas_fiscais', '*', { coluna: 'emissao', crescente: false }),
+    tudo<{ nota_id: string; laudo_id: string }>('lab_notas_laudos', '*'),
+    tudo<LinhaTitulo>('lab_titulos', '*', { coluna: 'vencimento' }),
+  ]);
+
+  const [
+    itensEstoque, lotesReagente, movimentos, auditoria, linhasTipo, vinculosTipo,
+    curvas, legendas, metodologias, bandejas, itensCadastro, convenios, regras,
+  ] = await Promise.all([
+    tudo<LinhaItemEstoque>('lab_itens_estoque', '*', { coluna: 'nome' }),
+    tudo<LinhaLoteReagente>('lab_lotes_reagente', '*', { coluna: 'validade' }),
+    tudo<LinhaMovimentoEstoque>('lab_movimentos_estoque', '*', { coluna: 'data', crescente: false }),
+    tudo<LinhaAuditoria>('lab_auditoria', '*', { coluna: 'data', crescente: false }, TETO_AUDITORIA),
+    tudo<LinhaTipoAnalise>('lab_tipos_analise', '*', { coluna: 'codigo' }),
+    tudo<{ tipo_id: string; parametro_id: string; ordem: number }>('lab_tipos_analise_parametros', '*'),
+    tudo<LinhaCurva>('lab_curvas', '*', { coluna: 'data', crescente: false }),
+    tudo<LinhaLegenda>('lab_legendas', '*', { coluna: 'codigo' }),
+    tudo<LinhaMetodologia>('lab_metodologias', '*', { coluna: 'codigo' }),
+    tudo<LinhaBandeja>('lab_bandejas', '*', { coluna: 'codigo' }),
+    tudo<LinhaItemCadastro>('lab_itens_cadastro', '*', { coluna: 'codigo' }),
+    tudo<LinhaConvenio>('lab_convenios', '*', { coluna: 'codigo' }),
+    tudo<LinhaRegraDesconto>('lab_regras_desconto', '*', { coluna: 'quantidade_minima' }),
+  ]);
+
+  const agrupar = <T, C>(linhas: T[], chave: (l: T) => string, valor: (l: T) => C) => {
+    const mapa = new Map<string, C[]>();
+    for (const linha of linhas) {
+      const lista = mapa.get(chave(linha)) ?? [];
+      lista.push(valor(linha));
+      mapa.set(chave(linha), lista);
+    }
+    return mapa;
+  };
+
+  const amostrasDoLaudo = agrupar(vinculosLaudo, (v) => v.laudo_id, (v) => v.amostra_id);
+  const laudosDaNota = agrupar(vinculosNota, (v) => v.nota_id, (v) => v.laudo_id);
+  const parametrosDoTipo = agrupar(
+    [...vinculosTipo].sort((a, b) => a.ordem - b.ordem), (v) => v.tipo_id, (v) => v.parametro_id,
+  );
+  const daEspecie = (especie: string) =>
+    itensCadastro.filter((i) => i.especie === especie).map(deItemCadastro);
+
   return {
     unidades: unidades.map(deUnidade),
     papeis: papeis.map(dePapel),
@@ -153,6 +248,30 @@ export async function carregarBancada(): Promise<CargaBancada> {
     equipamentos: equipamentos.map(deEquipamento),
     calibracoes: linhasCalibracao.map(deCalibracao),
     leiturasPh: linhasLeitura.map((l) => deLeituraPh({ ...l, trace: null })),
+    contatos: contatos.map(deContato),
+    oportunidades: oportunidades.map(deOportunidade),
+    interacoes: interacoes.map(deInteracao),
+    amostrasControle: controles.map(deAmostraControle),
+    registrosCQ: registrosCQ.map(deRegistroCQ),
+    laudos: linhasLaudo.map((l) => deLaudo(l, amostrasDoLaudo.get(l.id) ?? [])),
+    orcamentos: orcamentos.map(deOrcamento),
+    notasFiscais: linhasNota.map((n) => deNotaFiscal(n, laudosDaNota.get(n.id) ?? [])),
+    titulos: titulos.map(deTitulo),
+    itensEstoque: itensEstoque.map(deItemEstoque),
+    lotesReagente: lotesReagente.map(deLoteReagente),
+    movimentosEstoque: movimentos.map(deMovimentoEstoque),
+    auditoria: auditoria.map(deAuditoria),
+    tiposAnalise: linhasTipo.map((t) => deTipoAnalise(t, parametrosDoTipo.get(t.id) ?? [])),
+    curvas: curvas.map(deCurva),
+    legendas: legendas.map(deLegenda),
+    metodologias: metodologias.map(deMetodologia),
+    bandejas: bandejas.map(deBandeja),
+    profundidades: daEspecie('profundidade'),
+    culturas: daEspecie('cultura'),
+    tiposCliente: daEspecie('tipo-cliente'),
+    observacoesFixas: daEspecie('observacao-fixa'),
+    convenios: convenios.map(deConvenio),
+    regrasDesconto: regras.map(deRegraDesconto),
   };
 }
 
@@ -249,4 +368,124 @@ export async function carregarTrace(leituraId: UUID): Promise<LeituraPh['trace']
   const { data, error } = await banco.from('lab_leituras_ph').select('trace').eq('id', leituraId).single();
   if (error) throw new Error(`trace: ${error.message}`);
   return (data?.trace ?? undefined) as LeituraPh['trace'];
+}
+
+/* ---------------- escrita — fase 2 ---------------- */
+
+/** Monta o update parcial a partir do mapa campo→coluna. */
+function parcialDe<T extends object>(
+  dados: Partial<T>, colunas: Record<string, string>,
+): Record<string, unknown> {
+  const parcial: Record<string, unknown> = {};
+  for (const [campo, coluna] of Object.entries(colunas)) {
+    if (campo in dados) parcial[coluna] = (dados as Record<string, unknown>)[campo] ?? null;
+  }
+  return parcial;
+}
+
+const COLUNA_LAUDO: Record<string, string> = {
+  status: 'status', emitidoEm: 'emitido_em', assinadoPorId: 'assinado_por_id',
+  versao: 'versao', hashDocumento: 'hash_documento', enviadoEmail: 'enviado_email',
+  observacoes: 'observacoes',
+};
+
+export async function gravarLaudo(laudoId: UUID, dados: Partial<Laudo>): Promise<void> {
+  const parcial = parcialDe(dados, COLUNA_LAUDO);
+  if (Object.keys(parcial).length === 0) return;
+  const banco = exigirBanco();
+  estourar('laudo', (await banco.from('lab_laudos').update(parcial).eq('id', laudoId)).error);
+}
+
+const COLUNA_TITULO: Record<string, string> = {
+  status: 'status', pagamento: 'pagamento', valorPago: 'valor_pago',
+  formaPagamento: 'forma_pagamento', vencimento: 'vencimento',
+  notaFiscalId: 'nota_fiscal_id',
+};
+
+export async function gravarTitulo(tituloId: UUID, dados: Partial<Titulo>): Promise<void> {
+  const parcial = parcialDe(dados, COLUNA_TITULO);
+  if (Object.keys(parcial).length === 0) return;
+  const banco = exigirBanco();
+  estourar('título', (await banco.from('lab_titulos').update(parcial).eq('id', tituloId)).error);
+}
+
+/** A nota entra com os laudos que ela cobre; o título a receber vem junto. */
+export async function gravarNota(
+  nota: NotaFiscal, unidadeId: UUID, titulo?: Titulo,
+): Promise<void> {
+  const banco = exigirBanco();
+  estourar('nota fiscal', (await banco.from('lab_notas_fiscais').insert(paraNotaFiscal(nota, unidadeId))).error);
+  if (nota.laudoIds.length > 0) {
+    estourar('laudos da nota', (await banco.from('lab_notas_laudos').insert(
+      nota.laudoIds.map((laudoId) => ({ nota_id: nota.id, laudo_id: laudoId })),
+    )).error);
+  }
+  if (titulo) {
+    estourar('título da nota', (await banco.from('lab_titulos').insert(paraTitulo(titulo))).error);
+  }
+}
+
+export async function gravarEstagio(
+  oportunidadeId: UUID, estagio: Oportunidade['estagio'],
+): Promise<void> {
+  const banco = exigirBanco();
+  estourar('oportunidade', (await banco.from('lab_oportunidades').update({
+    estagio, ultima_interacao: new Date().toISOString(),
+  }).eq('id', oportunidadeId)).error);
+}
+
+/** O saldo do item é recalculado por gatilho; aqui só entra o movimento. */
+export async function gravarMovimento(movimento: MovimentoEstoque): Promise<void> {
+  const banco = exigirBanco();
+  estourar('movimento de estoque',
+    (await banco.from('lab_movimentos_estoque').insert(paraMovimentoEstoque(movimento))).error);
+}
+
+/**
+ * Edição de membro. Criar conta é outro ato — o vínculo com `auth.users`
+ * nasce no convite —, então aqui só se altera quem já existe.
+ */
+export async function gravarUsuario(usuario: Usuario): Promise<void> {
+  const banco = exigirBanco();
+  const { error, count } = await banco.from('lab_membros')
+    .update(paraMembro(usuario), { count: 'exact' }).eq('id', usuario.id);
+  estourar('membro', error);
+  if (count === 0) {
+    throw new Error(
+      'Este membro ainda não existe no banco. Convide a conta pelo painel de ' +
+      'autenticação e vincule em lab_membros antes de editar o cadastro.',
+    );
+  }
+  estourar('unidades do membro',
+    (await banco.from('lab_membros_unidades').delete().eq('membro_id', usuario.id)).error);
+  if (usuario.unidadeIds.length > 0) {
+    estourar('unidades do membro', (await banco.from('lab_membros_unidades').insert(
+      usuario.unidadeIds.map((unidadeId) => ({ membro_id: usuario.id, unidade_id: unidadeId })),
+    )).error);
+  }
+}
+
+export async function gravarPapel(papel: Papel): Promise<void> {
+  const banco = exigirBanco();
+  estourar('papel', (await banco.from('lab_papeis').upsert(paraPapel(papel))).error);
+}
+
+export async function gravarCliente(cliente: Cliente): Promise<void> {
+  const banco = exigirBanco();
+  estourar('cliente', (await banco.from('lab_clientes').upsert(paraCliente(cliente))).error);
+}
+
+export async function gravarCurva(curva: Curva): Promise<void> {
+  const banco = exigirBanco();
+  estourar('curva', (await banco.from('lab_curvas').upsert(paraCurva(curva))).error);
+}
+
+export async function gravarLegenda(legenda: Legenda): Promise<void> {
+  const banco = exigirBanco();
+  estourar('legenda', (await banco.from('lab_legendas').upsert(paraLegenda(legenda))).error);
+}
+
+export async function gravarRegistroCQ(registro: RegistroCQ): Promise<void> {
+  const banco = exigirBanco();
+  estourar('registro de CQ', (await banco.from('lab_registros_cq').insert(paraRegistroCQ(registro))).error);
 }

@@ -12,9 +12,13 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const sql = readFileSync(
-  resolve(aqui, '../../../supabase/migrations/20251008120000_bancada_lims.sql'), 'utf8',
-);
+const migracoes = [
+  '20251008120000_bancada_lims.sql',
+  '20251030120000_bancada_cadastros.sql',
+];
+const sql = migracoes
+  .map((arquivo) => readFileSync(resolve(aqui, '../../../supabase/migrations', arquivo), 'utf8'))
+  .join('\n');
 const fonte = readFileSync(resolve(aqui, 'mapas.ts'), 'utf8');
 
 /** Linha → tabela. Explícito de propósito: o teste não deve adivinhar. */
@@ -32,11 +36,35 @@ const TABELA: Record<string, string> = {
   LinhaEquipamento: 'lab_equipamentos',
   LinhaCalibracao: 'lab_calibracoes',
   LinhaLeituraPh: 'lab_leituras_ph',
+  LinhaContato: 'lab_contatos',
+  LinhaOportunidade: 'lab_oportunidades',
+  LinhaInteracao: 'lab_interacoes',
+  LinhaAmostraControle: 'lab_amostras_controle',
+  LinhaRegistroCQ: 'lab_registros_cq',
+  LinhaLaudo: 'lab_laudos',
+  LinhaOrcamento: 'lab_orcamentos',
+  LinhaNotaFiscal: 'lab_notas_fiscais',
+  LinhaTitulo: 'lab_titulos',
+  LinhaItemEstoque: 'lab_itens_estoque',
+  LinhaLoteReagente: 'lab_lotes_reagente',
+  LinhaMovimentoEstoque: 'lab_movimentos_estoque',
+  LinhaAuditoria: 'lab_auditoria',
+  LinhaTipoAnalise: 'lab_tipos_analise',
+  LinhaCurva: 'lab_curvas',
+  LinhaLegenda: 'lab_legendas',
+  LinhaMetodologia: 'lab_metodologias',
+  LinhaBandeja: 'lab_bandejas',
+  LinhaItemCadastro: 'lab_itens_cadastro',
+  LinhaConvenio: 'lab_convenios',
+  LinhaRegraDesconto: 'lab_regras_desconto',
 };
 
 /** Tabelas em que a aplicação insere linha nova. */
 const INSERE = new Set([
-  'lab_lotes_recepcao', 'lab_amostras', 'lab_ensaios', 'lab_leituras_ph', 'lab_calibracoes',
+  'lab_lotes_recepcao', 'lab_amostras', 'lab_ensaios', 'lab_leituras_ph',
+  'lab_calibracoes', 'lab_clientes', 'lab_papeis', 'lab_notas_fiscais',
+  'lab_titulos', 'lab_movimentos_estoque', 'lab_registros_cq', 'lab_curvas',
+  'lab_legendas',
 ]);
 
 interface Coluna { nome: string; obrigatoria: boolean }

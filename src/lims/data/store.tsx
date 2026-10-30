@@ -18,8 +18,10 @@ import { toast } from 'sonner';
 import * as seed from './seed';
 import { COM_BANCO, supabase } from './supabase';
 import {
-  carregarBancada, gravarCalibracao, gravarEnsaio, gravarLeitura, gravarRecepcao,
-  gravarResultados, gravarStatusAmostra,
+  carregarBancada, gravarCalibracao, gravarCliente, gravarCurva, gravarEnsaio,
+  gravarEstagio, gravarLaudo, gravarLegenda, gravarLeitura, gravarMovimento,
+  gravarNota, gravarPapel, gravarRecepcao, gravarRegistroCQ, gravarResultados,
+  gravarStatusAmostra, gravarTitulo, gravarUsuario,
 } from './repositorio';
 import type { CargaBancada } from './repositorio';
 import { Carregando, Entrar, FalhaCarga } from '../components/acesso';
@@ -163,20 +165,12 @@ const mesclar = <T extends { id: UUID }>(lista: T[], id: UUID, dados: Partial<T>
 
 function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
   switch (acao.tipo) {
-    /* Carga do banco. As coleções que ainda não têm tabela mapeada entram
-       vazias: misturar massa de demonstração com dado real do laboratório
-       seria pior que mostrar módulo vazio. */
+    /* Carga do banco: substitui o estado inteiro, sem sobra de demonstração. */
     case 'carregar':
       return {
         ...estado,
         ...acao.carga,
         unidadeAtivaId: acao.carga.unidades[0]?.id ?? estado.unidadeAtivaId,
-        tiposAnalise: [], curvas: [], legendas: [], metodologias: [], bandejas: [],
-        profundidades: [], culturas: [], tiposCliente: [], convenios: [],
-        regrasDesconto: [], observacoesFixas: [], contatos: [], oportunidades: [],
-        interacoes: [], amostrasControle: [], registrosCQ: [], laudos: [],
-        orcamentos: [], titulos: [], notasFiscais: [], itensEstoque: [],
-        lotesReagente: [], movimentosEstoque: [], auditoria: [],
       };
 
     case 'trocar-usuario':
@@ -655,23 +649,22 @@ export function useAcoes() {
       regraViolada: av.regraViolada,
     };
     despachar({ tipo: 'registrar-cq', registro });
+    persistir('registro de CQ', () => gravarRegistroCQ(registro));
     auditar('Registrou controle de qualidade', 'RegistroCQ', registro.id, av.mensagem);
     return registro;
-  }, [despachar, estado.amostrasControle, estado.registrosCQ, usuario.id, auditar]);
+  }, [despachar, estado.amostrasControle, estado.registrosCQ, usuario.id, auditar, persistir]);
 
   const emitirLaudo = useCallback((laudoId: UUID) => {
-    despachar({
-      tipo: 'atualizar-laudo',
-      laudoId,
-      dados: {
-        status: 'emitido',
-        emitidoEm: new Date().toISOString(),
-        assinadoPorId: usuario.id,
-        hashDocumento: Math.random().toString(16).slice(2, 14),
-      },
-    });
+    const dados = {
+      status: 'emitido' as const,
+      emitidoEm: new Date().toISOString(),
+      assinadoPorId: usuario.id,
+      hashDocumento: Math.random().toString(16).slice(2, 14),
+    };
+    despachar({ tipo: 'atualizar-laudo', laudoId, dados });
+    persistir('laudo', () => gravarLaudo(laudoId, dados));
     auditar('Emitiu laudo', 'Laudo', laudoId, 'Laudo assinado digitalmente pelo responsável técnico');
-  }, [despachar, usuario.id, auditar]);
+  }, [despachar, usuario.id, auditar, persistir]);
 
   const emitirNota = useCallback((
     clienteId: UUID, valorServicos: number, aliquotaIss: number,
@@ -724,66 +717,72 @@ export function useAcoes() {
       notaFiscalId: nota.id,
     };
     despachar({ tipo: 'criar-nota', nota, titulo });
+    persistir('nota fiscal', () => gravarNota(nota, estado.unidadeAtivaId, titulo));
     auditar('Emitiu NFS-e', 'NotaFiscal', nota.id, `Nota ${nota.numero} enviada à prefeitura`);
     return nota;
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir, estado.unidadeAtivaId]);
 
   const baixarTitulo = useCallback((tituloId: UUID) => {
     const t = estado.titulos.find((x) => x.id === tituloId);
-    despachar({
-      tipo: 'atualizar-titulo',
-      tituloId,
-      dados: { status: 'pago', pagamento: new Date().toISOString(), valorPago: t?.valor ?? 0 },
-    });
+    const dados = {
+      status: 'pago' as const, pagamento: new Date().toISOString(), valorPago: t?.valor ?? 0,
+    };
+    despachar({ tipo: 'atualizar-titulo', tituloId, dados });
+    persistir('título', () => gravarTitulo(tituloId, dados));
     auditar('Baixou título', 'Titulo', tituloId, `Título ${t?.numero ?? tituloId} quitado`);
-  }, [despachar, estado.titulos, auditar]);
+  }, [despachar, estado.titulos, auditar, persistir]);
 
   const moverOportunidade = useCallback((oportunidadeId: UUID, estagio: Oportunidade['estagio']) => {
     despachar({ tipo: 'mover-oportunidade', oportunidadeId, estagio });
+    persistir('oportunidade', () => gravarEstagio(oportunidadeId, estagio));
     auditar('Moveu oportunidade', 'Oportunidade', oportunidadeId, `Novo estágio: ${estagio}`);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir]);
 
   const movimentarEstoque = useCallback((
     itemId: UUID, tipo: MovimentoEstoque['tipo'], quantidade: number, motivo: string,
   ) => {
-    despachar({
-      tipo: 'movimentar-estoque',
-      movimento: {
-        id: `mov-${Date.now()}`,
-        itemId, tipo, quantidade,
-        data: new Date().toISOString(),
-        usuarioId: usuario.id,
-        motivo,
-      },
-    });
+    const movimento: MovimentoEstoque = {
+      id: `mov-${Date.now()}`,
+      itemId, tipo, quantidade,
+      data: new Date().toISOString(),
+      usuarioId: usuario.id,
+      motivo,
+    };
+    despachar({ tipo: 'movimentar-estoque', movimento });
+    persistir('movimento de estoque', () => gravarMovimento(movimento));
     auditar('Movimentou estoque', 'ItemEstoque', itemId, `${tipo} de ${quantidade} — ${motivo}`);
-  }, [despachar, usuario.id, auditar]);
+  }, [despachar, usuario.id, auditar, persistir]);
 
   const salvarUsuario = useCallback((u: Usuario) => {
     despachar({ tipo: 'salvar-usuario', usuario: u });
+    persistir('membro', () => gravarUsuario(u));
     auditar('Salvou usuário', 'Usuario', u.id, `${u.nome} — papel ${u.papelId}`);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir]);
 
   const salvarPapel = useCallback((p: Papel) => {
     despachar({ tipo: 'salvar-papel', papel: p });
+    persistir('papel', () => gravarPapel(p));
     auditar('Alterou permissões', 'Papel', p.id, `${p.nome} — ${p.permissoes.length} permissões`);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir]);
 
   const salvarCurva = useCallback((c: Curva) => {
     despachar({ tipo: 'salvar-curva', curva: c });
+    persistir('curva', () => gravarCurva(c));
     auditar('Salvou curva de calibração', 'Curva', c.id,
       `${c.codigo} · R² ${c.r2.toFixed(5)} · ${c.pontos.filter((p) => !p.descartado).length} pontos`);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir]);
 
   const salvarLegenda = useCallback((l: Legenda) => {
     despachar({ tipo: 'salvar-legenda', legenda: l });
+    persistir('legenda', () => gravarLegenda(l));
     auditar('Salvou legenda', 'Legenda', l.id, `${l.codigo} · ${l.faixas.length} faixas`);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir]);
 
   const salvarCliente = useCallback((c: Cliente) => {
     despachar({ tipo: 'salvar-cliente', cliente: c });
+    persistir('cliente', () => gravarCliente(c));
     auditar('Salvou cliente', 'Cliente', c.id, c.nome);
-  }, [despachar, auditar]);
+  }, [despachar, auditar, persistir]);
 
   const criarRecepcao = useCallback((
     lote: LoteRecepcao, novasAmostras: Amostra[], novosEnsaios: Ensaio[],

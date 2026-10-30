@@ -303,3 +303,376 @@ export const paraLeituraPh = (l: LeituraPh): LinhaLeituraPh => ({
   trace: l.trace ?? null, replica_de: l.replicaDe ?? null,
   observacao: l.observacao ?? null,
 });
+
+/* ============================================================
+   Fase 2 — CRM, qualidade, laudos, financeiro, fiscal, estoque,
+   auditoria e os cadastros de referência.
+   ============================================================ */
+
+import type {
+  AmostraControle, Bandeja, Contato, Convenio, Curva, FaixaLegenda, Interacao,
+  ItemEstoque, ItemOrcamento, ItemSimples, Laudo, Legenda, LoteReagente,
+  Metodologia, MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento,
+  PontoCurva, RegistroAuditoria, RegistroCQ, RegraDesconto, ResultadoCQ,
+  StatusLaudo, StatusNota, StatusOrcamento, StatusTitulo, TipoAnalise,
+  TipoTitulo, Titulo,
+} from '../types';
+
+/* ---------------- linhas ---------------- */
+
+export interface LinhaContato {
+  id: string; cliente_id: string; nome: string; cargo: string | null;
+  email: string | null; telefone: string | null; principal: boolean;
+}
+
+export interface LinhaOportunidade {
+  id: string; titulo: string; cliente_id: string; estagio: string; valor: number;
+  probabilidade: number; previsao_fechamento: string | null;
+  responsavel_id: string | null; origem: string | null; notas: string | null;
+  criada_em: string; ultima_interacao: string;
+}
+
+export interface LinhaInteracao {
+  id: string; cliente_id: string; oportunidade_id: string | null; tipo: string;
+  resumo: string; data: string; autor_id: string | null;
+}
+
+export interface LinhaAmostraControle {
+  id: string; nome: string; tipo: string; valor_alvo: number;
+  desvio_padrao: number; lote: string | null; validade: string | null;
+  grupo_id: string | null;
+}
+
+export interface LinhaRegistroCQ {
+  id: string; controle_id: string; equipamento_id: string | null;
+  analista_id: string | null; data: string; valor_medido: number;
+  z_score: number; resultado: string; regra_violada: string | null;
+}
+
+export interface LinhaLaudo {
+  id: string; numero: string; cliente_id: string; grupo_id: string | null;
+  status: string; emitido_em: string | null; assinado_por_id: string | null;
+  versao: number; hash_documento: string | null; enviado_email: boolean;
+  observacoes: string | null;
+}
+
+export interface LinhaOrcamento {
+  id: string; numero: string; cliente_id: string; oportunidade_id: string | null;
+  status: string; emitido_em: string; valido_ate: string | null;
+  itens: ItemOrcamento[]; desconto: number; total: number;
+  responsavel_id: string | null;
+}
+
+export interface LinhaNotaFiscal {
+  id: string; modelo: string; numero: string; serie: string; cliente_id: string;
+  unidade_id: string | null; emissao: string; competencia: string; status: string;
+  codigo_servico: string; discriminacao: string; valor_servicos: number;
+  deducoes: number; base_calculo: number; aliquota_iss: number; valor_iss: number;
+  iss_retido: boolean; valor_ir: number; valor_pis: number; valor_cofins: number;
+  valor_csll: number; valor_inss: number; valor_liquido: number;
+  chave_acesso: string | null; protocolo_autorizacao: string | null;
+  motivo_rejeicao: string | null;
+}
+
+export interface LinhaTitulo {
+  id: string; tipo: string; numero: string; cliente_id: string | null;
+  fornecedor: string | null; descricao: string; categoria: string;
+  emissao: string; vencimento: string; pagamento: string | null; valor: number;
+  valor_pago: number; status: string; forma_pagamento: string | null;
+  nota_fiscal_id: string | null;
+}
+
+export interface LinhaItemEstoque {
+  id: string; codigo: string; nome: string; classe: string;
+  fabricante: string | null; unidade_medida: string; saldo: number;
+  estoque_minimo: number; localizacao: string | null; custo_unitario: number;
+  controlado: boolean;
+}
+
+export interface LinhaLoteReagente {
+  id: string; item_id: string; lote: string; validade: string;
+  quantidade: number; certificado_url: string | null; aberto: boolean;
+  aberto_em: string | null;
+}
+
+export interface LinhaMovimentoEstoque {
+  id: string; item_id: string; lote_id: string | null; tipo: string;
+  quantidade: number; data: string; usuario_id: string | null; motivo: string | null;
+}
+
+export interface LinhaAuditoria {
+  id: number; data: string; usuario_id: string | null; acao: string;
+  entidade: string; entidade_id: string | null; detalhe: string | null;
+  ip: string | null;
+}
+
+export interface LinhaTipoAnalise {
+  id: string; codigo: string; nome: string; grupo_id: string;
+  prazo_dias: number; preco: number | null; ativo: boolean;
+}
+
+export interface LinhaCurva {
+  id: string; codigo: string; nome: string; parametro_id: string;
+  equipamento_id: string | null; tipo_ajuste: string; pontos: PontoCurva[];
+  coef_angular: number; coef_linear: number; r2: number; lod: number | null;
+  loq: number | null; diluicao: number; analista_id: string | null;
+  data: string; valida_ate: string; ativa: boolean; observacao: string | null;
+}
+
+export interface LinhaLegenda {
+  id: string; codigo: string; nome: string; parametro_id: string;
+  cultura: string | null; fonte: string; faixas: FaixaLegenda[];
+  padrao: boolean; ativa: boolean;
+}
+
+export interface LinhaMetodologia {
+  id: string; codigo: string; nome: string; norma: string; versao: string;
+  vigente_desde: string; ativa: boolean;
+}
+
+export interface LinhaBandeja {
+  id: string; codigo: string; nome: string; linhas: number; colunas: number;
+  setor: string | null; ativa: boolean;
+}
+
+export interface LinhaItemCadastro {
+  id: string; especie: string; codigo: string; nome: string; ativo: boolean;
+  observacao: string | null;
+}
+
+export interface LinhaConvenio {
+  id: string; codigo: string; nome: string; ativo: boolean;
+  observacao: string | null; tabela_preco_id: string | null; desconto: number;
+  valido_ate: string | null;
+}
+
+export interface LinhaRegraDesconto {
+  id: string; codigo: string; nome: string; ativo: boolean;
+  observacao: string | null; quantidade_minima: number; percentual: number;
+}
+
+/* ---------------- banco → domínio ---------------- */
+
+export const deContato = (l: LinhaContato): Contato => ({
+  id: l.id, clienteId: l.cliente_id, nome: l.nome, cargo: txt(l.cargo),
+  email: txt(l.email), telefone: txt(l.telefone), principal: l.principal,
+});
+
+export const deOportunidade = (l: LinhaOportunidade): Oportunidade => ({
+  id: l.id, titulo: l.titulo, clienteId: l.cliente_id,
+  estagio: l.estagio as Oportunidade['estagio'], valor: num0(l.valor),
+  probabilidade: num0(l.probabilidade), previsaoFechamento: txt(l.previsao_fechamento),
+  responsavelId: txt(l.responsavel_id), criadaEm: l.criada_em,
+  ultimaInteracao: l.ultima_interacao, origem: txt(l.origem), notas: opc(l.notas),
+});
+
+export const deInteracao = (l: LinhaInteracao): Interacao => ({
+  id: l.id, clienteId: l.cliente_id, oportunidadeId: opc(l.oportunidade_id),
+  tipo: l.tipo as Interacao['tipo'], resumo: l.resumo, data: l.data,
+  autorId: txt(l.autor_id),
+});
+
+export const deAmostraControle = (l: LinhaAmostraControle): AmostraControle => ({
+  id: l.id, nome: l.nome, tipo: l.tipo as AmostraControle['tipo'],
+  valorAlvo: num0(l.valor_alvo), desvioPadrao: num0(l.desvio_padrao),
+  lote: txt(l.lote), validade: txt(l.validade),
+  grupoId: (l.grupo_id ?? '') as AmostraControle['grupoId'],
+});
+
+export const deRegistroCQ = (l: LinhaRegistroCQ): RegistroCQ => ({
+  id: l.id, controleId: l.controle_id, equipamentoId: txt(l.equipamento_id),
+  analistaId: txt(l.analista_id), data: l.data, valorMedido: num0(l.valor_medido),
+  zScore: num0(l.z_score), resultado: l.resultado as ResultadoCQ,
+  regraViolada: opc(l.regra_violada),
+});
+
+export const deLaudo = (l: LinhaLaudo, amostraIds: UUID[]): Laudo => ({
+  id: l.id, numero: l.numero, clienteId: l.cliente_id, amostraIds,
+  grupoId: (l.grupo_id ?? '') as Laudo['grupoId'], status: l.status as StatusLaudo,
+  emitidoEm: opc(l.emitido_em), assinadoPorId: opc(l.assinado_por_id),
+  versao: l.versao, hashDocumento: opc(l.hash_documento),
+  enviadoEmail: l.enviado_email, observacoes: opc(l.observacoes),
+});
+
+export const deOrcamento = (l: LinhaOrcamento): Orcamento => ({
+  id: l.id, numero: l.numero, clienteId: l.cliente_id,
+  oportunidadeId: opc(l.oportunidade_id), status: l.status as StatusOrcamento,
+  emitidoEm: l.emitido_em, validoAte: txt(l.valido_ate), itens: l.itens ?? [],
+  desconto: num0(l.desconto), total: num0(l.total),
+  responsavelId: txt(l.responsavel_id),
+});
+
+export const deNotaFiscal = (l: LinhaNotaFiscal, laudoIds: UUID[]): NotaFiscal => ({
+  id: l.id, modelo: l.modelo as NotaFiscal['modelo'], numero: l.numero,
+  serie: l.serie, clienteId: l.cliente_id, emissao: l.emissao,
+  competencia: l.competencia, status: l.status as StatusNota,
+  codigoServico: l.codigo_servico, discriminacao: l.discriminacao,
+  valorServicos: num0(l.valor_servicos), deducoes: num0(l.deducoes),
+  baseCalculo: num0(l.base_calculo), aliquotaIss: num0(l.aliquota_iss),
+  valorIss: num0(l.valor_iss), issRetido: l.iss_retido, valorIr: num0(l.valor_ir),
+  valorPis: num0(l.valor_pis), valorCofins: num0(l.valor_cofins),
+  valorCsll: num0(l.valor_csll), valorInss: num0(l.valor_inss),
+  valorLiquido: num0(l.valor_liquido), chaveAcesso: opc(l.chave_acesso),
+  protocoloAutorizacao: opc(l.protocolo_autorizacao),
+  motivoRejeicao: opc(l.motivo_rejeicao), laudoIds,
+});
+
+export const deTitulo = (l: LinhaTitulo): Titulo => ({
+  id: l.id, tipo: l.tipo as TipoTitulo, numero: l.numero,
+  clienteId: opc(l.cliente_id), fornecedor: opc(l.fornecedor),
+  descricao: l.descricao, categoria: l.categoria, emissao: l.emissao,
+  vencimento: l.vencimento, pagamento: opc(l.pagamento), valor: num0(l.valor),
+  valorPago: num0(l.valor_pago), status: l.status as StatusTitulo,
+  formaPagamento: opc(l.forma_pagamento) as Titulo['formaPagamento'],
+  notaFiscalId: opc(l.nota_fiscal_id),
+});
+
+export const deItemEstoque = (l: LinhaItemEstoque): ItemEstoque => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, classe: l.classe as ItemEstoque['classe'],
+  fabricante: txt(l.fabricante), unidadeMedida: l.unidade_medida,
+  saldo: num0(l.saldo), estoqueMinimo: num0(l.estoque_minimo),
+  localizacao: txt(l.localizacao), custoUnitario: num0(l.custo_unitario),
+  controlado: l.controlado,
+});
+
+export const deLoteReagente = (l: LinhaLoteReagente): LoteReagente => ({
+  id: l.id, itemId: l.item_id, lote: l.lote, validade: l.validade,
+  quantidade: num0(l.quantidade), certificadoUrl: opc(l.certificado_url),
+  aberto: l.aberto, abertoEm: opc(l.aberto_em),
+});
+
+export const deMovimentoEstoque = (l: LinhaMovimentoEstoque): MovimentoEstoque => ({
+  id: l.id, itemId: l.item_id, loteId: opc(l.lote_id),
+  tipo: l.tipo as MovimentoEstoque['tipo'], quantidade: num0(l.quantidade),
+  data: l.data, usuarioId: txt(l.usuario_id), motivo: txt(l.motivo),
+});
+
+export const deAuditoria = (l: LinhaAuditoria): RegistroAuditoria => ({
+  id: String(l.id), data: l.data, usuarioId: txt(l.usuario_id), acao: l.acao,
+  entidade: l.entidade, entidadeId: txt(l.entidade_id), detalhe: txt(l.detalhe),
+  ip: opc(l.ip),
+});
+
+export const deTipoAnalise = (l: LinhaTipoAnalise, parametroIds: UUID[]): TipoAnalise => ({
+  id: l.id, codigo: l.codigo, nome: l.nome,
+  grupoId: l.grupo_id as TipoAnalise['grupoId'], parametroIds,
+  prazoDias: l.prazo_dias, preco: num(l.preco), ativo: l.ativo,
+});
+
+export const deCurva = (l: LinhaCurva): Curva => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, parametroId: l.parametro_id,
+  equipamentoId: opc(l.equipamento_id), tipoAjuste: l.tipo_ajuste as Curva['tipoAjuste'],
+  pontos: l.pontos ?? [], coefAngular: num0(l.coef_angular),
+  coefLinear: num0(l.coef_linear), r2: num0(l.r2), lod: num(l.lod), loq: num(l.loq),
+  diluicao: num0(l.diluicao) || 1, analistaId: opc(l.analista_id), data: l.data,
+  validaAte: l.valida_ate, ativa: l.ativa, observacao: opc(l.observacao),
+});
+
+export const deLegenda = (l: LinhaLegenda): Legenda => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, parametroId: l.parametro_id,
+  cultura: opc(l.cultura), fonte: l.fonte, faixas: l.faixas ?? [],
+  padrao: l.padrao, ativa: l.ativa,
+});
+
+export const deMetodologia = (l: LinhaMetodologia): Metodologia => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, norma: l.norma, versao: l.versao,
+  vigenteDesde: l.vigente_desde, ativa: l.ativa,
+});
+
+export const deBandeja = (l: LinhaBandeja): Bandeja => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, linhas: l.linhas,
+  colunas: l.colunas, setor: txt(l.setor), ativa: l.ativa,
+});
+
+export const deItemCadastro = (l: LinhaItemCadastro): ItemSimples => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, ativo: l.ativo,
+  observacao: opc(l.observacao),
+});
+
+export const deConvenio = (l: LinhaConvenio): Convenio => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, ativo: l.ativo,
+  observacao: opc(l.observacao), tabelaPrecoId: opc(l.tabela_preco_id),
+  desconto: num0(l.desconto), validoAte: opc(l.valido_ate),
+});
+
+export const deRegraDesconto = (l: LinhaRegraDesconto): RegraDesconto => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, ativo: l.ativo,
+  observacao: opc(l.observacao), quantidadeMinima: l.quantidade_minima,
+  percentual: num0(l.percentual),
+});
+
+/* ---------------- domínio → banco ---------------- */
+
+export const paraCliente = (c: Cliente): LinhaCliente => ({
+  id: c.id, codigo: c.codigo, nome: c.nome, nome_fantasia: c.nomeFantasia ?? null,
+  tipo: c.tipo, documento: c.documento, inscricao_estadual: c.inscricaoEstadual ?? null,
+  email: c.email || null, telefone: c.telefone || null, cep: c.cep || null,
+  logradouro: c.logradouro || null, municipio: c.municipio, uf: c.uf,
+  segmento: c.segmento || null, consultor_id: c.consultorId ?? null,
+  tabela_preco_id: c.tabelaPrecoId || null, limite_credito: c.limiteCredito,
+  condicao_pagamento: c.condicaoPagamento || null, ativo: c.ativo,
+  observacoes: c.observacoes ?? null, criado_em: c.criadoEm,
+});
+
+/** Sem `user_id`: o vínculo com a conta de autenticação nasce no convite e
+    nunca é reescrito por edição de cadastro. */
+export const paraMembro = (u: Usuario): Omit<LinhaMembro, 'user_id'> => ({
+  id: u.id, papel_id: u.papelId, nome: u.nome, email: u.email,
+  cargo: u.cargo || null, ativo: u.ativo, mfa: u.mfa,
+  habilitacoes: u.habilitacoes as unknown as string[],
+  ultimo_acesso: u.ultimoAcesso ?? null,
+});
+
+export const paraPapel = (p: Papel): LinhaPapel => ({
+  id: p.id, nome: p.nome, descricao: p.descricao || null, sistema: p.sistema,
+  cor: p.cor, permissoes: p.permissoes as unknown as string[],
+});
+
+export const paraCurva = (c: Curva): LinhaCurva => ({
+  id: c.id, codigo: c.codigo, nome: c.nome, parametro_id: c.parametroId,
+  equipamento_id: c.equipamentoId ?? null, tipo_ajuste: c.tipoAjuste,
+  pontos: c.pontos, coef_angular: c.coefAngular, coef_linear: c.coefLinear,
+  r2: c.r2, lod: c.lod ?? null, loq: c.loq ?? null, diluicao: c.diluicao,
+  analista_id: c.analistaId ?? null, data: c.data, valida_ate: c.validaAte,
+  ativa: c.ativa, observacao: c.observacao ?? null,
+});
+
+export const paraLegenda = (l: Legenda): LinhaLegenda => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, parametro_id: l.parametroId,
+  cultura: l.cultura ?? null, fonte: l.fonte, faixas: l.faixas,
+  padrao: l.padrao, ativa: l.ativa,
+});
+
+export const paraRegistroCQ = (r: RegistroCQ): LinhaRegistroCQ => ({
+  id: r.id, controle_id: r.controleId, equipamento_id: r.equipamentoId || null,
+  analista_id: r.analistaId || null, data: r.data, valor_medido: r.valorMedido,
+  z_score: r.zScore, resultado: r.resultado, regra_violada: r.regraViolada ?? null,
+});
+
+export const paraMovimentoEstoque = (m: MovimentoEstoque): LinhaMovimentoEstoque => ({
+  id: m.id, item_id: m.itemId, lote_id: m.loteId ?? null, tipo: m.tipo,
+  quantidade: m.quantidade, data: m.data, usuario_id: m.usuarioId || null,
+  motivo: m.motivo || null,
+});
+
+export const paraNotaFiscal = (n: NotaFiscal, unidadeId: UUID): LinhaNotaFiscal => ({
+  id: n.id, modelo: n.modelo, numero: n.numero, serie: n.serie,
+  cliente_id: n.clienteId, unidade_id: unidadeId, emissao: n.emissao,
+  competencia: n.competencia, status: n.status, codigo_servico: n.codigoServico,
+  discriminacao: n.discriminacao, valor_servicos: n.valorServicos,
+  deducoes: n.deducoes, base_calculo: n.baseCalculo, aliquota_iss: n.aliquotaIss,
+  valor_iss: n.valorIss, iss_retido: n.issRetido, valor_ir: n.valorIr,
+  valor_pis: n.valorPis, valor_cofins: n.valorCofins, valor_csll: n.valorCsll,
+  valor_inss: n.valorInss, valor_liquido: n.valorLiquido,
+  chave_acesso: n.chaveAcesso ?? null,
+  protocolo_autorizacao: n.protocoloAutorizacao ?? null,
+  motivo_rejeicao: n.motivoRejeicao ?? null,
+});
+
+export const paraTitulo = (t: Titulo): LinhaTitulo => ({
+  id: t.id, tipo: t.tipo, numero: t.numero, cliente_id: t.clienteId ?? null,
+  fornecedor: t.fornecedor ?? null, descricao: t.descricao, categoria: t.categoria,
+  emissao: t.emissao, vencimento: t.vencimento, pagamento: t.pagamento ?? null,
+  valor: t.valor, valor_pago: t.valorPago, status: t.status,
+  forma_pagamento: t.formaPagamento ?? null, nota_fiscal_id: t.notaFiscalId ?? null,
+});
