@@ -21,6 +21,7 @@ import { useAcoes, useBancada, useIndices } from '../data/store';
 import {
   ALVOS_AMOSTRA, lerData, lerNumero, lerTabela, resumir, sugerirMapeamento,
 } from '../lib/importacao';
+import { lerXlsx, matrizParaTexto } from '../lib/xlsx';
 import type { LinhaValidada, SituacaoLinha, TabelaLida } from '../lib/importacao';
 import { numero } from '../lib/format';
 import { CabecalhoPagina, Indicador, Pilula, Secao, Segmentos, Vazio } from '../components/primitivos';
@@ -93,12 +94,29 @@ function Entrada({
   const inputArquivo = useRef<HTMLInputElement>(null);
 
   const carregar = async (arquivo: File) => {
-    if (/\.xlsx?$/i.test(arquivo.name)) {
-      toast.error('Planilha do Excel ainda não é lida direto', {
-        description: 'Salve como CSV, ou abra no Excel, selecione as células e cole no campo abaixo.',
+    // .xls antigo é binário de outra era e não entra aqui.
+    if (/\.xls$/i.test(arquivo.name)) {
+      toast.error('Formato .xls antigo não é lido', {
+        description: 'Abra no Excel e salve como .xlsx ou CSV.',
       });
       return;
     }
+
+    if (/\.xls[xm]$/i.test(arquivo.name)) {
+      try {
+        const planilha = lerXlsx(new Uint8Array(await arquivo.arrayBuffer()));
+        aoMudar(matrizParaTexto(planilha.matriz));
+        toast.success(`${arquivo.name} carregado`, {
+          description: `Aba ${planilha.aba} · ${planilha.matriz.length} ${planilha.matriz.length === 1 ? 'linha' : 'linhas'}`,
+        });
+      } catch (e) {
+        toast.error('Não consegui ler a planilha', {
+          description: e instanceof Error ? e.message : String(e),
+        });
+      }
+      return;
+    }
+
     const texto = await arquivo.text();
     aoMudar(texto);
     toast.info(`${arquivo.name} carregado`);
@@ -107,11 +125,11 @@ function Entrada({
   return (
     <Secao
       titulo="Arquivo"
-      descricao="CSV, TSV ou colado do Excel (Ctrl+C na planilha, Ctrl+V aqui)."
+      descricao="Excel (.xlsx), CSV, TSV ou colado da planilha (Ctrl+C lá, Ctrl+V aqui)."
       acoes={
         <>
           <input
-            ref={inputArquivo} type="file" accept=".csv,.tsv,.txt" className="hidden"
+            ref={inputArquivo} type="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void carregar(f); }}
           />
           <Button variant="outline" size="sm" onClick={() => inputArquivo.current?.click()} className="h-8 gap-1.5 text-xs">
