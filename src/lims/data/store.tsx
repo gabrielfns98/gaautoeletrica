@@ -18,8 +18,9 @@ import { toast } from 'sonner';
 import * as seed from './seed';
 import { COM_BANCO, supabase } from './supabase';
 import {
-  carregarBancada, gravarCadastro, gravarCalibracao, gravarCliente, gravarCurva,
-  gravarEnsaio, gravarImportacao,
+  apagarEnsaio,
+  carregarBancada, gravarAmostra, gravarCadastro, gravarCalibracao, gravarCliente, gravarCurva,
+  gravarEnsaio, gravarEnsaios, gravarImportacao,
   gravarEstagio, gravarLaudo, gravarLegenda, gravarLeitura, gravarMovimento,
   gravarNota, gravarPapel, gravarRecepcao, gravarRegistroCQ, gravarResultados,
   gravarStatusAmostra, gravarTitulo, gravarUsuario,
@@ -142,6 +143,8 @@ type Acao =
   | { tipo: 'lancar-resultados'; entradas: Array<{ ensaioId: UUID; valor: number }>; analistaId: UUID }
   | { tipo: 'atualizar-amostra'; amostraId: UUID; dados: Partial<Amostra> }
   | { tipo: 'criar-recepcao'; lote: LoteRecepcao; amostras: Amostra[]; ensaios: Ensaio[] }
+  | { tipo: 'incluir-ensaios'; ensaios: Ensaio[] }
+  | { tipo: 'remover-ensaio'; ensaioId: UUID }
   | { tipo: 'atualizar-laudo'; laudoId: UUID; dados: Partial<Laudo> }
   | { tipo: 'criar-laudo'; laudo: Laudo }
   | { tipo: 'criar-nota'; nota: NotaFiscal; titulo?: Titulo }
@@ -260,6 +263,12 @@ function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
 
     case 'atualizar-amostra':
       return { ...estado, amostras: mesclar(estado.amostras, acao.amostraId, acao.dados) };
+
+    case 'incluir-ensaios':
+      return { ...estado, ensaios: [...acao.ensaios, ...estado.ensaios] };
+
+    case 'remover-ensaio':
+      return { ...estado, ensaios: estado.ensaios.filter((e) => e.id !== acao.ensaioId) };
 
     case 'criar-recepcao':
       return {
@@ -642,6 +651,73 @@ export function useAcoes() {
     auditar('Alterou status da amostra', 'Amostra', amostraId, `Novo status: ${status}`);
   }, [despachar, auditar, persistir]);
 
+  /** Edição dos dados de campo da amostra depois do protocolo. */
+  const editarAmostra = useCallback((amostraId: UUID, dados: Partial<Amostra>, resumo: string) => {
+    despachar({ tipo: 'atualizar-amostra', amostraId, dados });
+    persistir('dados da amostra', () => gravarAmostra(amostraId, dados));
+    auditar('Editou amostra', 'Amostra', amostraId, resumo);
+  }, [despachar, auditar, persistir]);
+
+  /**
+   * Cancelamento guarda o motivo no próprio registro: "cancelada" sem
+   * justificativa é exatamente o que o auditor pede para explicar.
+   */
+  const cancelarAmostra = useCallback((amostraId: UUID, motivo: string) => {
+    const dados: Partial<Amostra> = {
+      status: 'cancelada',
+      naoConformidade: motivo,
+      conformeNoRecebimento: false,
+    };
+    despachar({ tipo: 'atualizar-amostra', amostraId, dados });
+    persistir('cancelamento da amostra', () => gravarAmostra(amostraId, dados));
+    auditar('Cancelou amostra', 'Amostra', amostraId, motivo);
+  }, [despachar, auditar, persistir]);
+
+  /** Inclui ensaios numa amostra já protocolada — o escopo cresceu. */
+  const incluirEnsaios = useCallback((amostra: Amostra, parametroIds: UUID[]) => {
+    const jaTem = new Set(
+      estado.ensaios.filter((e) => e.amostraId === amostra.id).map((e) => e.parametroId),
+    );
+    const novos: Ensaio[] = parametroIds
+      .filter((id) => !jaTem.has(id))
+      .map((parametroId, i) => ({
+        id: `ens-${Date.now()}-${i}`,
+        amostraId: amostra.id,
+        parametroId,
+        status: 'pendente',
+        unidade: estado.parametros.find((p) => p.id === parametroId)?.unidade ?? '',
+      }));
+    if (novos.length === 0) return 0;
+
+    despachar({ tipo: 'incluir-ensaios', ensaios: novos });
+    persistir('inclusão de ensaios', () => gravarEnsaios(novos));
+    auditar(
+      'Incluiu ensaios', 'Amostra', amostra.id,
+      `${novos.length} ensaio(s) acrescentado(s) ao escopo de ${amostra.protocolo}`,
+    );
+    return novos.length;
+  }, [despachar, estado.ensaios, estado.parametros, auditar, persistir]);
+
+  /**
+   * Retirar ensaio do escopo. Só sai o que nunca foi lido: ensaio com
+   * resultado vira repetição ou fica como está, porque apagar trabalho
+   * executado quebra a rastreabilidade que o laudo apoia.
+   */
+  const removerEnsaio = useCallback((ensaioId: UUID): { ok: boolean; motivo?: string } => {
+    const ensaio = estado.ensaios.find((e) => e.id === ensaioId);
+    if (!ensaio) return { ok: false, motivo: 'Ensaio não encontrado.' };
+    if (ensaio.status !== 'pendente') {
+      return {
+        ok: false,
+        motivo: 'Só é possível retirar ensaio que ainda não foi lido. Este já tem trabalho de bancada registrado.',
+      };
+    }
+    despachar({ tipo: 'remover-ensaio', ensaioId });
+    persistir('remoção de ensaio', () => apagarEnsaio(ensaioId));
+    auditar('Retirou ensaio', 'Amostra', ensaio.amostraId, `Ensaio ${ensaioId} retirado do escopo antes da leitura`);
+    return { ok: true };
+  }, [despachar, estado.ensaios, auditar, persistir]);
+
   const registrarCQ = useCallback((
     controleId: UUID, equipamentoId: UUID, valorMedido: number,
   ): RegistroCQ => {
@@ -865,7 +941,8 @@ export function useAcoes() {
 
   return {
     registrarLeitura, salvarCalibracao, lancarResultados, aprovarEnsaio, repetirEnsaio,
-    mudarStatusAmostra, registrarCQ, emitirLaudo, emitirNota, baixarTitulo,
+    mudarStatusAmostra, editarAmostra, cancelarAmostra, incluirEnsaios, removerEnsaio,
+    registrarCQ, emitirLaudo, emitirNota, baixarTitulo,
     moverOportunidade, movimentarEstoque, salvarUsuario, salvarPapel,
     salvarCliente, salvarCurva, salvarLegenda, salvarCadastro, criarRecepcao, registrarImportacao,
     trocarUsuario, trocarUnidade,

@@ -369,6 +369,43 @@ export async function gravarStatusAmostra(amostraId: UUID, status: StatusAmostra
   estourar('amostra', (await banco.from('lab_amostras').update({ status }).eq('id', amostraId)).error);
 }
 
+/** Campos da amostra que a recepção edita depois do protocolo. */
+const COLUNA_AMOSTRA: Record<string, string> = {
+  identificacaoCampo: 'identificacao_campo', fazenda: 'fazenda', talhao: 'talhao',
+  profundidade: 'profundidade', cultura: 'cultura', dataColeta: 'data_coleta',
+  prazoEntrega: 'prazo_entrega', prioridade: 'prioridade', posicaoBandeja: 'posicao_bandeja',
+  massaRecebida: 'massa_recebida', temperaturaRecebimento: 'temperatura_recebimento',
+  conformeNoRecebimento: 'conforme_no_recebimento', naoConformidade: 'nao_conformidade',
+  status: 'status', tipoAnaliseId: 'tipo_analise_id',
+};
+
+/** Como em `gravarEnsaio`: só viaja a coluna que veio em `dados`. */
+export async function gravarAmostra(amostraId: UUID, dados: Partial<Amostra>): Promise<void> {
+  const parcial: Record<string, unknown> = {};
+  for (const [campo, coluna] of Object.entries(COLUNA_AMOSTRA)) {
+    if (campo in dados) parcial[coluna] = (dados as Record<string, unknown>)[campo] ?? null;
+  }
+  if (Object.keys(parcial).length === 0) return;
+  const banco = exigirBanco();
+  estourar('amostra', (await banco.from('lab_amostras').update(parcial).eq('id', amostraId)).error);
+}
+
+export async function gravarEnsaios(ensaios: Ensaio[]): Promise<void> {
+  if (ensaios.length === 0) return;
+  const banco = exigirBanco();
+  estourar('ensaios', (await banco.from('lab_ensaios').insert(ensaios.map(paraEnsaio))).error);
+}
+
+/**
+ * Só sai do banco o ensaio que nunca teve leitura. Ensaio já lido é
+ * registro de trabalho feito: ele é cancelado, não apagado, senão a
+ * trilha de auditoria passa a mentir sobre o que a bancada executou.
+ */
+export async function apagarEnsaio(ensaioId: UUID): Promise<void> {
+  const banco = exigirBanco();
+  estourar('ensaio', (await banco.from('lab_ensaios').delete().eq('id', ensaioId)).error);
+}
+
 /** A leitura entra primeiro; só então o ensaio aponta para ela. */
 export async function gravarLeitura(leitura: LeituraPh, valor: number): Promise<void> {
   const banco = exigirBanco();

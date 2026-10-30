@@ -15,25 +15,14 @@ import {
 } from '@/components/ui/select';
 
 import { useBancada } from '../data/store';
-import { CodigoBarras } from '../components/CodigoBarras';
+import { Etiqueta, FORMATOS_ETIQUETA } from '../components/Etiqueta';
+import type { FormatoEtiqueta } from '../components/Etiqueta';
 import { CabecalhoPagina, BarraFiltros, Secao, Segmentos, Vazio, filtrar } from '../components/primitivos';
-import { data as formatarData } from '../lib/format';
 import type { Amostra } from '../types';
-
-type Formato = 'a4-3x8' | 'a4-2x7' | 'termica';
-
-/** Medidas reais das folhas de etiqueta mais comuns no mercado. */
-const FORMATOS: Record<Formato, {
-  rotulo: string; colunas: number; largura: string; altura: string; barras: number;
-}> = {
-  'a4-3x8': { rotulo: 'A4 · 3 × 8', colunas: 3, largura: '63.5mm', altura: '33.9mm', barras: 26 },
-  'a4-2x7': { rotulo: 'A4 · 2 × 7', colunas: 2, largura: '99.1mm', altura: '38.1mm', barras: 30 },
-  termica: { rotulo: 'Térmica 50 × 25', colunas: 1, largura: '50mm', altura: '25mm', barras: 20 },
-};
 
 export default function Etiquetas() {
   const { estado, pode } = useBancada();
-  const [formato, setFormato] = useState<Formato>('a4-3x8');
+  const [formato, setFormato] = useState<FormatoEtiqueta>('a4-3x8');
   const [loteId, setLoteId] = useState<string>('todos');
   const [busca, setBusca] = useState('');
 
@@ -74,7 +63,7 @@ export default function Etiquetas() {
     );
   }
 
-  const medidas = FORMATOS[formato];
+  const medidas = FORMATOS_ETIQUETA[formato];
 
   return (
     <>
@@ -114,8 +103,8 @@ export default function Etiquetas() {
           <Segmentos
             valor={formato}
             aoMudar={setFormato}
-            opcoes={(Object.keys(FORMATOS) as Formato[]).map((f) => ({
-              valor: f, rotulo: FORMATOS[f].rotulo,
+            opcoes={(Object.keys(FORMATOS_ETIQUETA) as FormatoEtiqueta[]).map((f) => ({
+              valor: f, rotulo: FORMATOS_ETIQUETA[f].rotulo,
             }))}
           />
           <p className="text-xs text-muted-foreground">
@@ -157,35 +146,5 @@ export default function Etiquetas() {
         </div>
       )}
     </>
-  );
-}
-
-function Etiqueta({ amostra, cliente, grupo, altura, barras }: {
-  amostra: Amostra; cliente: string; grupo: string; altura: string; barras: number;
-}) {
-  return (
-    <div
-      className="etiqueta flex flex-col justify-between overflow-hidden border border-dashed border-neutral-300 px-2 py-1.5 text-black"
-      style={{ height: altura }}
-    >
-      <div className="flex items-baseline justify-between gap-2 text-[0.6rem] leading-none">
-        <span className="truncate font-semibold uppercase tracking-wide">{cliente}</span>
-        <span className="shrink-0 font-mono">{grupo}</span>
-      </div>
-
-      <div className="flex justify-center">
-        <CodigoBarras valor={amostra.protocolo} altura={barras} largura={1.3} />
-      </div>
-
-      <div className="flex items-baseline justify-between gap-2 leading-none">
-        <span className="font-mono text-[0.72rem] font-semibold tracking-tight">{amostra.protocolo}</span>
-        <span className="truncate text-[0.58rem]">{formatarData(amostra.dataRecepcao)}</span>
-      </div>
-
-      <p className="truncate text-[0.6rem] leading-tight">
-        {amostra.identificacaoCampo}
-        {amostra.profundidade ? ` · ${amostra.profundidade}` : ''}
-      </p>
-    </div>
   );
 }

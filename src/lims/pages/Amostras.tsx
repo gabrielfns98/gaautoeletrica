@@ -20,6 +20,7 @@ import {
   BarraFiltros, CabecalhoPagina, Campos, Pilula, Secao, Segmentos, Tabela, Vazio, filtrar,
 } from '../components/primitivos';
 import { ChipPh, GraficoTrace, ReguaPh } from '../components/ph-visual';
+import { AcoesAmostra } from './amostra/Acoes';
 import type { TomStatus } from '../components/primitivos';
 import type { Amostra, Ensaio, StatusAmostra } from '../types';
 
@@ -50,7 +51,7 @@ export default function Amostras() {
   const [busca, setBusca] = useState('');
   const [filtro, setFiltro] = useState<Filtro>('todas');
   const [grupoFiltro, setGrupoFiltro] = useState<string>('todos');
-  const [selecionada, setSelecionada] = useState<Amostra | null>(null);
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
 
   const contagens = useMemo(() => {
     const c: Record<string, number> = { todas: estado.amostras.length, atrasadas: 0 };
@@ -167,7 +168,7 @@ export default function Amostras() {
           ]}
           dados={listadas.slice(0, 120)}
           chaveDe={(a) => a.id}
-          aoClicar={setSelecionada}
+          aoClicar={(a) => setSelecionadaId(a.id)}
           ordenacaoInicial={{ chave: 'prazo', direcao: 'asc' }}
           vazio={<Vazio icone={TestTubes} titulo="Nenhuma amostra encontrada" descricao="Ajuste os filtros ou o termo de busca." />}
         />
@@ -178,7 +179,7 @@ export default function Amostras() {
         )}
       </Secao>
 
-      <DetalheAmostra amostra={selecionada} aoFechar={() => setSelecionada(null)} podeAprovar={pode('analises:aprovar')} />
+      <DetalheAmostra amostraId={selecionadaId} aoFechar={() => setSelecionadaId(null)} podeAprovar={pode('analises:aprovar')} />
     </>
   );
 }
@@ -186,11 +187,18 @@ export default function Amostras() {
 /* ---------------- Painel lateral de detalhe ---------------- */
 
 function DetalheAmostra({
-  amostra, aoFechar, podeAprovar,
-}: { amostra: Amostra | null; aoFechar: () => void; podeAprovar: boolean }) {
+  amostraId, aoFechar, podeAprovar,
+}: { amostraId: string | null; aoFechar: () => void; podeAprovar: boolean }) {
   const { estado, usuario, papel } = useBancada();
   const { aprovarEnsaio, repetirEnsaio, mudarStatusAmostra } = useAcoes();
   const { clientePorId, grupoPorId, parametroPorId, usuarioPorId, equipamentoPorId } = useIndices();
+
+  /* Resolver pelo id, e não guardar o objeto, é o que faz a edição
+     aparecer sem fechar e reabrir a gaveta: o estado é a fonte. */
+  const amostra = useMemo(
+    () => estado.amostras.find((a) => a.id === amostraId) ?? null,
+    [estado.amostras, amostraId],
+  );
 
   const ensaios = useMemo(
     () => (amostra ? estado.ensaios.filter((e) => e.amostraId === amostra.id) : []),
@@ -305,7 +313,7 @@ function DetalheAmostra({
               </div>
             )}
 
-            {/* --- Ações --- */}
+            {/* --- Ações de fluxo --- */}
             <div className="mt-6 flex flex-wrap gap-2 border-t border-[hsl(var(--line-soft))] pt-5">
               {podeAprovar && amostra.status === 'aguardando-revisao' && todosAprovados && (
                 <Button
@@ -325,6 +333,8 @@ function DetalheAmostra({
                 </Button>
               )}
             </div>
+
+            <AcoesAmostra amostra={amostra} />
           </div>
         </ScrollArea>
       </SheetContent>

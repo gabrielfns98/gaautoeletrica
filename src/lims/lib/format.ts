@@ -49,6 +49,20 @@ function diaLocal(d: Date): number {
   return Number(`${ano}${mes}${dia}`);
 }
 
+/**
+ * Dia do calendário no fuso do laboratório, como aaaa-mm-dd — o
+ * formato que `<input type="date">` exige. Passar por aqui evita o
+ * erro clássico de usar `toISOString().slice(0, 10)`, que devolve o
+ * dia em UTC e atrasa a data em um dia durante a tarde no Brasil.
+ */
+export function dataISOLocal(d: string | Date | undefined): string {
+  if (!d) return '';
+  const dt = asDate(d);
+  if (Number.isNaN(dt.getTime())) return '';
+  const n = diaLocal(dt);
+  return `${Math.floor(n / 10000)}-${String(Math.floor(n / 100) % 100).padStart(2, '0')}-${String(n % 100).padStart(2, '0')}`;
+}
+
 export function data(d: string | Date | undefined): string {
   if (!d) return '—';
   const dt = asDate(d);

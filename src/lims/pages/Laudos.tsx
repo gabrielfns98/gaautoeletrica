@@ -43,7 +43,7 @@ export default function Laudos() {
 
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [busca, setBusca] = useState('');
-  const [aberto, setAberto] = useState<Laudo | null>(null);
+  const [abertoId, setAbertoId] = useState<string | null>(null);
 
   const contagens = useMemo(() => {
     const c: Record<string, number> = { todos: estado.laudos.length };
@@ -115,13 +115,13 @@ export default function Laudos() {
           ]}
           dados={listados.slice(0, 80)}
           chaveDe={(l) => l.id}
-          aoClicar={setAberto}
+          aoClicar={(l) => setAbertoId(l.id)}
           ordenacaoInicial={{ chave: 'emissao', direcao: 'desc' }}
           vazio={<Vazio icone={FileCheck2} titulo="Nenhum laudo encontrado" />}
         />
       </Secao>
 
-      <PreVisualizacao laudo={aberto} aoFechar={() => setAberto(null)} podeEmitir={pode('laudos:aprovar')} />
+      <PreVisualizacao laudoId={abertoId} aoFechar={() => setAbertoId(null)} podeEmitir={pode('laudos:aprovar')} />
     </>
   );
 }
@@ -129,13 +129,19 @@ export default function Laudos() {
 /* ---------------- Pré-visualização ---------------- */
 
 function PreVisualizacao({
-  laudo, aoFechar, podeEmitir,
-}: { laudo: Laudo | null; aoFechar: () => void; podeEmitir: boolean }) {
+  laudoId, aoFechar, podeEmitir,
+}: { laudoId: string | null; aoFechar: () => void; podeEmitir: boolean }) {
   const { estado, unidade } = useBancada();
   const { emitirLaudo } = useAcoes();
   const { clientePorId, grupoPorId, usuarioPorId } = useIndices();
 
   const [disposicao, setDisposicao] = useState<Disposicao>('amostra');
+
+  /* Pelo id, não pelo objeto: assinar tem de mudar a folha na hora. */
+  const laudo = useMemo(
+    () => estado.laudos.find((l) => l.id === laudoId) ?? null,
+    [estado.laudos, laudoId],
+  );
 
   const montado = useMemo(() => {
     if (!laudo) return undefined;
