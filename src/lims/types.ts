@@ -628,6 +628,41 @@ export interface Importacao {
 }
 
 /**
+ * Modelo de importação salvo por equipamento.
+ *
+ * Cada marca exporta de um jeito, e sem isto o analista remapeia as
+ * mesmas colunas toda vez que traz a planilha do aparelho — todo dia,
+ * para o mesmo arquivo. O modelo guarda o acerto uma vez.
+ */
+export interface ModeloImportacao {
+  id: UUID;
+  nome: string;
+  /** o aparelho cujo arquivo este modelo lê */
+  equipamentoId?: UUID;
+  /** ou a família inteira, quando o formato é o mesmo */
+  tipoEquipamentoId?: string;
+  fluxo: 'amostras' | 'resultados';
+  separador?: string;
+  /** linhas de preâmbulo a pular: relatório de aparelho vem com cabeçalho de marca */
+  linhasIgnoradas: number;
+  temCabecalho: boolean;
+  /** o aparelho escreve decimal com vírgula */
+  decimalVirgula: boolean;
+  /**
+   * Para onde vai cada coluna, pelo título normalizado. Pelo título e
+   * não pelo índice porque o aparelho reordena colunas entre versões
+   * de firmware, e um modelo preso ao índice passa a ler o número
+   * errado em silêncio.
+   */
+  porTitulo: Record<string, string>;
+  /** usado só quando o arquivo não tem cabeçalho */
+  porIndice?: Record<number, string>;
+  ativo: boolean;
+  criadoPorId?: UUID;
+  data: ISODate;
+}
+
+/**
  * Coleções de cadastro que o laboratório edita pela própria tela. Cada
  * laboratório tem seus métodos, preços e tabelas: nada disso pode exigir
  * um programador.
@@ -665,7 +700,8 @@ export interface CriterioAceitacao {
 export type ColecaoCadastro =
   | 'unidades' | 'grupos' | 'parametros' | 'tiposAnalise' | 'metodologias'
   | 'bandejas' | 'profundidades' | 'culturas' | 'tiposCliente'
-  | 'observacoesFixas' | 'convenios' | 'regrasDesconto' | 'criterios';
+  | 'observacoesFixas' | 'convenios' | 'regrasDesconto' | 'criterios'
+  | 'tiposEquipamento' | 'modelosImportacao';
 
 export interface RegistroAuditoria {
   id: UUID;

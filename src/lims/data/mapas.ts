@@ -11,6 +11,7 @@ import type {
   LoteRecepcao, Papel, Parametro, Permissao, PontoCalibracao, PontoTrace,
   Prioridade, StatusAmostra, StatusCalibracao, StatusEnsaio, TabelaPreco,
   Unidade, Usuario, UUID,
+  ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
 } from '../types';
 
 /* ---------------- auxiliares ---------------- */
@@ -793,4 +794,85 @@ export const paraCriterio = (c: CriterioAceitacao): LinhaCriterio => ({
   offset_max_mv: c.offsetMaxMv ?? null, r2_min: c.r2Min ?? null,
   deriva_max_mv_por_min: c.derivaMaxMvPorMin ?? null,
   janela_estabilidade_s: c.janelaEstabilidadeS ?? null, ativo: c.ativo,
+});
+
+/* ---------------- Equipamentos: tipo, verificação e modelo ---------------- */
+
+export interface LinhaTipoEquipamento {
+  id: string; codigo: string; nome: string; grandeza: string;
+  exige_curva: boolean; verificacao: string; periodicidade_dias: number;
+  bloqueia_vencido: boolean; protocolos: string[] | null; ativo: boolean;
+}
+
+export const deTipoEquipamento = (l: LinhaTipoEquipamento): TipoEquipamento => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, grandeza: l.grandeza,
+  exigeCurva: l.exige_curva, verificacao: l.verificacao as TipoEquipamento['verificacao'],
+  periodicidadeDias: num0(l.periodicidade_dias), bloqueiaVencido: l.bloqueia_vencido,
+  protocolos: l.protocolos ?? [], ativo: l.ativo,
+});
+
+export const paraTipoEquipamento = (t: TipoEquipamento): LinhaTipoEquipamento => ({
+  id: t.id, codigo: t.codigo, nome: t.nome, grandeza: t.grandeza,
+  exige_curva: t.exigeCurva, verificacao: t.verificacao,
+  periodicidade_dias: t.periodicidadeDias, bloqueia_vencido: t.bloqueiaVencido,
+  protocolos: t.protocolos, ativo: t.ativo,
+});
+
+export interface LinhaVerificacao {
+  id: string; equipamento_id: string; forma: string; data: string; analista_id: string;
+  valor_nominal: number | null; valor_medido: number | null;
+  erro_percentual: number | null; r2: number | null;
+  resultado: string; valida_ate: string; observacao: string | null;
+}
+
+export const deVerificacao = (l: LinhaVerificacao): VerificacaoEquipamento => ({
+  id: l.id, equipamentoId: l.equipamento_id,
+  forma: l.forma as VerificacaoEquipamento['forma'],
+  data: l.data, analistaId: l.analista_id,
+  valorNominal: num(l.valor_nominal), valorMedido: num(l.valor_medido),
+  erroPercentual: num(l.erro_percentual), r2: num(l.r2),
+  resultado: l.resultado as VerificacaoEquipamento['resultado'],
+  validaAte: l.valida_ate, observacao: opc(l.observacao),
+});
+
+export const paraVerificacao = (v: VerificacaoEquipamento): LinhaVerificacao => ({
+  id: v.id, equipamento_id: v.equipamentoId, forma: v.forma, data: v.data,
+  analista_id: v.analistaId, valor_nominal: v.valorNominal ?? null,
+  valor_medido: v.valorMedido ?? null, erro_percentual: v.erroPercentual ?? null,
+  r2: v.r2 ?? null, resultado: v.resultado, valida_ate: v.validaAte,
+  observacao: v.observacao ?? null,
+});
+
+export interface LinhaModeloImportacao {
+  id: string; nome: string; equipamento_id: string | null; tipo_equipamento_id: string | null;
+  fluxo: string; separador: string | null; linhas_ignoradas: number;
+  tem_cabecalho: boolean; decimal_virgula: boolean;
+  por_titulo: Record<string, string> | null; por_indice: Record<string, string> | null;
+  ativo: boolean; criado_por_id: string | null; data: string;
+}
+
+export const deModeloImportacao = (l: LinhaModeloImportacao): ModeloImportacao => ({
+  id: l.id, nome: l.nome,
+  equipamentoId: opc(l.equipamento_id), tipoEquipamentoId: opc(l.tipo_equipamento_id),
+  fluxo: l.fluxo as ModeloImportacao['fluxo'], separador: opc(l.separador),
+  linhasIgnoradas: num0(l.linhas_ignoradas), temCabecalho: l.tem_cabecalho,
+  decimalVirgula: l.decimal_virgula,
+  porTitulo: l.por_titulo ?? {},
+  // O JSON volta com chave em texto; o índice é número no código.
+  porIndice: l.por_indice
+    ? Object.fromEntries(Object.entries(l.por_indice).map(([k, v]) => [Number(k), v]))
+    : undefined,
+  ativo: l.ativo, criadoPorId: opc(l.criado_por_id), data: l.data,
+});
+
+export const paraModeloImportacao = (m: ModeloImportacao): LinhaModeloImportacao => ({
+  id: m.id, nome: m.nome, equipamento_id: m.equipamentoId ?? null,
+  tipo_equipamento_id: m.tipoEquipamentoId ?? null, fluxo: m.fluxo,
+  separador: m.separador ?? null, linhas_ignoradas: m.linhasIgnoradas,
+  tem_cabecalho: m.temCabecalho, decimal_virgula: m.decimalVirgula,
+  por_titulo: m.porTitulo,
+  por_indice: m.porIndice
+    ? Object.fromEntries(Object.entries(m.porIndice).map(([k, v]) => [String(k), v]))
+    : null,
+  ativo: m.ativo, criado_por_id: m.criadoPorId ?? null, data: m.data,
 });

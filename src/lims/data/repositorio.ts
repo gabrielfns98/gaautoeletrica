@@ -14,8 +14,10 @@ import {
   deLoteReagente, deMembro, deMetodologia, deMovimentoEstoque, deNotaFiscal,
   deOportunidade, deOrcamento, dePapel, deParametro, deRegistroCQ,
   deCriterio, deImportacao, deRegraDesconto, deTabelaPreco, deTipoAnalise, deTitulo,
+  deModeloImportacao, deTipoEquipamento, deVerificacao,
   deUnidade,
   paraAmostra, paraCalibracao, paraCliente, paraCurva, paraEnsaio, paraLegenda,
+  paraModeloImportacao, paraTipoEquipamento, paraVerificacao,
   paraBandeja, paraConvenio, paraGrupo, paraImportacao, paraItemCadastro,
   paraLeituraPh, paraLote, paraMembro, paraMetodologia, paraMovimentoEstoque,
   paraCriterio, paraNotaFiscal, paraParametro, paraRegraDesconto, paraTipoAnalise,
@@ -33,11 +35,12 @@ import type {
   LinhaNotaFiscal, LinhaOportunidade, LinhaOrcamento, LinhaPapel, LinhaParametro,
   LinhaRegistroCQ, LinhaRegraDesconto, LinhaTabelaPreco, LinhaTipoAnalise,
   LinhaTitulo, LinhaUnidade,
+  LinhaModeloImportacao, LinhaTipoEquipamento, LinhaVerificacao,
 } from './mapas';
 import type {
   Amostra, AmostraControle, Bandeja, Calibracao, Cliente, Contato, Convenio,
   ColecaoCadastro, CriterioAceitacao, Curva, Ensaio, Equipamento, GrupoAnalise,
-  Importacao,
+  Importacao, ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
   Interacao, ItemEstoque, ItemSimples,
   Laudo, Legenda, LeituraPh, LoteReagente, LoteRecepcao, Metodologia,
   MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento, Papel, Parametro,
@@ -94,6 +97,9 @@ export interface CargaBancada {
   regrasDesconto: RegraDesconto[];
   importacoes: Importacao[];
   criterios: CriterioAceitacao[];
+  tiposEquipamento: TipoEquipamento[];
+  verificacoesEquipamento: VerificacaoEquipamento[];
+  modelosImportacao: ModeloImportacao[];
 }
 
 /** PostgREST devolve no máximo mil linhas por vez; aqui a página é interna. */
@@ -233,6 +239,11 @@ export async function carregarBancada(): Promise<CargaBancada> {
   ]);
 
   const linhasCriterio = await tudo<LinhaCriterio>('lab_criterios', '*', { coluna: 'nome' });
+  const [linhasTipoEq, linhasVerificacao, linhasModelo] = await Promise.all([
+    tudo<LinhaTipoEquipamento>('lab_tipos_equipamento', '*', { coluna: 'nome' }),
+    tudo<LinhaVerificacao>('lab_verificacoes_equipamento', '*', { coluna: 'data', crescente: false }),
+    tudo<LinhaModeloImportacao>('lab_modelos_importacao', '*', { coluna: 'nome' }),
+  ]);
 
   const agrupar = <T, C>(linhas: T[], chave: (l: T) => string, valor: (l: T) => C) => {
     const mapa = new Map<string, C[]>();
@@ -297,6 +308,9 @@ export async function carregarBancada(): Promise<CargaBancada> {
         .map((t) => ({ ensaioId: t.ensaio_id, valor: Number(t.valor) })),
     )),
     criterios: linhasCriterio.map(deCriterio),
+    tiposEquipamento: linhasTipoEq.map(deTipoEquipamento),
+    verificacoesEquipamento: linhasVerificacao.map(deVerificacao),
+    modelosImportacao: linhasModelo.map(deModeloImportacao),
   };
 }
 
@@ -586,6 +600,8 @@ const DESTINO_CADASTRO: Record<ColecaoCadastro, { tabela: string; linha: (item: 
   convenios: { tabela: 'lab_convenios', linha: paraConvenio as (i: never) => object },
   regrasDesconto: { tabela: 'lab_regras_desconto', linha: paraRegraDesconto as (i: never) => object },
   criterios: { tabela: 'lab_criterios', linha: paraCriterio as (i: never) => object },
+  tiposEquipamento: { tabela: 'lab_tipos_equipamento', linha: paraTipoEquipamento as (i: never) => object },
+  modelosImportacao: { tabela: 'lab_modelos_importacao', linha: paraModeloImportacao as (i: never) => object },
 };
 
 export async function gravarCadastro(colecao: ColecaoCadastro, item: unknown): Promise<void> {

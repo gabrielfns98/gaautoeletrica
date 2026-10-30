@@ -13,7 +13,7 @@ import { iniciais } from '../lib/format';
 import type {
   Amostra, AmostraControle, Calibracao, Cliente, Contato, Ensaio, Equipamento,
   GrupoAnalise, GrupoAnaliseId, Interacao, ItemEstoque, Laudo, LeituraPh,
-  TipoEquipamento, VerificacaoEquipamento,
+  ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
   LoteReagente, LoteRecepcao, MovimentoEstoque, NotaFiscal, Oportunidade,
   Orcamento, Papel, Parametro, PontoTrace, RegistroAuditoria, RegistroCQ,
   StatusAmostra, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario,
@@ -217,6 +217,9 @@ export const parametros: Parametro[] = [
 ];
 
 export const parametrosPh = parametros.filter((p) => p.ehPh);
+
+/** Id do parâmetro pelo código — usado por legendas, modelos e pacotes. */
+const idDe = (codigo: string) => parametros.find((p) => p.codigo === codigo)?.id ?? '';
 
 /* ---------------- Critérios de aceitação ---------------- */
 
@@ -1060,6 +1063,64 @@ for (let l = 0; l < 210; l++) {
   }
 }
 
+/* ---------------- Modelos de importação ---------------- */
+
+/**
+ * O acerto de colunas de cada aparelho, salvo uma vez. Guardado pelo
+ * título normalizado: o aparelho reordena colunas entre versões de
+ * firmware, e um modelo preso ao índice passaria a ler o número
+ * errado sem avisar ninguém.
+ */
+export const modelosImportacao: ModeloImportacao[] = [
+  {
+    id: 'mdi-esp-p', nome: 'Genesys 150 — fósforo e potássio',
+    equipamentoId: 'eq-esp-01', fluxo: 'resultados',
+    separador: ';', linhasIgnoradas: 0, temCabecalho: true, decimalVirgula: true,
+    porTitulo: {
+      sampleid: 'chave',
+      abs882nm: idDe('P-MEL'),
+      abs766nm: idDe('K'),
+    },
+    ativo: true, criadoPorId: usuarios[2].id, data: diasAtras(120),
+  },
+  {
+    id: 'mdi-aa-bases', nome: 'Agilent 240FS — cálcio e magnésio',
+    equipamentoId: 'eq-aa-01', fluxo: 'resultados',
+    separador: ',', linhasIgnoradas: 2, temCabecalho: true, decimalVirgula: false,
+    porTitulo: {
+      sample: 'chave',
+      ca422: idDe('CA'),
+      mg285: idDe('MG'),
+    },
+    ativo: true, criadoPorId: usuarios[3].id, data: diasAtras(86),
+  },
+  {
+    id: 'mdi-ftc-k', nome: 'Digimed DM-62 — potássio e sódio',
+    equipamentoId: 'eq-ftc-01', fluxo: 'resultados',
+    separador: ';', linhasIgnoradas: 0, temCabecalho: true, decimalVirgula: true,
+    porTitulo: {
+      amostra: 'chave',
+      k: idDe('K'),
+      na: idDe('NA'),
+    },
+    ativo: true, criadoPorId: usuarios[4].id, data: diasAtras(54),
+  },
+  {
+    id: 'mdi-planilha-campo', nome: 'Planilha de campo do cliente',
+    fluxo: 'amostras',
+    separador: ';', linhasIgnoradas: 0, temCabecalho: true, decimalVirgula: true,
+    porTitulo: {
+      identificacao: 'identificacao',
+      propriedade: 'propriedade',
+      talhao: 'talhao',
+      profundidade: 'profundidade',
+      cultura: 'cultura',
+      datadecoleta: 'dataColeta',
+    },
+    ativo: true, criadoPorId: usuarios[6].id, data: diasAtras(210),
+  },
+];
+
 /* ---------------- Verificação metrológica ---------------- */
 
 /**
@@ -1417,7 +1478,6 @@ export const auditoria: RegistroAuditoria[] = Array.from({ length: 70 }, (_, i) 
    ============================================================ */
 
 
-const idDe = (codigo: string) => parametros.find((p) => p.codigo === codigo)?.id ?? '';
 
 function montarCurva(
   id: string, codigo: string, nome: string, codigoParam: string,

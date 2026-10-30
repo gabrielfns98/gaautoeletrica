@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
+import { BarraModelos } from './importacao/Modelos';
 import {
   ALVOS_AMOSTRA, hashDoConteudo, lerData, lerNumero, lerTabela, resumir, sugerirMapeamento,
 } from '../lib/importacao';
@@ -424,6 +425,18 @@ function ImportarResultados() {
           descricao={`Uma coluna identifica a amostra; as outras são elementos. ${colunasElementoCount} ${colunasElementoCount === 1 ? 'elemento reconhecido' : 'elementos reconhecidos'}.`}
           semPadding
         >
+          <div className="px-5 pb-1">
+            <BarraModelos
+              fluxo="resultados"
+              colunas={tabela.colunas}
+              temCabecalho={tabela.temCabecalho}
+              mapeamento={mapeamento}
+              aoAplicar={setMapa}
+              rotuloDoCampo={(campo) =>
+                campo === 'chave' ? 'identificação da amostra'
+                  : parametroPorId.get(campo)?.codigo ?? campo}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -740,6 +753,17 @@ function ImportarAmostras() {
 
       {tabela && tabela.colunas.length > 0 && (
         <Secao titulo="Colunas" descricao="Confira o palpite do sistema antes de importar." semPadding>
+          <div className="px-5 pb-1">
+            <BarraModelos
+              fluxo="amostras"
+              colunas={tabela.colunas}
+              temCabecalho={tabela.temCabecalho}
+              mapeamento={mapeamento}
+              aoAplicar={setMapa}
+              rotuloDoCampo={(campo) =>
+                ALVOS_AMOSTRA.find((a) => a.campo === campo)?.rotulo ?? campo}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>

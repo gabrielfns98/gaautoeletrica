@@ -5,6 +5,8 @@
    antes de qualquer tela ver o dado.
    ============================================================ */
 
+import type { ModeloImportacao } from '../types';
+
 export type Separador = ';' | ',' | '\t' | '|';
 
 export interface ColunaLida {
@@ -288,6 +290,103 @@ export const ALVOS_AMOSTRA: AlvoMapeamento[] = [
   { campo: 'dataColeta', rotulo: 'Data de coleta', sinonimos: ['data de coleta', 'coleta', 'data'] },
   { campo: 'observacao', rotulo: 'Observação', sinonimos: ['observacao', 'observação', 'obs'] },
 ];
+
+/* ---------------- Modelos de importação ---------------- */
+
+/** A mesma normalização do palpite, exposta para casar título salvo. */
+export const normalizarTitulo = normalizar;
+
+/**
+ * Converte um mapeamento confirmado na tela em modelo reutilizável.
+ * Guarda por título, que é o que sobrevive ao aparelho reordenar
+ * colunas; guarda por índice só quando não há cabeçalho para casar.
+ */
+export function modeloDoMapeamento(
+  colunas: ColunaLida[],
+  mapa: Record<number, string>,
+  temCabecalho: boolean,
+): Pick<ModeloImportacao, 'porTitulo' | 'porIndice'> {
+  const porTitulo: Record<string, string> = {};
+  const porIndice: Record<number, string> = {};
+
+  for (const coluna of colunas) {
+    const campo = mapa[coluna.indice];
+    if (!campo) continue;
+    porIndice[coluna.indice] = campo;
+    const chave = normalizar(coluna.titulo);
+    if (temCabecalho && chave) porTitulo[chave] = campo;
+  }
+  return { porTitulo, porIndice: temCabecalho ? undefined : porIndice };
+}
+
+export interface AplicacaoModelo {
+  mapa: Record<number, string>;
+  /** colunas do arquivo que o modelo não reconheceu */
+  naoReconhecidas: string[];
+  /** campos que o modelo esperava e não achou no arquivo */
+  ausentes: string[];
+}
+
+/**
+ * Aplica um modelo salvo a um arquivo recém-lido.
+ *
+ * Casa pelo título quando o arquivo tem cabeçalho; só então cai para o
+ * índice. O que o modelo esperava e não veio é devolvido em `ausentes`
+ * em vez de ficar calado: um aparelho que parou de exportar uma coluna
+ * precisa parar a importação, não gravar a coluna vizinha no lugar.
+ */
+export function aplicarModelo(
+  modelo: Pick<ModeloImportacao, 'porTitulo' | 'porIndice'>,
+  colunas: ColunaLida[],
+): AplicacaoModelo {
+  const mapa: Record<number, string> = {};
+  const naoReconhecidas: string[] = [];
+  const encontrados = new Set<string>();
+
+  const temTitulos = Object.keys(modelo.porTitulo ?? {}).length > 0;
+
+  for (const coluna of colunas) {
+    const chave = normalizar(coluna.titulo);
+    const porTitulo = temTitulos ? modelo.porTitulo[chave] : undefined;
+    const porIndice = modelo.porIndice?.[coluna.indice];
+    const campo = porTitulo ?? (temTitulos ? undefined : porIndice);
+
+    if (campo) {
+      mapa[coluna.indice] = campo;
+      encontrados.add(campo);
+    } else if (coluna.titulo.trim()) {
+      naoReconhecidas.push(coluna.titulo);
+    }
+  }
+
+  const esperados = new Set([
+    ...Object.values(modelo.porTitulo ?? {}),
+    ...Object.values(modelo.porIndice ?? {}),
+  ]);
+  const ausentes = [...esperados].filter((c) => !encontrados.has(c));
+
+  return { mapa, naoReconhecidas, ausentes };
+}
+
+/** Os modelos que servem a um equipamento, do mais específico ao geral. */
+export function modelosDoEquipamento(
+  modelos: ModeloImportacao[],
+  equipamentoId: string | undefined,
+  tipoEquipamentoId: string | undefined,
+  fluxo: ModeloImportacao['fluxo'],
+): ModeloImportacao[] {
+  return modelos
+    .filter((m) => m.ativo && m.fluxo === fluxo)
+    .filter((m) => {
+      if (m.equipamentoId) return m.equipamentoId === equipamentoId;
+      if (m.tipoEquipamentoId) return m.tipoEquipamentoId === tipoEquipamentoId;
+      // Modelo sem alvo serve a qualquer aparelho.
+      return true;
+    })
+    .sort((a, b) => peso(b) - peso(a));
+}
+
+const peso = (m: ModeloImportacao) => (m.equipamentoId ? 2 : m.tipoEquipamentoId ? 1 : 0);
 
 /* ---------------- Validação ---------------- */
 

@@ -38,7 +38,7 @@ import type {
   StatusAmostra, StatusEnsaio, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario, UUID,
   Bandeja, ColecaoCadastro, Convenio, CriterioAceitacao, Curva, Importacao,
   Legenda, Metodologia, RegraDesconto, ItemSimples,
-  TipoEquipamento, VerificacaoEquipamento,
+  ModeloImportacao, TipoEquipamento, VerificacaoEquipamento,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -74,6 +74,7 @@ export interface EstadoBancada {
   equipamentos: Equipamento[];
   tiposEquipamento: TipoEquipamento[];
   verificacoesEquipamento: VerificacaoEquipamento[];
+  modelosImportacao: ModeloImportacao[];
   calibracoes: Calibracao[];
   amostrasControle: AmostraControle[];
   registrosCQ: RegistroCQ[];
@@ -121,6 +122,7 @@ function estadoInicial(): EstadoBancada {
     equipamentos: seed.equipamentos,
     tiposEquipamento: seed.tiposEquipamento,
     verificacoesEquipamento: seed.verificacoesEquipamento,
+    modelosImportacao: seed.modelosImportacao,
     calibracoes: seed.calibracoes,
     amostrasControle: seed.amostrasControle,
     registrosCQ: seed.registrosCQ,
@@ -167,6 +169,7 @@ type Acao =
   | { tipo: 'registrar-cq'; registro: RegistroCQ }
   | { tipo: 'salvar-cadastro'; colecao: ColecaoCadastro; item: { id: UUID } }
   | { tipo: 'registrar-importacao'; importacao: Importacao }
+  | { tipo: 'salvar-modelo-importacao'; modelo: ModeloImportacao }
   | { tipo: 'auditar'; registro: RegistroAuditoria }
   | { tipo: 'carregar'; carga: CargaBancada }
   | { tipo: 'restaurar' };
@@ -268,6 +271,14 @@ function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
 
     case 'atualizar-amostra':
       return { ...estado, amostras: mesclar(estado.amostras, acao.amostraId, acao.dados) };
+
+    case 'salvar-modelo-importacao':
+      return {
+        ...estado,
+        modelosImportacao: estado.modelosImportacao.some((m) => m.id === acao.modelo.id)
+          ? estado.modelosImportacao.map((m) => (m.id === acao.modelo.id ? acao.modelo : m))
+          : [acao.modelo, ...estado.modelosImportacao],
+      };
 
     case 'incluir-ensaios':
       return { ...estado, ensaios: [...acao.ensaios, ...estado.ensaios] };
@@ -656,6 +667,12 @@ export function useAcoes() {
     auditar('Alterou status da amostra', 'Amostra', amostraId, `Novo status: ${status}`);
   }, [despachar, auditar, persistir]);
 
+  const salvarModeloImportacao = useCallback((modelo: ModeloImportacao) => {
+    despachar({ tipo: 'salvar-modelo-importacao', modelo });
+    persistir('modelo de importação', () => gravarCadastro('modelosImportacao', modelo));
+    auditar('Salvou modelo de importação', 'Configuração', modelo.id, modelo.nome);
+  }, [despachar, auditar, persistir]);
+
   /** Edição dos dados de campo da amostra depois do protocolo. */
   const editarAmostra = useCallback((amostraId: UUID, dados: Partial<Amostra>, resumo: string) => {
     despachar({ tipo: 'atualizar-amostra', amostraId, dados });
@@ -947,6 +964,7 @@ export function useAcoes() {
   return {
     registrarLeitura, salvarCalibracao, lancarResultados, aprovarEnsaio, repetirEnsaio,
     mudarStatusAmostra, editarAmostra, cancelarAmostra, incluirEnsaios, removerEnsaio,
+    salvarModeloImportacao,
     registrarCQ, emitirLaudo, emitirNota, baixarTitulo,
     moverOportunidade, movimentarEstoque, salvarUsuario, salvarPapel,
     salvarCliente, salvarCurva, salvarLegenda, salvarCadastro, criarRecepcao, registrarImportacao,
