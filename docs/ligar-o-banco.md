@@ -22,11 +22,22 @@ No projeto Supabase, SQL Editor, rode **na ordem** o conteúdo de:
    contratado na amostra.
 3. `supabase/migrations/20251030130000_bancada_importacoes.sql` — o registro
    das importações e dos ensaios que cada arquivo gravou.
+4. `supabase/migrations/20251030140000_bancada_criterios.sql` — os critérios de
+   aceitação por ensaio (RSD de réplicas, limites de slope e offset, deriva).
+5. `supabase/migrations/20251030150000_bancada_equipamentos.sql` — o cadastro de
+   tipos de equipamento, o histórico de verificação metrológica de qualquer
+   aparelho e os modelos de importação salvos por equipamento. Troca o CHECK do
+   tipo do equipamento por chave estrangeira para o cadastro, que é o que
+   permite ao laboratório registrar um aparelho novo.
+6. `supabase/migrations/20251030160000_bancada_formulas.sql` — as fórmulas dos
+   resultados calculados (SB, CTC, V%, m%, H+Al pelo SMP, PRNT).
+7. `supabase/migrations/20251030170000_bancada_modelo_laudo.sql` — o modelo do
+   laudo: timbre, ordem dos ensaios, observações e assinatura.
 
 Para conferir depois:
 
 ```sql
-select count(*) from pg_tables where tablename like 'lab\_%';  -- 40
+select count(*) from pg_tables where tablename like 'lab\_%';  -- 46
 select nome from public.lab_papeis order by nome;              -- 7 papéis
 ```
 
