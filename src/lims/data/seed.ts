@@ -16,7 +16,7 @@ import type {
   Orcamento, Papel, Parametro, PontoTrace, RegistroAuditoria, RegistroCQ,
   StatusAmostra, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario,
   Bandeja, Convenio, Curva, Legenda, Metodologia, PontoCurva, RegraDesconto,
-  ItemSimples, TipoAjuste,
+  ItemSimples, TipoAjuste, CriterioAceitacao,
 } from '../types';
 
 /* ---------------- PRNG determinístico (mulberry32) ---------------- */
@@ -177,6 +177,29 @@ export const parametros: Parametro[] = [
 ];
 
 export const parametrosPh = parametros.filter((p) => p.ehPh);
+
+/* ---------------- Critérios de aceitação ---------------- */
+
+export const criterios: CriterioAceitacao[] = [
+  {
+    id: 'crt-geral', nome: 'Geral — qualquer ensaio',
+    rsdMaxPercentual: 5, diferencaMaxPercentual: 10, zScoreMax: 3, ativo: true,
+  },
+  {
+    id: 'crt-potenciometria', nome: 'Potenciometria (pH e índice SMP)',
+    somentePh: true, rsdMaxPercentual: 2, zScoreMax: 3,
+    slopeMin: 95, slopeMax: 105, slopeAlerta: 97, offsetMaxMv: 30, r2Min: 0.999,
+    derivaMaxMvPorMin: 0.6, janelaEstabilidadeS: 10, ativo: true,
+  },
+  {
+    id: 'crt-solo', nome: 'Solo — fertilidade',
+    grupoId: 'solo', rsdMaxPercentual: 4, diferencaMaxPercentual: 8, zScoreMax: 3, ativo: true,
+  },
+  {
+    id: 'crt-agua', nome: 'Água e efluentes',
+    grupoId: 'agua-efluentes', rsdMaxPercentual: 6, diferencaMaxPercentual: 12, zScoreMax: 3, ativo: true,
+  },
+];
 
 /* ---------------- Tipos de análise (pacotes vendidos) ---------------- */
 

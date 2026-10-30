@@ -27,7 +27,7 @@ import {
 import type { CargaBancada } from './repositorio';
 import { Carregando, Entrar, FalhaCarga } from '../components/acesso';
 import { PAPEIS_PADRAO } from '../lib/rbac';
-import { avaliarCQ, calcularCalibracao } from '../lib/ph';
+import { CRITERIOS, avaliarCQ, calcularCalibracao } from '../lib/ph';
 import { apurarNotaServico } from '../lib/fiscal';
 import type {
   Amostra, AmostraControle, Calibracao, Cliente, Contato, Ensaio, Equipamento,
@@ -35,8 +35,8 @@ import type {
   LoteRecepcao, Modulo, MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento,
   Papel, Parametro, Permissao, PontoCalibracao, RegistroAuditoria, RegistroCQ,
   StatusAmostra, StatusEnsaio, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario, UUID,
-  Bandeja, ColecaoCadastro, Convenio, Curva, Importacao, Legenda, Metodologia,
-  RegraDesconto, ItemSimples,
+  Bandeja, ColecaoCadastro, Convenio, CriterioAceitacao, Curva, Importacao,
+  Legenda, Metodologia, RegraDesconto, ItemSimples,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -82,6 +82,7 @@ export interface EstadoBancada {
   movimentosEstoque: MovimentoEstoque[];
   auditoria: RegistroAuditoria[];
   importacoes: Importacao[];
+  criterios: CriterioAceitacao[];
 }
 
 function estadoInicial(): EstadoBancada {
@@ -126,6 +127,7 @@ function estadoInicial(): EstadoBancada {
     movimentosEstoque: seed.movimentosEstoque,
     auditoria: seed.auditoria,
     importacoes: [],
+    criterios: seed.criterios,
   };
 }
 
@@ -868,6 +870,38 @@ export function useAcoes() {
     salvarCliente, salvarCurva, salvarLegenda, salvarCadastro, criarRecepcao, registrarImportacao,
     trocarUsuario, trocarUnidade,
   };
+}
+
+/**
+ * Critério aplicável a um ensaio. Vence o mais específico: elemento,
+ * depois grupo, depois o geral. O que o registro não definir cai no
+ * padrão do método, que mora em CRITERIOS.
+ */
+export function useCriterio(alvo?: { grupoId?: string; parametroId?: string; ehPh?: boolean }) {
+  const { estado } = useBancada();
+
+  return useMemo(() => {
+    const ativos = estado.criterios.filter((c) => c.ativo);
+    const doElemento = alvo?.parametroId
+      ? ativos.find((c) => c.parametroId === alvo.parametroId) : undefined;
+    const doEletrodo = alvo?.ehPh ? ativos.find((c) => c.somentePh) : undefined;
+    const doGrupo = alvo?.grupoId
+      ? ativos.find((c) => c.grupoId === alvo.grupoId && !c.parametroId && !c.somentePh) : undefined;
+    const geral = ativos.find((c) => !c.grupoId && !c.parametroId && !c.somentePh);
+
+    const juntar = (...fontes: Array<CriterioAceitacao | undefined>) => {
+      const saida: Record<string, number> = { ...CRITERIOS };
+      for (const fonte of [...fontes].reverse()) {
+        if (!fonte) continue;
+        for (const [chave, valor] of Object.entries(fonte)) {
+          if (typeof valor === 'number') saida[chave] = valor;
+        }
+      }
+      return saida as typeof CRITERIOS & { rsdMaxPercentual: number; zScoreMax: number; diferencaMaxPercentual: number };
+    };
+
+    return juntar(doElemento, doEletrodo, doGrupo, geral);
+  }, [estado.criterios, alvo?.grupoId, alvo?.parametroId, alvo?.ehPh]);
 }
 
 /** Lista de ensaios de pH esperando bancada — alimenta a fila da estação. */

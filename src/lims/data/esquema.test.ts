@@ -16,6 +16,7 @@ const migracoes = [
   '20251008120000_bancada_lims.sql',
   '20251030120000_bancada_cadastros.sql',
   '20251030130000_bancada_importacoes.sql',
+  '20251030140000_bancada_criterios.sql',
 ];
 const sql = migracoes
   .map((arquivo) => readFileSync(resolve(aqui, '../../../supabase/migrations', arquivo), 'utf8'))
@@ -60,6 +61,7 @@ const TABELA: Record<string, string> = {
   LinhaRegraDesconto: 'lab_regras_desconto',
   LinhaImportacao: 'lab_importacoes',
   LinhaImportacaoEnsaio: 'lab_importacoes_ensaios',
+  LinhaCriterio: 'lab_criterios',
 };
 
 /** Tabelas em que a aplicação insere linha nova. */
@@ -68,6 +70,7 @@ const INSERE = new Set([
   'lab_calibracoes', 'lab_clientes', 'lab_papeis', 'lab_notas_fiscais',
   'lab_titulos', 'lab_movimentos_estoque', 'lab_registros_cq', 'lab_curvas',
   'lab_legendas', 'lab_importacoes', 'lab_importacoes_ensaios',
+  'lab_criterios',
 ]);
 
 interface Coluna { nome: string; obrigatoria: boolean }

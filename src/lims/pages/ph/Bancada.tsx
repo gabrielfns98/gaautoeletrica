@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 
-import { useAcoes, useBancada, useCalibracaoVigente, useFilaPh } from '../../data/store';
+import { useAcoes, useBancada, useCalibracaoVigente, useFilaPh, useCriterio } from '../../data/store';
 import {
   CRITERIOS, analisarEstabilidade, analisarReplicas, classificarPh,
   corrigirPara25C, mvDePh, phDeMv,
@@ -80,6 +80,14 @@ export default function Bancada() {
   const equipamento = phmetros.find((e) => e.id === equipamentoId);
   const calibracao = useCalibracaoVigente(equipamentoId);
   const item = fila.find((f) => f.ensaio.id === ensaioId) ?? fila[0];
+
+  /* O limite que reprova esta leitura vem do cadastro, resolvido para o
+     elemento e a análise em questão — não de constante no código. */
+  const criterio = useCriterio({
+    grupoId: item?.amostra?.grupoId,
+    parametroId: item?.ensaio?.parametroId,
+    ehPh: true,
+  });
 
   const calibracaoOk = useMemo(() => {
     if (!calibracao) return false;
@@ -206,7 +214,7 @@ export default function Bancada() {
     }
     if (!estatReplicas.conforme) {
       toast.error('Réplicas discordantes', {
-        description: `RSD de ${numero(estatReplicas.rsd, 2)}% acima do limite de ${CRITERIOS.rsdMaxPercentual}%. Repita a determinação.`,
+        description: `RSD de ${numero(estatReplicas.rsd, 2)}% acima do limite de ${criterio.rsdMaxPercentual}%. Repita a determinação.`,
       });
       return;
     }
@@ -391,9 +399,9 @@ export default function Bancada() {
           {calibracao && (
             <div className="panel-sunken mt-4 grid grid-cols-2 gap-x-4 gap-y-3 p-4 sm:grid-cols-4">
               <Metrica rotulo="Slope" valor={`${numero(calibracao.slopePercentual, 1)}%`}
-                alerta={calibracao.slopePercentual < CRITERIOS.slopeMin || calibracao.slopePercentual > CRITERIOS.slopeMax} />
+                alerta={calibracao.slopePercentual < criterio.slopeMin || calibracao.slopePercentual > criterio.slopeMax} />
               <Metrica rotulo="Offset" valor={`${numero(calibracao.offsetMv, 1)} mV`}
-                alerta={Math.abs(calibracao.offsetMv) > CRITERIOS.offsetMaxMv} />
+                alerta={Math.abs(calibracao.offsetMv) > criterio.offsetMaxMv} />
               <Metrica rotulo="Linearidade" valor={`R² ${calibracao.r2.toFixed(4)}`} />
               <Metrica rotulo="Calibrado" valor={tempoRelativo(calibracao.data)} />
             </div>
@@ -466,7 +474,7 @@ export default function Bancada() {
 
             <Secao
               titulo="Curva de estabilização"
-              descricao={`Critério: deriva ≤ ${CRITERIOS.derivaMaxMvPorMin} mV/min por ${CRITERIOS.janelaEstabilidadeS} s`}
+              descricao={`Critério: deriva ≤ ${criterio.derivaMaxMvPorMin} mV/min por ${criterio.janelaEstabilidadeS} s`}
               acoes={
                 <button
                   type="button"
@@ -514,7 +522,7 @@ export default function Bancada() {
         {/* Réplicas */}
         <Secao
           titulo="Réplicas"
-          descricao={`Limite de RSD entre réplicas: ${CRITERIOS.rsdMaxPercentual}%`}
+          descricao={`Limite de RSD entre réplicas: ${criterio.rsdMaxPercentual}%`}
           acoes={replicas.length > 0 && (
             <Button variant="ghost" size="sm" onClick={() => setReplicas([])} className="h-7 gap-1.5 text-xs">
               <Trash2 className="h-3.5 w-3.5" /> limpar

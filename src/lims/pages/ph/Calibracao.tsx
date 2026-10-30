@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { useAcoes, useBancada } from '../../data/store';
+import { useAcoes, useBancada, useCriterio } from '../../data/store';
 import {
   CRITERIOS, TAMPOES_DISPONIVEIS, calcularCalibracao, slopeTeorico, valorTampao,
 } from '../../lib/ph';
@@ -44,6 +44,8 @@ const PERFIL: Record<string, { slope: number; offset: number }> = {
 
 export default function Calibracao() {
   const { estado, pode } = useBancada();
+  /* Slope, offset e linearidade são critérios de eletrodo. */
+  const criterio = useCriterio({ ehPh: true });
   const { salvarCalibracao } = useAcoes();
 
   const phmetros = useMemo(
@@ -272,10 +274,10 @@ export default function Calibracao() {
                 <LineChart data={serieHistorico} margin={{ top: 8, right: 12, bottom: 0, left: -18 }}>
                   <CartesianGrid stroke="hsl(var(--line-soft))" strokeDasharray="2 4" vertical={false} />
                   <ReferenceArea
-                    y1={CRITERIOS.slopeMin} y2={CRITERIOS.slopeMax}
+                    y1={criterio.slopeMin} y2={criterio.slopeMax}
                     fill="hsl(var(--success))" fillOpacity={0.07}
                   />
-                  <ReferenceLine y={CRITERIOS.slopeMin} stroke="hsl(var(--destructive))" strokeDasharray="4 4" />
+                  <ReferenceLine y={criterio.slopeMin} stroke="hsl(var(--destructive))" strokeDasharray="4 4" />
                   <XAxis
                     dataKey="data"
                     tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', fontFamily: 'var(--font-mono)' }}
@@ -317,22 +319,22 @@ export default function Calibracao() {
                 rotulo="Slope"
                 valor={`${numero(resultado.slopePercentual, 2)}%`}
                 detalhe={`${numero(resultado.slopeMvPorPh, 2)} mV/pH · teórico ${numero(slopeTeorico(resultado.temperaturaMedia), 2)}`}
-                ok={resultado.slopePercentual >= CRITERIOS.slopeMin && resultado.slopePercentual <= CRITERIOS.slopeMax}
-                faixa={`${CRITERIOS.slopeMin}–${CRITERIOS.slopeMax}%`}
+                ok={resultado.slopePercentual >= criterio.slopeMin && resultado.slopePercentual <= criterio.slopeMax}
+                faixa={`${criterio.slopeMin}–${criterio.slopeMax}%`}
               />
               <Criterio
                 rotulo="Offset (pH 7)"
                 valor={`${numero(resultado.offsetMv, 2)} mV`}
                 detalhe="Potencial de assimetria no ponto isopotencial"
-                ok={Math.abs(resultado.offsetMv) <= CRITERIOS.offsetMaxMv}
-                faixa={`±${CRITERIOS.offsetMaxMv} mV`}
+                ok={Math.abs(resultado.offsetMv) <= criterio.offsetMaxMv}
+                faixa={`±${criterio.offsetMaxMv} mV`}
               />
               <Criterio
                 rotulo="Linearidade"
                 valor={`R² ${resultado.r2.toFixed(5)}`}
                 detalhe={`${pontosValidos.length} pontos a ${numero(resultado.temperaturaMedia, 1)} °C`}
-                ok={pontosValidos.length < 3 || resultado.r2 >= CRITERIOS.r2Min}
-                faixa={`≥ ${CRITERIOS.r2Min}`}
+                ok={pontosValidos.length < 3 || resultado.r2 >= criterio.r2Min}
+                faixa={`≥ ${criterio.r2Min}`}
               />
 
               <div
@@ -379,7 +381,7 @@ export default function Calibracao() {
               {
                 chave: 'slope', titulo: 'Slope', alinhamento: 'direita',
                 render: (c) => (
-                  <span className={cn('num text-xs', c.slopePercentual < CRITERIOS.slopeMin && 'text-destructive')}>
+                  <span className={cn('num text-xs', c.slopePercentual < criterio.slopeMin && 'text-destructive')}>
                     {numero(c.slopePercentual, 1)}%
                   </span>
                 ),

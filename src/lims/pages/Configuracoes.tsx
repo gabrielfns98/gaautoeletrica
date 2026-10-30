@@ -10,14 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { useBancada } from '../data/store';
-import { CRITERIOS, classificarPh } from '../lib/ph';
+import { PainelRegistro, novoId } from '../components/editor';
+import { useAcoes, useBancada, useIndices } from '../data/store';
+import { classificarPh } from '../lib/ph';
 import { moeda, numero } from '../lib/format';
 import {
   BarraFiltros, CabecalhoPagina, Campos, Pilula, Secao, Segmentos, Tabela, filtrar,
 } from '../components/primitivos';
 import { ReguaPh } from '../components/ph-visual';
-import type { GrupoAnalise, Parametro } from '../types';
+import type { CriterioAceitacao, GrupoAnalise, Parametro } from '../types';
 
 type Aba = 'unidade' | 'grupos' | 'parametros' | 'criterios' | 'aparencia';
 
@@ -42,7 +43,7 @@ export default function Configuracoes() {
               { valor: 'unidade', rotulo: 'Unidade' },
               { valor: 'grupos', rotulo: 'Grupos de análise', contagem: estado.grupos.length },
               { valor: 'parametros', rotulo: 'Parâmetros', contagem: estado.parametros.length },
-              { valor: 'criterios', rotulo: 'Critérios de pH' },
+              { valor: 'criterios', rotulo: 'Critérios de aceitação' },
               { valor: 'aparencia', rotulo: 'Aparência' },
             ]}
           />
@@ -172,34 +173,8 @@ export default function Configuracoes() {
       )}
 
       {aba === 'criterios' && (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Secao titulo="Critérios metrológicos" descricao="Aplicados automaticamente na bancada e na calibração">
-            <dl className="space-y-3.5">
-              {[
-                ['Slope mínimo aceito', `${CRITERIOS.slopeMin}%`, 'Abaixo disso a calibração é reprovada'],
-                ['Slope máximo aceito', `${CRITERIOS.slopeMax}%`, 'Acima sugere tampão trocado'],
-                ['Faixa de atenção', `< ${CRITERIOS.slopeAlerta}%`, 'Gera aviso sem reprovar'],
-                ['Offset máximo', `±${CRITERIOS.offsetMaxMv} mV`, 'Potencial de assimetria em pH 7'],
-                ['Linearidade mínima', `R² ≥ ${CRITERIOS.r2Min}`, 'Exigida a partir de 3 pontos'],
-                ['Deriva para estabilidade', `≤ ${CRITERIOS.derivaMaxMvPorMin} mV/min`, 'Critério de captura automática'],
-                ['Janela de observação', `${CRITERIOS.janelaEstabilidadeS} s`, 'Tempo mínimo de sinal estável'],
-                ['RSD máximo entre réplicas', `${CRITERIOS.rsdMaxPercentual}%`, 'Acima disso exige repetição'],
-              ].map(([rotulo, valor, detalhe]) => (
-                <div key={rotulo} className="flex items-start justify-between gap-4 border-b border-[hsl(var(--line-soft))] pb-3.5 last:border-0 last:pb-0">
-                  <div className="min-w-0">
-                    <dt className="text-xs font-medium text-foreground">{rotulo}</dt>
-                    <dd className="mt-0.5 text-[0.68rem] text-muted-foreground">{detalhe}</dd>
-                  </div>
-                  <span className="num shrink-0 text-sm font-semibold text-primary">{valor}</span>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-4 text-[0.68rem] leading-relaxed text-muted-foreground">
-              Os valores vivem em <span className="num">CRITERIOS</span>, em <span className="num">src/lims/lib/ph.ts</span>,
-              para que uma mudança de política valha ao mesmo tempo na bancada, na calibração e no
-              controle de qualidade.
-            </p>
-          </Secao>
+        <div className="space-y-5">
+          <CriteriosAceitacao />
 
           <Secao titulo="Classificação da acidez" descricao="Simule um valor para conferir a interpretação">
             <div className="space-y-5">
@@ -304,5 +279,97 @@ export default function Configuracoes() {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Critérios de aceitação por ensaio. Sem alvo, o registro vale para
+ * qualquer análise; apontando grupo ou elemento, vence o mais
+ * específico — é assim que o laboratório aperta o RSD do solo sem
+ * mexer no da água.
+ */
+/** Sentinela do seletor para "sem alvo": o componente não aceita opção vazia. */
+const QUALQUER = 'qualquer';
+
+function CriteriosAceitacao() {
+  const { estado } = useBancada();
+  const { salvarCadastro } = useAcoes();
+  const { grupoPorId, parametroPorId } = useIndices();
+
+  const alvo = (c: CriterioAceitacao) =>
+    c.parametroId ? parametroPorId.get(c.parametroId)?.codigo ?? 'elemento'
+    : c.grupoId ? grupoPorId.get(c.grupoId)?.nome ?? 'análise'
+    : c.somentePh ? 'ensaios por eletrodo'
+    : 'qualquer ensaio';
+
+  return (
+    <PainelRegistro
+      titulo="Critérios de aceitação"
+      descricao="Aplicados na bancada, na calibração e no controle de qualidade"
+      itens={estado.criterios}
+      larguraDialogo="sm:max-w-2xl"
+      colunas={[
+        { chave: 'nome', titulo: 'Critério', valor: (c: CriterioAceitacao) => c.nome,
+          render: (c) => <span className="text-xs font-medium">{c.nome}</span> },
+        { chave: 'alvo', titulo: 'Vale para',
+          render: (c) => <span className="text-xs text-muted-foreground">{alvo(c)}</span> },
+        { chave: 'rsd', titulo: 'RSD réplicas', alinhamento: 'direita', valor: (c) => c.rsdMaxPercentual,
+          render: (c) => <span className="num text-xs">{numero(c.rsdMaxPercentual, 1)}%</span> },
+        { chave: 'dup', titulo: 'Duplicata', alinhamento: 'direita', secundaria: true,
+          render: (c) => <span className="num text-xs text-muted-foreground">
+            {c.diferencaMaxPercentual ? `${numero(c.diferencaMaxPercentual, 1)}%` : '—'}
+          </span> },
+        { chave: 'slope', titulo: 'Slope', alinhamento: 'direita', secundaria: true,
+          render: (c) => <span className="num text-xs text-muted-foreground">
+            {c.slopeMin ? `${c.slopeMin}–${c.slopeMax}%` : '—'}
+          </span> },
+        { chave: 'ativo', titulo: '', alinhamento: 'direita',
+          render: (c) => !c.ativo && <Pilula tom="neutro" className="px-1.5 py-0 text-[0.62rem]">inativo</Pilula> },
+      ]}
+      campos={[
+        { tipo: 'texto', chave: 'nome', rotulo: 'Nome do critério', largura: 2 },
+        /* "Qualquer" precisa de um valor próprio: o seletor não aceita
+           opção vazia, e vazio aqui significaria alvo em branco. */
+        { tipo: 'selecao', chave: 'grupoId', rotulo: 'Análise',
+          opcoes: [{ valor: QUALQUER, rotulo: 'Qualquer análise' },
+            ...estado.grupos.map((g) => ({ valor: g.id, rotulo: g.nome }))] },
+        { tipo: 'selecao', chave: 'parametroId', rotulo: 'Elemento',
+          opcoes: [{ valor: QUALQUER, rotulo: 'Qualquer elemento' },
+            ...estado.parametros.map((p) => ({ valor: p.id, rotulo: `${p.codigo} — ${p.nome}` }))] },
+        { tipo: 'numero', chave: 'rsdMaxPercentual', rotulo: 'RSD máximo entre réplicas', passo: 0.1, min: 0.1, sufixo: '%' },
+        { tipo: 'numero', chave: 'diferencaMaxPercentual', rotulo: 'Diferença máxima entre duplicatas', passo: 0.1, min: 0.1, sufixo: '%' },
+        { tipo: 'numero', chave: 'zScoreMax', rotulo: 'z máximo no controle', passo: 0.1, min: 0.1 },
+        { tipo: 'numero', chave: 'slopeMin', rotulo: 'Slope mínimo', passo: 0.1, sufixo: '%' },
+        { tipo: 'numero', chave: 'slopeMax', rotulo: 'Slope máximo', passo: 0.1, sufixo: '%' },
+        { tipo: 'numero', chave: 'slopeAlerta', rotulo: 'Slope de alerta', passo: 0.1, sufixo: '%' },
+        { tipo: 'numero', chave: 'offsetMaxMv', rotulo: 'Offset máximo', passo: 0.5, min: 0, sufixo: 'mV' },
+        { tipo: 'numero', chave: 'r2Min', rotulo: 'R² mínimo da calibração', passo: 0.0001, min: 0, max: 1 },
+        { tipo: 'numero', chave: 'derivaMaxMvPorMin', rotulo: 'Deriva máxima', passo: 0.05, min: 0, sufixo: 'mV/min' },
+        { tipo: 'numero', chave: 'janelaEstabilidadeS', rotulo: 'Janela de estabilidade', passo: 1, min: 1, sufixo: 's' },
+        { tipo: 'booleano', chave: 'somentePh', rotulo: 'Só para ensaio resolvido por eletrodo',
+          dica: 'Slope, offset e deriva são do eletrodo; não fazem sentido no espectrofotômetro.' },
+      ]}
+      validar={(c) => (
+        !c.nome.trim() ? 'Dê um nome ao critério.'
+        : c.rsdMaxPercentual <= 0 ? 'O RSD máximo precisa ser maior que zero.'
+        : c.slopeMin !== undefined && c.slopeMax !== undefined && c.slopeMin >= c.slopeMax
+          ? 'O slope mínimo tem de ser menor que o máximo.'
+        : undefined
+      )}
+      criar={() => ({
+        id: novoId('crt'), nome: '', rsdMaxPercentual: 5, zScoreMax: 3, ativo: true,
+        grupoId: QUALQUER as CriterioAceitacao['grupoId'], parametroId: QUALQUER,
+      })}
+      aoSalvar={(c) => salvarCadastro('criterios', {
+        ...c,
+        // "qualquer" é ausência de alvo no modelo
+        grupoId: (c.grupoId as string) === QUALQUER ? undefined : c.grupoId,
+        parametroId: c.parametroId === QUALQUER ? undefined : c.parametroId,
+      }, c.nome)}
+      ativoDe={(c) => c.ativo}
+      alternarAtivo={(c) => ({ ...c, ativo: !c.ativo })}
+      rotuloDe={(c) => c.nome}
+      camposBusca={(c) => [c.nome, alvo(c)]}
+    />
   );
 }

@@ -13,17 +13,20 @@ import {
   deItemCadastro, deItemEstoque, deLaudo, deLegenda, deLeituraPh, deLote,
   deLoteReagente, deMembro, deMetodologia, deMovimentoEstoque, deNotaFiscal,
   deOportunidade, deOrcamento, dePapel, deParametro, deRegistroCQ,
-  deImportacao, deRegraDesconto, deTabelaPreco, deTipoAnalise, deTitulo, deUnidade,
+  deCriterio, deImportacao, deRegraDesconto, deTabelaPreco, deTipoAnalise, deTitulo,
+  deUnidade,
   paraAmostra, paraCalibracao, paraCliente, paraCurva, paraEnsaio, paraLegenda,
   paraBandeja, paraConvenio, paraGrupo, paraImportacao, paraItemCadastro,
   paraLeituraPh, paraLote, paraMembro, paraMetodologia, paraMovimentoEstoque,
-  paraNotaFiscal, paraParametro, paraRegraDesconto, paraTipoAnalise, paraUnidade,
+  paraCriterio, paraNotaFiscal, paraParametro, paraRegraDesconto, paraTipoAnalise,
+  paraUnidade,
   paraPapel, paraRegistroCQ, paraTitulo,
 } from './mapas';
 import type {
   LinhaAmostra, LinhaAmostraControle, LinhaAuditoria, LinhaBandeja,
   LinhaCalibracao, LinhaCliente, LinhaContato, LinhaConvenio, LinhaCurva,
-  LinhaEnsaio, LinhaEquipamento, LinhaGrupo, LinhaImportacao, LinhaImportacaoEnsaio,
+  LinhaCriterio, LinhaEnsaio, LinhaEquipamento, LinhaGrupo, LinhaImportacao,
+  LinhaImportacaoEnsaio,
   LinhaInteracao, LinhaItemCadastro,
   LinhaItemEstoque, LinhaLaudo, LinhaLegenda, LinhaLeituraPh, LinhaLote,
   LinhaLoteReagente, LinhaMembro, LinhaMetodologia, LinhaMovimentoEstoque,
@@ -33,7 +36,8 @@ import type {
 } from './mapas';
 import type {
   Amostra, AmostraControle, Bandeja, Calibracao, Cliente, Contato, Convenio,
-  ColecaoCadastro, Curva, Ensaio, Equipamento, GrupoAnalise, Importacao,
+  ColecaoCadastro, CriterioAceitacao, Curva, Ensaio, Equipamento, GrupoAnalise,
+  Importacao,
   Interacao, ItemEstoque, ItemSimples,
   Laudo, Legenda, LeituraPh, LoteReagente, LoteRecepcao, Metodologia,
   MovimentoEstoque, NotaFiscal, Oportunidade, Orcamento, Papel, Parametro,
@@ -89,6 +93,7 @@ export interface CargaBancada {
   convenios: Convenio[];
   regrasDesconto: RegraDesconto[];
   importacoes: Importacao[];
+  criterios: CriterioAceitacao[];
 }
 
 /** PostgREST devolve no máximo mil linhas por vez; aqui a página é interna. */
@@ -227,6 +232,8 @@ export async function carregarBancada(): Promise<CargaBancada> {
     tudo<LinhaImportacaoEnsaio>('lab_importacoes_ensaios', '*'),
   ]);
 
+  const linhasCriterio = await tudo<LinhaCriterio>('lab_criterios', '*', { coluna: 'nome' });
+
   const agrupar = <T, C>(linhas: T[], chave: (l: T) => string, valor: (l: T) => C) => {
     const mapa = new Map<string, C[]>();
     for (const linha of linhas) {
@@ -289,6 +296,7 @@ export async function carregarBancada(): Promise<CargaBancada> {
       itensImportacao.filter((t) => t.importacao_id === i.id)
         .map((t) => ({ ensaioId: t.ensaio_id, valor: Number(t.valor) })),
     )),
+    criterios: linhasCriterio.map(deCriterio),
   };
 }
 
@@ -540,6 +548,7 @@ const DESTINO_CADASTRO: Record<ColecaoCadastro, { tabela: string; linha: (item: 
   observacoesFixas: { tabela: 'lab_itens_cadastro', linha: ((i: ItemSimples) => paraItemCadastro(i, 'observacao-fixa')) as (i: never) => object },
   convenios: { tabela: 'lab_convenios', linha: paraConvenio as (i: never) => object },
   regrasDesconto: { tabela: 'lab_regras_desconto', linha: paraRegraDesconto as (i: never) => object },
+  criterios: { tabela: 'lab_criterios', linha: paraCriterio as (i: never) => object },
 };
 
 export async function gravarCadastro(colecao: ColecaoCadastro, item: unknown): Promise<void> {

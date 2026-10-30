@@ -569,10 +569,40 @@ export interface Importacao {
  * laboratório tem seus métodos, preços e tabelas: nada disso pode exigir
  * um programador.
  */
+/**
+ * Critério de aceitação de um ensaio. Vale para toda análise quando não
+ * aponta alvo; apontando grupo ou elemento, vence o mais específico.
+ * Era constante no código — e cada laboratório valida o seu método com
+ * limites próprios.
+ */
+export interface CriterioAceitacao {
+  id: UUID;
+  nome: string;
+  grupoId?: GrupoAnaliseId;
+  parametroId?: UUID;
+  /** vale só para elemento resolvido por eletrodo — critério de eletrodo não se aplica a espectro */
+  somentePh?: boolean;
+  /** desvio relativo máximo entre réplicas da mesma amostra */
+  rsdMaxPercentual: number;
+  /** diferença máxima aceita entre duplicatas de controle */
+  diferencaMaxPercentual?: number;
+  /** |z| máximo no controle de qualidade antes de reprovar */
+  zScoreMax?: number;
+  /* potenciometria */
+  slopeMin?: number;
+  slopeMax?: number;
+  slopeAlerta?: number;
+  offsetMaxMv?: number;
+  r2Min?: number;
+  derivaMaxMvPorMin?: number;
+  janelaEstabilidadeS?: number;
+  ativo: boolean;
+}
+
 export type ColecaoCadastro =
   | 'unidades' | 'grupos' | 'parametros' | 'tiposAnalise' | 'metodologias'
   | 'bandejas' | 'profundidades' | 'culturas' | 'tiposCliente'
-  | 'observacoesFixas' | 'convenios' | 'regrasDesconto';
+  | 'observacoesFixas' | 'convenios' | 'regrasDesconto' | 'criterios';
 
 export interface RegistroAuditoria {
   id: UUID;

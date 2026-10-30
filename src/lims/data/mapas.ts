@@ -758,3 +758,39 @@ export const paraRegraDesconto = (r: RegraDesconto): LinhaRegraDesconto => ({
   observacao: r.observacao ?? null, quantidade_minima: r.quantidadeMinima,
   percentual: r.percentual,
 });
+
+/* ---------------- Critérios de aceitação ---------------- */
+
+import type { CriterioAceitacao } from '../types';
+
+export interface LinhaCriterio {
+  id: string; nome: string; grupo_id: string | null; parametro_id: string | null;
+  somente_ph: boolean; rsd_max_percentual: number; diferenca_max_percentual: number | null;
+  z_score_max: number | null; slope_min: number | null; slope_max: number | null;
+  slope_alerta: number | null; offset_max_mv: number | null; r2_min: number | null;
+  deriva_max_mv_por_min: number | null; janela_estabilidade_s: number | null;
+  ativo: boolean;
+}
+
+export const deCriterio = (l: LinhaCriterio): CriterioAceitacao => ({
+  id: l.id, nome: l.nome,
+  grupoId: (opc(l.grupo_id) as CriterioAceitacao['grupoId']),
+  parametroId: opc(l.parametro_id), somentePh: l.somente_ph,
+  rsdMaxPercentual: num0(l.rsd_max_percentual),
+  diferencaMaxPercentual: num(l.diferenca_max_percentual),
+  zScoreMax: num(l.z_score_max), slopeMin: num(l.slope_min), slopeMax: num(l.slope_max),
+  slopeAlerta: num(l.slope_alerta), offsetMaxMv: num(l.offset_max_mv),
+  r2Min: num(l.r2_min), derivaMaxMvPorMin: num(l.deriva_max_mv_por_min),
+  janelaEstabilidadeS: num(l.janela_estabilidade_s), ativo: l.ativo,
+});
+
+export const paraCriterio = (c: CriterioAceitacao): LinhaCriterio => ({
+  id: c.id, nome: c.nome, grupo_id: c.grupoId ?? null, parametro_id: c.parametroId ?? null,
+  somente_ph: c.somentePh ?? false, rsd_max_percentual: c.rsdMaxPercentual,
+  diferenca_max_percentual: c.diferencaMaxPercentual ?? null,
+  z_score_max: c.zScoreMax ?? null, slope_min: c.slopeMin ?? null,
+  slope_max: c.slopeMax ?? null, slope_alerta: c.slopeAlerta ?? null,
+  offset_max_mv: c.offsetMaxMv ?? null, r2_min: c.r2Min ?? null,
+  deriva_max_mv_por_min: c.derivaMaxMvPorMin ?? null,
+  janela_estabilidade_s: c.janelaEstabilidadeS ?? null, ativo: c.ativo,
+});
