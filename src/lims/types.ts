@@ -55,6 +55,8 @@ export interface Usuario {
   ativo: boolean;
   ultimoAcesso?: ISODate;
   iniciais: string;
+  /** registro no conselho de química — quem assina laudo precisa do seu */
+  crq?: string;
   /** Analista habilitado a assinar resultados destes grupos */
   habilitacoes: GrupoAnaliseId[];
   mfa: boolean;

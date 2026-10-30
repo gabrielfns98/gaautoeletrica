@@ -30,13 +30,30 @@ export function percentual(v: number, casas = 1): string {
 
 /* ---------------- Datas ---------------- */
 
+/**
+ * Fuso do laboratório. Data de laudo, hora de leitura e prazo não podem
+ * mudar conforme o relógio de quem abre a tela: o registro é do ensaio,
+ * não do aparelho. Enquanto a Bancada opera no Brasil isto é uma
+ * constante; quando houver unidade em outro fuso, vira configuração da
+ * unidade e passa por aqui do mesmo jeito.
+ */
+export const FUSO = 'America/Sao_Paulo';
+
 const asDate = (d: string | Date) => (d instanceof Date ? d : new Date(d));
+
+/** Dia do calendário no fuso do laboratório, como número aaaammdd. */
+function diaLocal(d: Date): number {
+  const [{ value: dia }, , { value: mes }, , { value: ano }] = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: FUSO, day: '2-digit', month: '2-digit', year: 'numeric',
+  }).formatToParts(d);
+  return Number(`${ano}${mes}${dia}`);
+}
 
 export function data(d: string | Date | undefined): string {
   if (!d) return '—';
   const dt = asDate(d);
   return Number.isNaN(dt.getTime()) ? '—'
-    : dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    : dt.toLocaleDateString('pt-BR', { timeZone: FUSO, day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export function dataHora(d: string | Date | undefined): string {
@@ -44,6 +61,7 @@ export function dataHora(d: string | Date | undefined): string {
   const dt = asDate(d);
   return Number.isNaN(dt.getTime()) ? '—'
     : dt.toLocaleString('pt-BR', {
+        timeZone: FUSO,
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
       });
@@ -53,17 +71,31 @@ export function hora(d: string | Date | undefined): string {
   if (!d) return '—';
   const dt = asDate(d);
   return Number.isNaN(dt.getTime()) ? '—'
-    : dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    : dt.toLocaleTimeString('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 export function dataExtenso(d: string | Date): string {
-  return asDate(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  return asDate(d).toLocaleDateString('pt-BR', { timeZone: FUSO, day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 /** Diferença em dias entre duas datas (b − a), arredondada para baixo. */
+/**
+ * Diferença em dias de calendário no fuso do laboratório — não em blocos
+ * de 24 h. "Ontem às 23h" é um dia atrás mesmo quando faltam duas horas
+ * para completar 24.
+ */
 export function diasEntre(a: string | Date, b: string | Date = new Date()): number {
-  const ms = asDate(b).getTime() - asDate(a).getTime();
-  return Math.floor(ms / 86_400_000);
+  const inicio = Date.UTC(
+    Math.floor(diaLocal(asDate(a)) / 10000),
+    Math.floor(diaLocal(asDate(a)) / 100) % 100 - 1,
+    diaLocal(asDate(a)) % 100,
+  );
+  const fim = Date.UTC(
+    Math.floor(diaLocal(asDate(b)) / 10000),
+    Math.floor(diaLocal(asDate(b)) / 100) % 100 - 1,
+    diaLocal(asDate(b)) % 100,
+  );
+  return Math.round((fim - inicio) / 86_400_000);
 }
 
 export function diasAte(d: string | Date): number {

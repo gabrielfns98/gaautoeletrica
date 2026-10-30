@@ -5,7 +5,7 @@
    ============================================================ */
 
 import { PAPEIS_PADRAO } from '../lib/rbac';
-import { calcularCalibracao, mvDePh, phDeMv, corrigirPara25C, avaliarCQ } from '../lib/ph';
+import { calcularCalibracao, mvDePh, phDeMv, corrigirPara25C, avaliarCQ, hMaisAlPorSmp } from '../lib/ph';
 import { apurarNotaServico } from '../lib/fiscal';
 import { ajustarCurva } from '../lib/curva';
 import { iniciais } from '../lib/format';
@@ -38,17 +38,34 @@ const inteiro = (min: number, max: number) => Math.floor(entre(min, max + 1));
 const escolher = <T,>(lista: readonly T[]): T => lista[Math.floor(rnd() * lista.length)];
 const chance = (p: number) => rnd() < p;
 
-const HOJE = new Date();
+const AGORA = new Date();
+const HOJE = new Date(AGORA);
 HOJE.setHours(9, 0, 0, 0);
 
-function diasAtras(d: number, horaDia?: number): string {
+/** Deslocamento em dias a partir de hoje, sem juízo sobre passado ou futuro. */
+function deslocar(d: number, horaDia?: number): Date {
   const dt = new Date(HOJE);
   dt.setDate(dt.getDate() - d);
   if (horaDia !== undefined) dt.setHours(horaDia, inteiro(0, 59), inteiro(0, 59), 0);
-  return dt.toISOString();
+  return dt;
 }
+
+/**
+ * Evento que já aconteceu. A âncora do dia é 9h, mas um lote "de hoje às
+ * 16h" sorteado às 10h da manhã cairia no futuro e a tela mostraria
+ * "em 6 h" num lote já recebido — então o que passar de agora volta para
+ * alguns minutos atrás.
+ */
+function diasAtras(d: number, horaDia?: number): string {
+  const dt = deslocar(d, horaDia);
+  return dt.getTime() > AGORA.getTime()
+    ? new Date(AGORA.getTime() - inteiro(3, 190) * 60_000).toISOString()
+    : dt.toISOString();
+}
+
+/** Compromisso adiante — prazo, validade, próxima manutenção. Não se limita. */
 function diasAFrente(d: number): string {
-  return diasAtras(-d);
+  return deslocar(-d).toISOString();
 }
 
 /* ---------------- Unidades ---------------- */
@@ -134,6 +151,29 @@ export const parametros: Parametro[] = [
   { id: 'par-ph-seiva', codigo: 'PH-SEIVA', nome: 'pH da seiva', grupoId: 'seiva', unidade: '', tipo: 'numerico', metodo: 'Potenciometria direta em extrato de seiva', casasDecimais: 2, incerteza: 0.05, preco: 13.0, ativo: true, ehPh: true, extrator: 'direto', proporcao: 'direto' },
   { id: 'par-germ', codigo: 'GERM', nome: 'Germinação', grupoId: 'sementes', unidade: '%', tipo: 'numerico', metodo: 'RAS/MAPA 2009', casasDecimais: 0, preco: 46.0, ativo: true },
   { id: 'par-nema', codigo: 'NEMA', nome: 'Contagem de fitonematoides', grupoId: 'nematoides', unidade: 'ind./200 cm³', tipo: 'numerico', metodo: 'Jenkins (1964) — flutuação e peneiramento', casasDecimais: 0, preco: 58.0, ativo: true },
+
+  // Enxofre, micronutrientes, sódio e as duas outras leituras de fósforo:
+  // nenhum laboratório de solos entrega fertilidade sem eles.
+  { id: 'par-s', codigo: 'S', nome: 'Enxofre', grupoId: 'solo', unidade: 'mg/dm³', tipo: 'numerico', metodo: 'Ca(H₂PO₄)₂ 0,01 mol/L + turbidimetria', casasDecimais: 1, preco: 11.5, ativo: true },
+  { id: 'par-b', codigo: 'B', nome: 'Boro', grupoId: 'solo', unidade: 'mg/dm³', tipo: 'numerico', metodo: 'Água quente + colorimetria (azometina-H)', casasDecimais: 2, preco: 13.0, ativo: true },
+  { id: 'par-cu', codigo: 'CU', nome: 'Cobre', grupoId: 'solo', unidade: 'mg/dm³', tipo: 'numerico', metodo: 'Mehlich-1 + absorção atômica', casasDecimais: 2, preco: 10.5, ativo: true },
+  { id: 'par-fe', codigo: 'FE', nome: 'Ferro', grupoId: 'solo', unidade: 'mg/dm³', tipo: 'numerico', metodo: 'Mehlich-1 + absorção atômica', casasDecimais: 1, preco: 10.5, ativo: true },
+  { id: 'par-mn', codigo: 'MN', nome: 'Manganês', grupoId: 'solo', unidade: 'mg/dm³', tipo: 'numerico', metodo: 'Mehlich-1 + absorção atômica', casasDecimais: 1, preco: 10.5, ativo: true },
+  { id: 'par-zn', codigo: 'ZN', nome: 'Zinco', grupoId: 'solo', unidade: 'mg/dm³', tipo: 'numerico', metodo: 'Mehlich-1 + absorção atômica', casasDecimais: 2, preco: 10.5, ativo: true },
+  { id: 'par-na', codigo: 'NA', nome: 'Sódio trocável', grupoId: 'solo', unidade: 'cmolc/dm³', tipo: 'numerico', metodo: 'Mehlich-1 + fotometria de chama', casasDecimais: 2, preco: 9.5, ativo: true },
+  { id: 'par-p-res', codigo: 'P-RES', nome: 'Fósforo (resina)', grupoId: 'solo', unidade: 'mg/dm³', tipo: 'numerico', metodo: 'IAC Boletim 100 — resina trocadora de íons', casasDecimais: 1, preco: 15.0, ativo: true },
+  { id: 'par-p-rem', codigo: 'P-REM', nome: 'Fósforo remanescente', grupoId: 'solo', unidade: 'mg/L', tipo: 'numerico', metodo: 'Alvarez V. et al. (2000)', casasDecimais: 1, preco: 12.0, ativo: true },
+  { id: 'par-sb', codigo: 'SB', nome: 'Soma de bases', grupoId: 'solo', unidade: 'cmolc/dm³', tipo: 'numerico', metodo: 'Calculado: Ca + Mg + K + Na', casasDecimais: 2, preco: 0, ativo: true },
+  { id: 'par-m', codigo: 'M', nome: 'Saturação por alumínio', grupoId: 'solo', unidade: '%', tipo: 'numerico', metodo: 'Calculado: 100 · Al / (SB + Al)', casasDecimais: 1, preco: 0, ativo: true },
+
+  { id: 'par-ca-fol', codigo: 'CA-FOL', nome: 'Cálcio foliar', grupoId: 'foliar', unidade: 'g/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 1, preco: 11.0, ativo: true },
+  { id: 'par-mg-fol', codigo: 'MG-FOL', nome: 'Magnésio foliar', grupoId: 'foliar', unidade: 'g/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 2, preco: 11.0, ativo: true },
+  { id: 'par-s-fol', codigo: 'S-FOL', nome: 'Enxofre foliar', grupoId: 'foliar', unidade: 'g/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + turbidimetria', casasDecimais: 2, preco: 12.0, ativo: true },
+  { id: 'par-b-fol', codigo: 'B-FOL', nome: 'Boro foliar', grupoId: 'foliar', unidade: 'mg/kg', tipo: 'numerico', metodo: 'Via seca + colorimetria (azometina-H)', casasDecimais: 1, preco: 13.0, ativo: true },
+  { id: 'par-cu-fol', codigo: 'CU-FOL', nome: 'Cobre foliar', grupoId: 'foliar', unidade: 'mg/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 1, preco: 10.5, ativo: true },
+  { id: 'par-fe-fol', codigo: 'FE-FOL', nome: 'Ferro foliar', grupoId: 'foliar', unidade: 'mg/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 0, preco: 10.5, ativo: true },
+  { id: 'par-mn-fol', codigo: 'MN-FOL', nome: 'Manganês foliar', grupoId: 'foliar', unidade: 'mg/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 0, preco: 10.5, ativo: true },
+  { id: 'par-zn-fol', codigo: 'ZN-FOL', nome: 'Zinco foliar', grupoId: 'foliar', unidade: 'mg/kg', tipo: 'numerico', metodo: 'Digestão nitroperclórica + absorção atômica', casasDecimais: 1, preco: 10.5, ativo: true },
 ];
 
 export const parametrosPh = parametros.filter((p) => p.ehPh);
@@ -152,7 +192,8 @@ const TIPOS_ANALISE: TipoAnalise[] = [
   {
     id: 'tpa-sol-fert', codigo: 'SOL GP FERTILIDADE', nome: 'Fertilidade completa',
     grupoId: 'solo', prazoDias: 7, ativo: true,
-    parametroIds: por('solo', 'PH-H2O', 'PH-SMP', 'MO', 'P-MEL', 'K', 'CA', 'MG', 'H+AL', 'AL', 'CTC', 'V'),
+    parametroIds: por('solo', 'PH-H2O', 'PH-SMP', 'MO', 'P-MEL', 'K', 'CA', 'MG',
+      'H+AL', 'AL', 'SB', 'CTC', 'V', 'M', 'S', 'B', 'CU', 'FE', 'MN', 'ZN'),
   },
   {
     id: 'tpa-sol-acidez', codigo: 'SOL GP ACIDEZ', nome: 'Acidez ativa e potencial',
@@ -270,6 +311,9 @@ export const usuarios: Usuario[] = PESSOAS.map(([nome, papelId, cargo, habilitac
   ativo: i !== 7,
   ultimoAcesso: diasAtras(inteiro(0, 9), inteiro(7, 19)),
   iniciais: iniciais(nome),
+  // Só responsável técnico tem registro no conselho, e é o dele que sai
+  // no laudo que ele assina — não o da unidade.
+  crq: papelId === 'papel-rt' ? `CRQ ${inteiro(2, 15)}ª Região nº ${inteiro(10_000, 99_999)}` : undefined,
   habilitacoes: habilitacoes as GrupoAnaliseId[],
   mfa: i < 4 || papelId === 'papel-admin' || papelId === 'papel-financeiro',
 }));
@@ -520,11 +564,38 @@ function sortearStatus(diasDesdeRecepcao: number, prazoDias: number): StatusAmos
   }
   // Passou do prazo: quase tudo já saiu. O resto é o atraso real que o
   // painel precisa destacar — poucas dezenas, não centenas.
+  const diasVencido = diasDesdeRecepcao - prazoDias;
+
+  // Nenhum laboratório deixa amostra aberta por meses: depois de três
+  // semanas de atraso ela saiu ou foi cancelada.
+  if (diasVencido > 21) return r < 0.97 ? 'liberada' : 'cancelada';
+
   if (r < 0.965) return 'liberada';
   if (r < 0.983) return 'aguardando-revisao';
   if (r < 0.991) return 'em-analise';
   return 'cancelada';
 }
+
+/**
+ * O que cada tipo de cliente manda para o laboratório. Sortear grupo solto
+ * produzia etiqueta de fertilizante para empresa de saneamento, e quem
+ * conhece o ramo vê na hora.
+ */
+const GRUPOS_POR_SEGMENTO: Record<string, GrupoAnaliseId[]> = {
+  Usina: ['solo', 'solo', 'foliar', 'derivados-cana', 'derivados-cana', 'corretivos-agricolas', 'seiva'],
+  'Produtor rural': ['solo', 'solo', 'solo', 'foliar', 'nematoides', 'corretivos-agricolas', 'seiva'],
+  Cooperativa: ['solo', 'solo', 'foliar', 'sementes', 'fertilizantes', 'corretivos-agricolas'],
+  'Revenda de insumos': ['fertilizantes', 'corretivos-agricolas', 'gesso', 'produtos-biologicos'],
+  Sementeira: ['sementes', 'sementes', 'solo', 'foliar'],
+  'Indústria de fertilizantes': ['fertilizantes', 'fertilizantes', 'corretivos-agricolas', 'gesso'],
+  Mineradora: ['corretivos-agricolas', 'corretivos-agricolas', 'gesso', 'solo'],
+  'Consultoria agronômica': ['solo', 'solo', 'foliar', 'nematoides', 'seiva'],
+  Saneamento: ['agua-efluentes', 'agua-efluentes', 'compostos-organicos'],
+  'Indústria de biológicos': ['produtos-biologicos', 'compostos-organicos'],
+  Algodoeira: ['solo', 'foliar', 'sementes'],
+  Indústria: ['agua-efluentes', 'bromatologia', 'compostos-organicos'],
+  Pecuarista: ['bromatologia', 'solo', 'foliar', 'agua-efluentes'],
+};
 
 const GRUPOS_FREQUENTES: GrupoAnaliseId[] = [
   'solo', 'solo', 'solo', 'solo', 'solo', 'foliar', 'foliar', 'agua-efluentes',
@@ -561,6 +632,74 @@ function gerarTrace(phVerdadeiro: number, temperatura: number, calib: Calibracao
 }
 function phVerdatoSafe(v: number) { return Math.min(13.5, Math.max(2.5, v)); }
 
+/**
+ * Perfil químico de uma amostra, com os valores conversando entre si: o
+ * SMP responde ao pH, o H+Al sai do SMP pela equação do CFSEMG, a CTC é
+ * soma de bases mais acidez potencial e o V% é a razão entre as duas.
+ * Sortear cada elemento isolado dava laudo que nenhum agrônomo assina —
+ * H+Al de 21 cmolc/dm³, alumínio de 10, SMP igual ao pH em CaCl₂.
+ */
+function perfilQuimico(grupoId: GrupoAnaliseId): Record<string, number> {
+  if (grupoId === 'solo') {
+    const phH2O = entre(4.2, 6.9);
+    const smp = Math.min(7.4, Math.max(4.4, 3.1 + 0.58 * phH2O + entre(-0.1, 0.1)));
+    const hAl = Math.min(9, Math.max(0.5, hMaisAlPorSmp(smp)));
+    // 0 = solo ácido e pobre, 1 = solo corrigido
+    const fertilidade = (phH2O - 4.2) / 2.7;
+    const ca = entre(0.4, 1.4) + fertilidade * entre(1.2, 3.4);
+    const mg = ca * entre(0.22, 0.45);
+    const k = entre(28, 190);                 // mg/dm³
+    const na = entre(0.01, 0.12);
+    const sb = ca + mg + k / 391 + na;        // 391 = massa equivalente do K
+    const ctc = sb + hAl;
+    const al = phH2O > 5.6 ? entre(0, 0.12) : entre(0.15, 1.6) * (1 - fertilidade);
+
+    return {
+      'PH-H2O': phH2O,
+      'PH-CACL2': phH2O - entre(0.4, 0.7),
+      'PH-KCL': phH2O - entre(0.5, 0.9),
+      'PH-SMP': smp,
+      'H+AL': hAl, AL: al, CA: ca, MG: mg, K: k, NA: na,
+      SB: sb, CTC: ctc, V: (sb / ctc) * 100, M: (al / (sb + al)) * 100,
+      MO: entre(8, 42), 'P-MEL': entre(2, 48), 'P-RES': entre(4, 62), 'P-REM': entre(8, 52),
+      S: entre(3, 38), B: entre(0.1, 0.9), CU: entre(0.4, 4.5),
+      FE: entre(14, 160), MN: entre(2, 62), ZN: entre(0.3, 6.5),
+      ARG: entre(120, 620),
+    };
+  }
+
+  if (grupoId === 'foliar') {
+    return {
+      'N-FOL': entre(25, 46), 'P-FOL': entre(1.4, 3.4), 'K-FOL': entre(14, 28),
+      'CA-FOL': entre(4, 18), 'MG-FOL': entre(1.6, 5.2), 'S-FOL': entre(1.4, 3.6),
+      'B-FOL': entre(18, 62), 'CU-FOL': entre(4, 18), 'FE-FOL': entre(60, 320),
+      'MN-FOL': entre(25, 180), 'ZN-FOL': entre(14, 58),
+    };
+  }
+
+  if (grupoId === 'agua-efluentes') {
+    return { CE: entre(60, 1800), DBO: entre(2, 320), DQO: entre(8, 780), TURB: entre(0.4, 90) };
+  }
+  if (grupoId === 'corretivos-agricolas') return { PRNT: entre(62, 94), PN: entre(78, 112) };
+  if (grupoId === 'derivados-cana') return { BRIX: entre(14, 23) };
+  if (grupoId === 'fertilizantes') return { 'N-TOT': entre(8, 46) };
+  if (grupoId === 'sementes') return { GERM: entre(72, 99) };
+  if (grupoId === 'nematoides') return { NEMA: entre(0, 1800) };
+  return {};
+}
+
+/** Último recurso: faixa pela unidade, para parâmetro sem perfil próprio. */
+function faixaPorUnidade(unidade: string): number {
+  switch (unidade) {
+    case 'cmolc/dm³': return entre(0.2, 6);
+    case 'mg/dm³': case 'mg/kg': return entre(1, 80);
+    case 'g/dm³': case 'g/kg': return entre(2, 40);
+    case 'mg/L': return entre(0.5, 60);
+    case '%': return entre(1, 60);
+    default: return entre(0.4, 24);
+  }
+}
+
 /** pH plausível conforme a matriz analisada. */
 function phTipico(grupoId: GrupoAnaliseId, extrator: string): number {
   if (extrator === 'SMP') return entre(4.9, 6.8);
@@ -595,7 +734,7 @@ for (let l = 0; l < 210; l++) {
   };
   lotesRecepcao.push(lote);
 
-  const grupoLote = escolher(GRUPOS_FREQUENTES);
+  const grupoLote = escolher(GRUPOS_POR_SEGMENTO[cliente.segmento] ?? GRUPOS_FREQUENTES);
   const grupo = grupos.find((g) => g.id === grupoLote)!;
 
   for (let a = 0; a < qtd; a++) {
@@ -617,7 +756,8 @@ for (let l = 0; l < 210; l++) {
       cultura: ['solo', 'foliar', 'seiva', 'nematoides'].includes(grupoLote) ? escolher(CULTURAS) : undefined,
       dataColeta: diasAtras(diasAtrasRecepcao + inteiro(1, 6)),
       dataRecepcao: lote.dataRecepcao,
-      prazoEntrega: diasAtras(diasAtrasRecepcao - grupo.prazoPadraoDias),
+      // Amostra recente ainda tem prazo pela frente; antiga já venceu.
+      prazoEntrega: deslocar(diasAtrasRecepcao - grupo.prazoPadraoDias).toISOString(),
       status,
       prioridade: chance(0.12) ? (chance(0.3) ? 'emergencial' : 'urgente') : 'normal',
       massaRecebida: grupoLote === 'agua-efluentes' ? undefined : inteiro(180, 620),
@@ -641,6 +781,8 @@ for (let l = 0; l < 210; l++) {
     const pacote = pacotes.length ? escolher(pacotes) : undefined;
     amostra.tipoAnaliseId = pacote?.id;
 
+    // Um perfil por amostra: todos os elementos dela saem do mesmo solo.
+    const perfil = perfilQuimico(grupoLote);
     const doGrupo = parametros.filter((p) => p.grupoId === grupoLote);
     const selecionados = pacote
       ? pacote.parametroIds.map((id) => parametros.find((p) => p.id === id)!).filter(Boolean)
@@ -672,7 +814,7 @@ for (let l = 0; l < 210; l++) {
           const eq = escolher(phmetros.filter((e) => e.unidadeId === amostra.unidadeId));
           const calib = calibracaoVigente.get(eq.id)!;
           const temperatura = entre(21.8, 27.4);
-          const phVerdadeiro = phTipico(grupoLote, par.extrator ?? 'H2O');
+          const phVerdadeiro = perfil[par.codigo] ?? phTipico(grupoLote, par.extrator ?? 'H2O');
           const trace = gerarTrace(phVerdadeiro, temperatura, calib);
           const ultimo = trace[trace.length - 1];
           const phCorrigido = corrigirPara25C(ultimo.ph, temperatura, par.extrator ?? 'H2O');
@@ -703,14 +845,7 @@ for (let l = 0; l < 210; l++) {
           ensaio.valor = Number(phCorrigido.toFixed(par.casasDecimais));
           ensaio.leituraPhId = leitura.id;
         } else {
-          const base = par.codigo === 'MO' ? entre(8, 42)
-            : par.codigo === 'P-MEL' ? entre(2, 48)
-            : par.codigo === 'K' ? entre(28, 190)
-            : par.codigo === 'V' ? entre(22, 78)
-            : par.codigo === 'PRNT' ? entre(62, 94)
-            : par.codigo === 'GERM' ? entre(72, 99)
-            : par.codigo === 'NEMA' ? entre(0, 1800)
-            : entre(0.4, 24);
+          const base = perfil[par.codigo] ?? faixaPorUnidade(par.unidade);
           ensaio.valor = Number(base.toFixed(par.casasDecimais));
         }
 

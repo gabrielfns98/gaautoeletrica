@@ -139,6 +139,8 @@ function PreVisualizacao({
     [estado.amostras, laudo],
   );
 
+  const assinante = laudo?.assinadoPorId ? usuarioPorId.get(laudo.assinadoPorId) : undefined;
+
   const parametrosUsados = useMemo(() => {
     const ids = new Set<string>();
     for (const a of amostras) {
@@ -287,9 +289,14 @@ function PreVisualizacao({
                   <div className="shrink-0 text-center">
                     <div className="mb-1.5 h-10 w-44 border-b border-[hsl(var(--line-strong))]" />
                     <p className="text-[0.68rem] font-medium text-foreground">
-                      {laudo.assinadoPorId ? usuarioPorId.get(laudo.assinadoPorId)?.nome : unidade.responsavelTecnico}
+                      {assinante?.nome ?? unidade.responsavelTecnico}
                     </p>
-                    <p className="num text-[0.62rem] text-muted-foreground">{unidade.crq}</p>
+                    {/* O registro é da pessoa que assina, não da unidade:
+                        laudo com o nome de um e o CRQ de outro não se
+                        sustenta numa auditoria. */}
+                    <p className="num text-[0.62rem] text-muted-foreground">
+                      {assinante?.crq ?? unidade.crq}
+                    </p>
                   </div>
                 </div>
               </div>
