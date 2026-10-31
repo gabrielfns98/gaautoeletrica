@@ -181,10 +181,14 @@ export default function Resultados() {
       toast.error('Nada para gravar.');
       return;
     }
-    lancarResultados(pendencias);
+    const calculados = lancarResultados(pendencias) ?? 0;
     setValores({});
     toast.success(`${pendencias.length} ${pendencias.length === 1 ? 'resultado gravado' : 'resultados gravados'}`, {
-      description: 'Os ensaios passaram para “lido” e seguem para revisão técnica.',
+      description: calculados > 0
+        // Dizer quantos saíram sozinhos: o analista não digitou esses
+        // números e precisa saber de onde vieram.
+        ? `Mais ${calculados} ${calculados === 1 ? 'calculado' : 'calculados'} pela fórmula cadastrada. Os ensaios seguem para revisão técnica.`
+        : 'Os ensaios passaram para “lido” e seguem para revisão técnica.',
     });
   };
 

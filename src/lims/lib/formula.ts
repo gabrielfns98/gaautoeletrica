@@ -56,6 +56,12 @@ export const FUNCOES: Record<string, { aridade: number; aplicar: (...a: number[]
   // Limita entre piso e teto: V% não passa de 100 nem fica negativo.
   limite: { aridade: 3, aplicar: (a, piso, teto) => Math.min(teto, Math.max(piso, a)) },
   se: { aridade: 3, aplicar: (cond, entao, senao) => (cond > 0 ? entao : senao) },
+  /* Vale o primeiro quando o elemento foi medido, o segundo quando
+     não foi. Variável ausente é NaN de propósito — zero calado dá
+     CTC menor que a real —, mas há conta em que a ausência tem valor
+     combinado: SB sem sódio é Ca + Mg + K, e o laboratório diz isso
+     escrevendo `ou(NA; 0)` em vez de o motor adivinhar. */
+  ou: { aridade: 2, aplicar: (valor, padrao) => (Number.isFinite(valor) ? valor : padrao) },
 };
 
 export class ErroFormula extends Error {}
@@ -363,7 +369,16 @@ export function calcularDerivados(
     if (!atual || (!atual.grupoId && f.grupoId)) aplicaveis.set(f.parametroId, f);
   }
 
+  /* O que esta chamada vai calcular não pode entrar como dado de
+     partida. O valor derivado que está gravado na amostra é o de
+     antes: deixá-lo em `valores` faz uma fórmula consumir a versão
+     velha da outra — CTC somando o H+Al antigo enquanto o novo era
+     calculado na mesma passagem, e V% saindo errado atrás dele. */
   const valores: Record<string, number | undefined> = { ...medidos };
+  for (const parametroId of aplicaveis.keys()) {
+    const alvo = porId.get(parametroId);
+    if (alvo) delete valores[alvo.codigo.toUpperCase()];
+  }
   const resolvidos = new Map<string, Calculado>();
   const pendentes = new Set(aplicaveis.keys());
 
@@ -404,4 +419,82 @@ export function calcularDerivados(
   }
 
   return [...resolvidos.values()];
+}
+
+/* ---------------- Lançamento: o que o calculado acrescenta ---------------- */
+
+interface EnsaioMinimo {
+  id: string; amostraId: string; parametroId: string; valor?: number;
+}
+interface AmostraMinima { id: string; grupoId: string }
+
+/**
+ * Dado um lote de resultados que o analista acabou de lançar, quais
+ * resultados calculados saem junto.
+ *
+ * Mora aqui, e não na tela, porque o laboratório lança resultado por
+ * três caminhos — digitando na grade, importando planilha e lendo o
+ * potenciômetro — e os calculados têm de sair igual nos três. Ligar
+ * cada tela por sua conta é a forma mais barata de ter SB numa e não
+ * na outra.
+ *
+ * Só devolve ensaio que já existe na amostra: o laboratório decidiu
+ * no escopo se quer CTC naquele protocolo, e o lançamento não é hora
+ * de acrescentar ensaio que ninguém pediu.
+ */
+export function entradasDerivadas(
+  entradas: Array<{ ensaioId: string; valor: number }>,
+  estado: {
+    ensaios: EnsaioMinimo[];
+    amostras: AmostraMinima[];
+    parametros: ParametroMinimo[];
+    formulas: FormulaMinima[];
+  },
+): Array<{ ensaioId: string; valor: number }> {
+  if (entradas.length === 0) return [];
+
+  const ensaioPorId = new Map(estado.ensaios.map((e) => [e.id, e]));
+  const parametroPorId = new Map(estado.parametros.map((p) => [p.id, p]));
+  const amostraPorId = new Map(estado.amostras.map((a) => [a.id, a]));
+
+  /* Os valores que o lançamento está gravando valem mais que os que
+     estão no estado: são justamente os que mudaram. */
+  const novoValor = new Map(entradas.map((e) => [e.ensaioId, e.valor]));
+
+  const amostrasTocadas = new Set<string>();
+  for (const { ensaioId } of entradas) {
+    const ensaio = ensaioPorId.get(ensaioId);
+    if (ensaio) amostrasTocadas.add(ensaio.amostraId);
+  }
+
+  const saida: Array<{ ensaioId: string; valor: number }> = [];
+
+  for (const amostraId of amostrasTocadas) {
+    const amostra = amostraPorId.get(amostraId);
+    if (!amostra) continue;
+
+    const daAmostra = estado.ensaios.filter((e) => e.amostraId === amostraId);
+
+    const medidos: Record<string, number | undefined> = {};
+    for (const e of daAmostra) {
+      const p = parametroPorId.get(e.parametroId);
+      if (!p) continue;
+      const valor = novoValor.has(e.id) ? novoValor.get(e.id) : e.valor;
+      if (valor !== undefined) medidos[p.codigo.toUpperCase()] = valor;
+    }
+
+    const derivados = calcularDerivados(estado.formulas, estado.parametros, amostra.grupoId, medidos);
+
+    for (const d of derivados) {
+      if (!Number.isFinite(d.valor)) continue;
+      const alvo = daAmostra.find((e) => e.parametroId === d.parametroId);
+      if (!alvo) continue;
+      // Não regrava o que o próprio lote já traz nem o que não mudou.
+      if (novoValor.has(alvo.id)) continue;
+      if (alvo.valor !== undefined && Math.abs(alvo.valor - d.valor) < 1e-9) continue;
+      saida.push({ ensaioId: alvo.id, valor: d.valor });
+    }
+  }
+
+  return saida;
 }

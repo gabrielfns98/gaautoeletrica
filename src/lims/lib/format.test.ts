@@ -47,10 +47,13 @@ describe('diasEntre', () => {
 });
 
 describe('tempoRelativo', () => {
+  /* Mantém a hora do momento e só recua o dia: fixar meio-dia fazia o
+     teste depender da hora em que roda. O contêiner anda em UTC e o
+     sistema conta dia de calendário em Brasília, então entre 21h e
+     meia-noite "ontem ao meio-dia" ainda caía no mesmo dia lá. */
   const diasAtras = (n: number) => {
     const d = new Date();
     d.setDate(d.getDate() - n);
-    d.setHours(12, 0, 0, 0);
     return d;
   };
 

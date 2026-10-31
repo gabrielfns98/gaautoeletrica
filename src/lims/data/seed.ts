@@ -1210,8 +1210,11 @@ export const modelosLaudo: ModeloLaudo[] = [
 export const formulas: Formula[] = [
   {
     id: 'frm-sb', parametroId: idDe('SB'), grupoId: 'solo',
-    // O K vem em mg/dm³ e entra em cmolc/dm³: 391 é a massa equivalente.
-    expressao: 'CA + MG + K / 391 + NA',
+    /* O K vem em mg/dm³ e entra em cmolc/dm³: 391 é a massa equivalente.
+       O sódio entra só quando foi determinado — a maioria dos pacotes
+       de solo não o pede, e exigi-lo travaria SB, CTC e V% na amostra
+       inteira. */
+    expressao: 'CA + MG + K / 391 + ou(NA; 0)',
     fonte: 'Soma de bases trocáveis', ativa: true,
   },
   {

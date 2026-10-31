@@ -223,3 +223,30 @@ describe('a fórmula não é JavaScript', () => {
     expect(r.faltando).toEqual([nome.toUpperCase()]);
   });
 });
+
+describe('ou — ausência com valor combinado', () => {
+  it('usa o valor medido quando ele existe', () => {
+    expect(v('ou(NA; 0)', { NA: 0.05 })).toBeCloseTo(0.05, 10);
+  });
+
+  it('usa o padrão quando o elemento não foi analisado', () => {
+    expect(v('ou(NA; 0)', {})).toBe(0);
+  });
+
+  /* O caso que motivou: SB sem sódio é Ca + Mg + K, e sem isso a
+     cadeia inteira (SB → CTC → V%) parava na amostra que não pede Na. */
+  it('SB sai mesmo sem sódio no escopo', () => {
+    const r = calcular('CA + MG + K / 391 + ou(NA; 0)', { CA: 2.4, MG: 0.9, K: 117 });
+    expect(r.valor).toBeCloseTo(2.4 + 0.9 + 117 / 391, 8);
+  });
+
+  it('com sódio, o resultado o inclui', () => {
+    const r = calcular('CA + MG + K / 391 + ou(NA; 0)', { CA: 2.4, MG: 0.9, K: 117, NA: 0.05 });
+    expect(r.valor).toBeCloseTo(2.4 + 0.9 + 117 / 391 + 0.05, 8);
+  });
+
+  /* A ausência continua sendo ausência onde ninguém combinou nada. */
+  it('não muda o padrão do motor: fora de ou(), faltar ainda é NaN', () => {
+    expect(calcular('CA + NA', { CA: 2.4 }).valor).toBeNaN();
+  });
+});

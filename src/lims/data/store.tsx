@@ -29,6 +29,7 @@ import type { CargaBancada } from './repositorio';
 import { Carregando, Entrar, FalhaCarga } from '../components/acesso';
 import { PAPEIS_PADRAO } from '../lib/rbac';
 import { CRITERIOS, avaliarCQ, calcularCalibracao } from '../lib/ph';
+import { entradasDerivadas } from '../lib/formula';
 import { apurarNotaServico } from '../lib/fiscal';
 import type {
   Amostra, AmostraControle, Calibracao, Cliente, Contato, Ensaio, Equipamento,
@@ -639,15 +640,36 @@ export function useAcoes() {
   }, [despachar, usuario.id, auditar, persistir]);
 
   /** Lançamento em lote da bancada: várias amostras, vários elementos, uma gravação. */
+  /**
+   * Lançamento de resultados, por qualquer caminho.
+   *
+   * Os calculados saem junto aqui, e não em cada tela, porque o
+   * laboratório lança por três caminhos — digitando na grade,
+   * importando planilha e lendo o potenciômetro. Ligar cada tela por
+   * sua conta é a forma mais barata de ter SB numa e não na outra.
+   */
   const lancarResultados = useCallback((entradas: Array<{ ensaioId: UUID; valor: number }>) => {
     if (entradas.length === 0) return;
-    despachar({ tipo: 'lancar-resultados', entradas, analistaId: usuario.id });
-    persistir('resultados', () => gravarResultados(entradas, usuario.id));
+
+    const derivadas = entradasDerivadas(entradas, {
+      ensaios: estado.ensaios,
+      amostras: estado.amostras,
+      parametros: estado.parametros,
+      formulas: estado.formulas,
+    });
+    const todas = [...entradas, ...derivadas];
+
+    despachar({ tipo: 'lancar-resultados', entradas: todas, analistaId: usuario.id });
+    persistir('resultados', () => gravarResultados(todas, usuario.id));
     auditar(
-      'Lançou resultados', 'Ensaio', `${entradas.length} ensaios`,
-      `Lançamento em lote de ${entradas.length} ${entradas.length === 1 ? 'resultado' : 'resultados'}`,
+      'Lançou resultados', 'Ensaio', `${todas.length} ensaios`,
+      derivadas.length > 0
+        ? `${entradas.length} lançado(s) e ${derivadas.length} calculado(s) pela fórmula cadastrada`
+        : `Lançamento em lote de ${entradas.length} ${entradas.length === 1 ? 'resultado' : 'resultados'}`,
     );
-  }, [despachar, usuario.id, auditar, persistir]);
+    return derivadas.length;
+  }, [despachar, usuario.id, auditar, persistir,
+    estado.ensaios, estado.amostras, estado.parametros, estado.formulas]);
 
   const aprovarEnsaio = useCallback((ensaioId: UUID) => {
     const dados = {
