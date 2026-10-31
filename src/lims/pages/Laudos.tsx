@@ -131,6 +131,24 @@ export default function Laudos() {
   );
 }
 
+/**
+ * Abre a impressão do navegador, que é por onde sai o PDF.
+ *
+ * O Chrome batiza o arquivo salvo com o título da página, então o
+ * título vira o número do laudo durante a impressão: o laboratório
+ * recebe "LA-2026-03169.pdf" em vez de "Bancada — Gestão
+ * laboratorial.pdf", que é o que o cliente arquiva.
+ */
+function baixarPdf(numero: string) {
+  const original = document.title;
+  document.title = numero;
+  const restaurar = () => { document.title = original; };
+  window.addEventListener('afterprint', restaurar, { once: true });
+  window.print();
+  // Navegador que não dispara afterprint não pode ficar com o título trocado.
+  window.setTimeout(restaurar, 2000);
+}
+
 /* ---------------- Pré-visualização ---------------- */
 
 function PreVisualizacao({
@@ -235,7 +253,7 @@ function PreVisualizacao({
       <SheetContent className="bancada w-full overflow-hidden border-l border-[hsl(var(--line-soft))] bg-background p-0 sm:max-w-4xl">
         <ScrollArea className="h-full">
           <div className="p-6">
-            <SheetHeader className="space-y-2 text-left">
+            <SheetHeader className="space-y-2 text-left sem-impressao">
               <Pilula tom={TOM[laudo.status]} pontinho>{ROTULO[laudo.status]}</Pilula>
               <SheetTitle className="font-display text-3xl tracking-tight">
                 <span className="num">{laudo.numero}</span>
@@ -325,8 +343,8 @@ function PreVisualizacao({
                   <PenLine className="h-4 w-4" /> Assinar e emitir
                 </Button>
               )}
-              <Button variant="outline" onClick={() => window.print()} className="gap-2">
-                <Printer className="h-4 w-4" /> Imprimir
+              <Button variant="outline" onClick={() => baixarPdf(laudo.numero)} className="gap-2">
+                <Printer className="h-4 w-4" /> Imprimir / salvar PDF
               </Button>
               {laudo.status === 'emitido' && (
                 <Button

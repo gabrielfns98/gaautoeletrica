@@ -20,8 +20,12 @@ import { numero } from '../../lib/format';
 import type { AmostraDoLaudo, LaudoMontado, ResultadoLaudo } from './montar';
 import type { Cliente, ItemSimples, Laudo, ModeloLaudo, Unidade, Usuario } from '../../types';
 
-/** Quantas linhas cabem numa folha antes de repetir o cabeçalho. */
-const LINHAS_POR_FOLHA = 40;
+/**
+ * Quantas determinações cabem numa folha A4 junto com os dois
+ * cabeçalhos e o rodapé. Medido no PDF: com 27 a assinatura era
+ * empurrada para uma folha só dela.
+ */
+const LINHAS_POR_FOLHA = 24;
 
 export function FolhaAnalitica({
   laudo, montado, cliente, unidade, assinante, observacoes, modelo, solicitante,
@@ -161,7 +165,7 @@ function BlocoCliente({
 }: { cliente: Cliente | undefined; solicitante?: string }) {
   return (
     <div className="mt-3 rounded-[var(--radius-sm)] bg-[hsl(var(--surface-sunken))] px-3.5 py-2.5">
-      <div className="grid gap-x-6 gap-y-1 text-[0.68rem] sm:grid-cols-2">
+      <div className="laudo-pares grid gap-x-6 gap-y-1 text-[0.68rem] sm:grid-cols-2">
         <Campo rotulo="Cliente" valor={cliente?.nome ?? '—'} />
         <Campo rotulo="Solicitante" valor={solicitante ?? '—'} />
         <Campo rotulo="Endereço" valor={cliente?.logradouro ?? '—'} />
@@ -177,7 +181,7 @@ function BlocoCliente({
 
 function BlocoAmostra({ amostra, laudo }: { amostra: AmostraDoLaudo['amostra']; laudo: Laudo }) {
   return (
-    <div className="mt-2.5 grid gap-x-6 gap-y-1 text-[0.68rem] sm:grid-cols-2">
+    <div className="laudo-pares mt-2.5 grid gap-x-6 gap-y-1 text-[0.68rem] sm:grid-cols-2">
       <Campo rotulo="Ident. amostra" valor={amostra.identificacaoCampo} />
       <Campo rotulo="Nº amostra" valor={amostra.protocolo} />
       <Campo rotulo="Data de entrada no laboratório" valor={dia(amostra.dataRecepcao)} />
@@ -265,7 +269,7 @@ function Rodape({
 }) {
   const temObservacao = observacoes.length > 0 || laudo.observacoes;
   return (
-    <>
+    <footer>
       {temObservacao && (
         <div className="mt-4 border-t border-[hsl(var(--line-soft))] pt-3">
           <p className="label-micro mb-1">Observações</p>
@@ -292,7 +296,7 @@ function Rodape({
           <span className="num text-muted-foreground"> / {assinante?.crq ?? unidade.crq}</span>
         </p>
       </div>
-    </>
+    </footer>
   );
 }
 

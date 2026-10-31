@@ -349,15 +349,92 @@
 @media print {
   @page { size: A4; margin: 6mm; }
 
-  body * { visibility: hidden; }
-  .folha-etiquetas,
-  .folha-etiquetas *,
-  .folha-laudo,
-  .folha-laudo * { visibility: visible; }
+  /**
+   * O que vai ao papel.
+   *
+   * `visibility: hidden` escondia a casca mas guardava o lugar dela,
+   * e o laudo começava um terço da página abaixo. Pior: a gaveta é
+   * um portal `fixed` com área de rolagem, e `overflow: hidden`
+   * cortava tudo que passasse da primeira folha — num laudo foliar,
+   * de nove amostras saía uma.
+   *
+   * Então some de verdade o que não contém a folha, e os invólucros
+   * entre o corpo e ela deixam de posicionar, cortar e espaçar.
+   */
+  body > *:not(:has(.folha-laudo)):not(:has(.folha-etiquetas)) {
+    display: none !important;
+  }
 
-  /* Botão e seletor de disposição não existem no papel. */
-  .sem-impressao,
-  .sem-impressao * { visibility: hidden; }
+  body :has(.folha-laudo),
+  body :has(.folha-etiquetas) {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    transform: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  /* Cabeçalho da gaveta, botões e seletor não existem no papel. */
+  .sem-impressao { display: none !important; }
+
+  /* O botão de fechar da gaveta não é parte do documento. */
+  .folha-laudo ~ button,
+  [role="dialog"] > button:last-child { display: none !important; }
+
+  /**
+   * A largura do papel (210 mm) fica abaixo do ponto em que o
+   * Tailwind liga as colunas, então o que na tela é lado a lado
+   * empilharia no PDF — e o laudo foliar passaria de uma página por
+   * amostra para duas. No papel a largura é conhecida: as colunas
+   * valem sempre.
+   */
+  .folha-laudo .laudo-colunas {
+    display: grid !important;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .folha-laudo .laudo-pares {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /**
+   * Observações à esquerda, assinatura à direita, sempre na mesma
+   * linha. Com `flex-wrap` na largura do papel a assinatura descia,
+   * e descer significava uma segunda folha só para ela: oito páginas
+   * num laudo de quatro amostras.
+   */
+  .folha-laudo footer {
+    margin-top: 0.75rem !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Observações à esquerda, assinatura à direita, sempre na mesma
+     linha: com `flex-wrap` na largura do papel a assinatura descia,
+     e descer custava uma folha inteira por amostra. */
+  .folha-laudo footer.laudo-rodape-duplo {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: end !important;
+    gap: 1.5rem !important;
+  }
+
+  .folha-laudo footer.laudo-rodape-duplo > div:last-child { margin-top: 0 !important; }
+
+  /* O papel é mais apertado que a tela: aperta o miolo também. */
+  .folha-laudo .pagina-laudo {
+    padding: 0 !important;
+  }
 
   .folha-etiquetas {
     position: absolute;
@@ -373,6 +450,33 @@
     border: none;
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /**
+   * O laudo é documento de papel, e papel é branco.
+   *
+   * A tela roda em tema escuro, então `text-foreground` resolve para
+   * um cinza claro — legível sobre fundo escuro e quase invisível
+   * impresso. Pintar só o contêiner não resolve: cada filho traz a
+   * sua própria cor. Redefinir os tokens aqui faz toda a árvore
+   * virar de uma vez, inclusive o bloco do cliente, que saía como
+   * uma tarja preta onde o modelo do laboratório tem cinza claro.
+   */
+  .folha-laudo {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --muted-foreground: 0 0% 38%;
+    --surface-sunken: 0 0% 95%;
+    --surface-raised: 0 0% 100%;
+    --line-soft: 0 0% 85%;
+    --line-strong: 0 0% 55%;
+    --primary: 174 60% 28%;
+    /* Verde e âmbar de tela somem no papel; estes aguentam tinta. */
+    --success: 142 70% 28%;
+    --warning: 35 95% 35%;
+    --danger: 0 80% 45%;
+    --destructive: 0 80% 45%;
   }
 
   /* O laudo sai no fluxo normal, não absoluto: ele tem várias

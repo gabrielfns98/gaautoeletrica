@@ -119,7 +119,7 @@ function PaginaDaAmostra({
           Resultados de Análise de Tecido Vegetal (Foliar)
         </h2>
 
-        <div className="mt-3 grid gap-x-6 gap-y-1 text-[0.68rem] sm:grid-cols-2">
+        <div className="laudo-pares mt-3 grid gap-x-6 gap-y-1 text-[0.68rem] sm:grid-cols-2">
           <Campo rotulo="Nº Pedido" valor={lote?.numero ?? '—'} />
           <Campo rotulo="Entrada" valor={fData(amostra.dataRecepcao)} />
           <Campo rotulo="Solicitante" valor={solicitante ?? '—'} />
@@ -136,7 +136,7 @@ function PaginaDaAmostra({
         <p className="label-micro border-b border-[hsl(var(--line-strong))] pb-1 text-center">
           Descrição da amostra
         </p>
-        <div className="mt-2 grid gap-x-6 gap-y-1 text-[0.68rem] sm:grid-cols-2">
+        <div className="laudo-pares mt-2 grid gap-x-6 gap-y-1 text-[0.68rem] sm:grid-cols-2">
           <Campo rotulo="Nº Amostra" valor={amostra.protocolo} />
           <Campo rotulo="Talhão" valor={amostra.talhao ?? '—'} />
           <Campo rotulo="Descrição da Amostra" valor={amostra.identificacaoCampo} />
@@ -145,14 +145,14 @@ function PaginaDaAmostra({
       </div>
 
       {/* --- Resultados e relações --- */}
-      <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="laudo-colunas mt-4 grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <TabelaElementos resultados={principais} cultura={amostra.cultura} />
         {relacoes.length > 0 && <TabelaRelacoes relacoes={relacoes} />}
       </div>
 
       {/* --- Complementares --- */}
       {complementares.length > 0 && (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="laudo-pares mt-4 grid gap-4 sm:grid-cols-2">
           {colunas.map((coluna, i) => (
             <TabelaComplementares key={i} resultados={coluna} />
           ))}
@@ -169,7 +169,7 @@ function PaginaDaAmostra({
       )}
 
       {/* --- Rodapé --- */}
-      <footer className="mt-5 flex flex-wrap items-end justify-between gap-6 border-t border-[hsl(var(--line-soft))] pt-4">
+      <footer className="laudo-rodape-duplo mt-5 flex flex-wrap items-end justify-between gap-6 border-t border-[hsl(var(--line-soft))] pt-4">
         <div className="min-w-0 max-w-md">
           {observacoes.length > 0 && (
             <>
