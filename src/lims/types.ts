@@ -1171,3 +1171,76 @@ export interface RecomendacaoCultura {
   observacao?: string;
   ativa: boolean;
 }
+
+/* ---------------- Ensaio de proficiência (interlaboratorial) ---------------- */
+
+/**
+ * O programa de que o laboratório participa.
+ *
+ * O controle interno diz se a bancada está estável; só o programa
+ * interlaboratorial diz se ela está certa. A ISO/IEC 17025 (7.7.2)
+ * exige participação, e é esta a evidência que o auditor pede.
+ */
+export interface ProgramaProficiencia {
+  id: UUID;
+  codigo: string;               // 'PAQLF'
+  nome: string;                 // 'Programa de Análise de Qualidade de Laboratórios de Fertilidade'
+  organizador: string;          // 'Embrapa Solos'
+  grupoId: GrupoAnaliseId;
+  /** quantas rodadas por ano o programa promove */
+  rodadasPorAno: number;
+  ativo: boolean;
+  observacao?: string;
+}
+
+export type StatusRodada =
+  | 'inscrita'      // o laboratório se inscreveu; a amostra ainda não chegou
+  | 'recebida'      // a amostra chegou e está na bancada
+  | 'enviada'       // os resultados foram relatados ao organizador
+  | 'avaliada'      // o relatório do organizador voltou, com os valores designados
+  | 'cancelada';
+
+export interface RodadaProficiencia {
+  id: UUID;
+  programaId: UUID;
+  /** identificação da rodada no programa: '2026/1' */
+  codigo: string;
+  dataRecebimento?: ISODate;
+  /** prazo para relatar ao organizador */
+  prazoEnvio: ISODate;
+  dataEnvio?: ISODate;
+  /** quando o relatório com os valores designados voltou */
+  dataAvaliacao?: ISODate;
+  status: StatusRodada;
+  /** quantos laboratórios participaram: o consenso vale pelo tamanho */
+  participantes?: number;
+  observacao?: string;
+}
+
+/**
+ * O que o laboratório relatou e o que o programa devolveu, para um
+ * ensaio de uma rodada.
+ *
+ * Os escores não ficam aqui: são derivados e mudam se o organizador
+ * reemite o relatório com outro valor designado. Guardar o z
+ * gravado deixaria o histórico discordando da própria conta.
+ */
+export interface ResultadoProficiencia {
+  id: UUID;
+  rodadaId: UUID;
+  parametroId: UUID;
+  /** o que o laboratório relatou */
+  valor: number;
+  /** incerteza expandida que o laboratório declarou, para o En */
+  incerteza?: number;
+  /** valor designado, do consenso — só existe depois da avaliação */
+  designado?: number;
+  /** desvio padrão para avaliação da proficiência (σ) */
+  desvioAlvo?: number;
+  /** incerteza padrão do valor designado (u_X) */
+  incertezaDesignado?: number;
+  /** incerteza expandida do valor designado (U_X) */
+  incertezaExpandidaDesignado?: number;
+  /** o que o laboratório registrou como causa e ação, quando o z reprovou */
+  acaoCorretiva?: string;
+}

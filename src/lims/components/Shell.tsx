@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  Activity, Barcode, Beaker, Boxes, ClipboardList, FileCheck2, FlaskConical, Gauge,
+  Activity, Award, Barcode, Beaker, Boxes, ClipboardList, FileCheck2, FlaskConical, Gauge,
   Layers, LayoutDashboard, LogOut, Menu, Moon, Receipt, ScrollText, Settings, ShieldCheck,
   Sun, TableProperties, TestTubes, Upload, Users, Wallet, X,
 } from 'lucide-react';
@@ -45,6 +45,7 @@ const GRUPOS_NAV: Array<{ titulo: string; itens: ItemNav[] }> = [
       { modulo: 'ph', rotulo: 'Bancada', caminho: rota('/bancada'), icone: Gauge },
       { modulo: 'analises', rotulo: 'Resultados', caminho: rota('/resultados'), icone: TableProperties },
       { modulo: 'analises', rotulo: 'Revisão', caminho: rota('/ensaios'), icone: FlaskConical },
+      { modulo: 'analises', rotulo: 'Qualidade', caminho: rota('/qualidade'), icone: Award },
       { modulo: 'laudos', rotulo: 'Laudos', caminho: rota('/laudos'), icone: FileCheck2 },
     ],
   },

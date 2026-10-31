@@ -41,6 +41,7 @@ import type {
   Legenda, Metodologia, RegraDesconto, ItemSimples,
   Formula, ModeloImportacao, ModeloLaudo, TipoEquipamento, VerificacaoEquipamento,
   TabelaRecomendacao, RecomendacaoCultura,
+  ProgramaProficiencia, RodadaProficiencia, ResultadoProficiencia,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -81,6 +82,9 @@ export interface EstadoBancada {
   modelosLaudo: ModeloLaudo[];
   tabelasRecomendacao: TabelaRecomendacao[];
   recomendacoesCultura: RecomendacaoCultura[];
+  programasProficiencia: ProgramaProficiencia[];
+  rodadasProficiencia: RodadaProficiencia[];
+  resultadosProficiencia: ResultadoProficiencia[];
   calibracoes: Calibracao[];
   amostrasControle: AmostraControle[];
   registrosCQ: RegistroCQ[];
@@ -133,6 +137,9 @@ function estadoInicial(): EstadoBancada {
     modelosLaudo: seed.modelosLaudo,
     tabelasRecomendacao: seed.tabelasRecomendacao,
     recomendacoesCultura: seed.recomendacoesCultura,
+    programasProficiencia: seed.programasProficiencia,
+    rodadasProficiencia: seed.rodadasProficiencia,
+    resultadosProficiencia: seed.resultadosProficiencia,
     calibracoes: seed.calibracoes,
     amostrasControle: seed.amostrasControle,
     registrosCQ: seed.registrosCQ,

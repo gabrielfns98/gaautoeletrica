@@ -74,6 +74,11 @@ const TABELA: Record<string, string> = {
   LinhaImportacao: 'lab_importacoes',
   LinhaImportacaoEnsaio: 'lab_importacoes_ensaios',
   LinhaCriterio: 'lab_criterios',
+  LinhaTabelaRecomendacao: 'lab_tabelas_recomendacao',
+  LinhaRecomendacaoCultura: 'lab_recomendacoes_cultura',
+  LinhaProgramaProficiencia: 'lab_programas_proficiencia',
+  LinhaRodadaProficiencia: 'lab_rodadas_proficiencia',
+  LinhaResultadoProficiencia: 'lab_resultados_proficiencia',
 };
 
 /** Tabelas em que a aplicação insere linha nova. */
@@ -171,6 +176,17 @@ for (const [linha, tabela] of Object.entries(TABELA)) {
       `${tabela}: obrigatórias cobertas${emFalta.length ? ` — faltam: ${emFalta.join(', ')}` : ''}`);
   }
 }
+
+/* Mapeador que não está no mapa acima nunca tem as colunas
+   conferidas — e some do teste sem alarme nenhum. Foi o que
+   aconteceu com os cinco mapeadores escritos nesta leva: existiam,
+   compilavam, e podiam divergir da migração sem ninguém notar.
+   Agora esquecer de registrar um é falha. */
+const registradas = new Set(Object.keys(TABELA));
+const declaradas = [...fonte.matchAll(/export interface (Linha[A-Za-z]+) \{/g)].map((m) => m[1]);
+const semMapa = declaradas.filter((l) => !registradas.has(l));
+relatar(semMapa.length === 0,
+  `todo mapeador está no mapa de tabelas${semMapa.length ? ` — fora: ${semMapa.join(', ')}` : ''}`);
 
 // As tabelas que a carga lê precisam existir com o nome exato usado no repositório.
 const repositorio = readFileSync(resolve(aqui, 'repositorio.ts'), 'utf8');

@@ -22,6 +22,7 @@ import Amostras from './pages/Amostras';
 import EstacaoAquisicao from './pages/ph';
 import Resultados from './pages/Resultados';
 import Ensaios from './pages/Ensaios';
+import Qualidade from './pages/Qualidade';
 import Laudos from './pages/Laudos';
 import Crm from './pages/Crm';
 import Financeiro from './pages/Financeiro';
@@ -65,6 +66,7 @@ export default function LimsApp() {
           <Route path="ph" element={<Navigate to={rota('/bancada')} replace />} />
           <Route path="resultados" element={<Protegido modulo="analises"><Resultados /></Protegido>} />
           <Route path="ensaios" element={<Protegido modulo="analises"><Ensaios /></Protegido>} />
+          <Route path="qualidade" element={<Protegido modulo="analises"><Qualidade /></Protegido>} />
           <Route path="laudos" element={<Protegido modulo="laudos"><Laudos /></Protegido>} />
           <Route path="crm" element={<Protegido modulo="crm"><Crm /></Protegido>} />
           <Route path="financeiro" element={<Protegido modulo="financeiro"><Financeiro /></Protegido>} />

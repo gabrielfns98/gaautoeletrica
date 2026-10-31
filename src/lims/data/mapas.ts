@@ -13,6 +13,7 @@ import type {
   Unidade, Usuario, UUID,
   Formula, ModeloImportacao, ModeloLaudo, TipoEquipamento, VerificacaoEquipamento,
   TabelaRecomendacao, RecomendacaoCultura, DosePorClasse, PontoSmp,
+  ProgramaProficiencia, RodadaProficiencia, ResultadoProficiencia,
 } from '../types';
 
 /* ---------------- auxiliares ---------------- */
@@ -1025,4 +1026,83 @@ export const paraRecomendacaoCultura = (r: RecomendacaoCultura): LinhaRecomendac
   nitrogenio: r.nitrogenio ?? null,
   fosforo: r.fosforo, potassio: r.potassio,
   observacao: r.observacao ?? null, ativa: r.ativa,
+});
+
+/* ---------------- Ensaio de proficiência ---------------- */
+
+export interface LinhaProgramaProficiencia {
+  id: string; codigo: string; nome: string; organizador: string;
+  grupo_id: string; rodadas_por_ano: number; ativo: boolean;
+  observacao: string | null;
+}
+
+export const deProgramaProficiencia = (
+  l: LinhaProgramaProficiencia,
+): ProgramaProficiencia => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, organizador: l.organizador,
+  grupoId: l.grupo_id as ProgramaProficiencia['grupoId'],
+  rodadasPorAno: l.rodadas_por_ano, ativo: l.ativo,
+  observacao: opc(l.observacao),
+});
+
+export const paraProgramaProficiencia = (
+  p: ProgramaProficiencia,
+): LinhaProgramaProficiencia => ({
+  id: p.id, codigo: p.codigo, nome: p.nome, organizador: p.organizador,
+  grupo_id: p.grupoId, rodadas_por_ano: p.rodadasPorAno, ativo: p.ativo,
+  observacao: p.observacao ?? null,
+});
+
+export interface LinhaRodadaProficiencia {
+  id: string; programa_id: string; codigo: string;
+  data_recebimento: string | null; prazo_envio: string;
+  data_envio: string | null; data_avaliacao: string | null;
+  status: string; participantes: number | null; observacao: string | null;
+}
+
+export const deRodadaProficiencia = (l: LinhaRodadaProficiencia): RodadaProficiencia => ({
+  id: l.id, programaId: l.programa_id, codigo: l.codigo,
+  dataRecebimento: opc(l.data_recebimento), prazoEnvio: txt(l.prazo_envio),
+  dataEnvio: opc(l.data_envio), dataAvaliacao: opc(l.data_avaliacao),
+  status: l.status as RodadaProficiencia['status'],
+  participantes: num(l.participantes), observacao: opc(l.observacao),
+});
+
+export const paraRodadaProficiencia = (r: RodadaProficiencia): LinhaRodadaProficiencia => ({
+  id: r.id, programa_id: r.programaId, codigo: r.codigo,
+  data_recebimento: r.dataRecebimento ?? null, prazo_envio: r.prazoEnvio,
+  data_envio: r.dataEnvio ?? null, data_avaliacao: r.dataAvaliacao ?? null,
+  status: r.status, participantes: r.participantes ?? null,
+  observacao: r.observacao ?? null,
+});
+
+export interface LinhaResultadoProficiencia {
+  id: string; rodada_id: string; parametro_id: string;
+  valor: number; incerteza: number | null;
+  designado: number | null; desvio_alvo: number | null;
+  incerteza_designado: number | null;
+  incerteza_expandida_designado: number | null;
+  acao_corretiva: string | null;
+}
+
+export const deResultadoProficiencia = (
+  l: LinhaResultadoProficiencia,
+): ResultadoProficiencia => ({
+  id: l.id, rodadaId: l.rodada_id, parametroId: l.parametro_id,
+  valor: num0(l.valor), incerteza: num(l.incerteza),
+  designado: num(l.designado), desvioAlvo: num(l.desvio_alvo),
+  incertezaDesignado: num(l.incerteza_designado),
+  incertezaExpandidaDesignado: num(l.incerteza_expandida_designado),
+  acaoCorretiva: opc(l.acao_corretiva),
+});
+
+export const paraResultadoProficiencia = (
+  r: ResultadoProficiencia,
+): LinhaResultadoProficiencia => ({
+  id: r.id, rodada_id: r.rodadaId, parametro_id: r.parametroId,
+  valor: r.valor, incerteza: r.incerteza ?? null,
+  designado: r.designado ?? null, desvio_alvo: r.desvioAlvo ?? null,
+  incerteza_designado: r.incertezaDesignado ?? null,
+  incerteza_expandida_designado: r.incertezaExpandidaDesignado ?? null,
+  acao_corretiva: r.acaoCorretiva ?? null,
 });

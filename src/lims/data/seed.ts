@@ -20,6 +20,7 @@ import type {
   Bandeja, Convenio, Curva, Legenda, Metodologia, PontoCurva, RegraDesconto,
   ItemSimples, TipoAjuste, CriterioAceitacao,
   TabelaRecomendacao, RecomendacaoCultura, DosePorClasse,
+  ProgramaProficiencia, RodadaProficiencia, ResultadoProficiencia, StatusRodada,
 } from '../types';
 
 /* ---------------- PRNG determinístico (mulberry32) ---------------- */
@@ -2891,3 +2892,122 @@ export const recomendacoesCultura: RecomendacaoCultura[] = [
     ativa: true,
   },
 ];
+
+/* ---------------- Ensaio de proficiência ---------------- */
+
+export const programasProficiencia: ProgramaProficiencia[] = [
+  {
+    id: 'pgp-paqlf', codigo: 'PAQLF',
+    nome: 'Programa de Análise de Qualidade de Laboratórios de Fertilidade',
+    organizador: 'Embrapa Solos', grupoId: 'solo', rodadasPorAno: 2, ativo: true,
+    observacao: 'Rodadas semestrais; amostras de solo de diferentes regiões.',
+  },
+  {
+    id: 'pgp-iac', codigo: 'IAC-PROFIC',
+    nome: 'Ensaio de proficiência em análise de solo',
+    organizador: 'Instituto Agronômico de Campinas', grupoId: 'solo',
+    rodadasPorAno: 2, ativo: true,
+  },
+  {
+    id: 'pgp-folha', codigo: 'PIF-FOLIAR',
+    nome: 'Programa interlaboratorial de tecido vegetal',
+    organizador: 'ESALQ/USP', grupoId: 'foliar', rodadasPorAno: 2, ativo: true,
+  },
+  {
+    id: 'pgp-fert', codigo: 'RBLE-FERT',
+    nome: 'Ensaio de proficiência em fertilizantes minerais',
+    organizador: 'MAPA / RBLE', grupoId: 'fertilizantes', rodadasPorAno: 1, ativo: false,
+    observacao: 'Participação suspensa na safra 25/26 — retomar em 2027.',
+  },
+];
+
+export const rodadasProficiencia: RodadaProficiencia[] = [];
+export const resultadosProficiencia: ResultadoProficiencia[] = [];
+
+{
+  /* Seis rodadas de solo, da mais antiga à mais recente. As quatro
+     primeiras já voltaram avaliadas; a quinta foi enviada e espera
+     relatório; a sexta acabou de chegar à bancada. */
+  const ENSAIOS_SOLO = ['PH-H2O', 'P-MEL', 'K', 'CA', 'MG', 'H+AL', 'MO'] as const;
+
+  /* Valores designados plausíveis para um solo de cerrado corrigido,
+     com o σ que o programa publica para cada ensaio. O σ é o que
+     define o veredito: 0,3 mg/dm³ de diferença em P é bom, em pH
+     seria reprovação. */
+  const DESIGNADO: Record<string, { x: number; sigma: number; ux: number }> = {
+    'PH-H2O': { x: 5.62, sigma: 0.12, ux: 0.03 },
+    'P-MEL': { x: 14.8, sigma: 2.1, ux: 0.5 },
+    K: { x: 112, sigma: 11, ux: 2.6 },
+    CA: { x: 2.74, sigma: 0.24, ux: 0.06 },
+    MG: { x: 0.91, sigma: 0.11, ux: 0.03 },
+    'H+AL': { x: 3.42, sigma: 0.38, ux: 0.09 },
+    MO: { x: 24.6, sigma: 2.4, ux: 0.6 },
+  };
+
+  /* O potássio carrega viés positivo: é o caso que o controle
+     interno não pega e a tendência pega — o fotômetro de chama saiu
+     de ponto e a carta de Levey-Jennings continua impecável, porque
+     ele erra sempre o mesmo tanto.
+     O viés precisa cair nas rodadas **avaliadas** (as quatro
+     primeiras): só elas têm valor designado, e só elas entram na
+     série cronológica. Na primeira versão a série começava neutra e
+     o viés caía nas duas últimas, que ainda não voltaram do
+     organizador — a demonstração não mostrava o recurso. */
+  const VIES_K = [-0.3, 1.3, 1.5, 1.4, 1.6, 1.5];
+
+  const STATUS: StatusRodada[] = ['avaliada', 'avaliada', 'avaliada', 'avaliada', 'enviada', 'recebida'];
+
+  for (let r = 0; r < 6; r += 1) {
+    const diasAtrasRodada = 30 + (5 - r) * 95;
+    const status = STATUS[r];
+    const avaliada = status === 'avaliada';
+    const enviada = avaliada || status === 'enviada';
+    const rodada: RodadaProficiencia = {
+      id: `rdp-${String(r + 1).padStart(3, '0')}`,
+      programaId: r % 2 === 0 ? 'pgp-paqlf' : 'pgp-iac',
+      /* Cada programa numera as suas rodadas: as seis se alternam
+         entre dois programas, então são três de cada. Numerar pelo
+         índice global dava duas "2025/1" no mesmo programa — o que
+         a restrição de unicidade do banco recusa. */
+      codigo: `${HOJE.getFullYear() - 1 + Math.floor(Math.floor(r / 2) / 2)}`
+        + `/${(Math.floor(r / 2) % 2) + 1}`,
+      dataRecebimento: diasAtras(diasAtrasRodada),
+      prazoEnvio: deslocar(diasAtrasRodada - 30).toISOString(),
+      dataEnvio: enviada ? diasAtras(diasAtrasRodada - 22) : undefined,
+      dataAvaliacao: avaliada ? diasAtras(diasAtrasRodada - 55) : undefined,
+      status,
+      participantes: avaliada ? inteiro(48, 86) : undefined,
+    };
+    rodadasProficiencia.push(rodada);
+
+    for (const codigo of ENSAIOS_SOLO) {
+      const parametroId = idDe(codigo);
+      if (!parametroId) continue;
+      const ref = DESIGNADO[codigo];
+
+      /* O z que esta participação terá. Para o K vem do viés
+         planejado; para o resto é dispersão normal, com uma
+         reprovação isolada de fósforo na terceira rodada — um
+         ponto fora que não é tendência. */
+      const zAlvo = codigo === 'K'
+        ? VIES_K[r]
+        : codigo === 'P-MEL' && r === 2 ? 3.4 : entre(-1.6, 1.6);
+
+      resultadosProficiencia.push({
+        id: `rsp-${String(resultadosProficiencia.length + 1).padStart(4, '0')}`,
+        rodadaId: rodada.id,
+        parametroId,
+        valor: Math.round((ref.x + zAlvo * ref.sigma) * 100) / 100,
+        incerteza: Math.round(ref.sigma * 1.6 * 100) / 100,
+        designado: avaliada ? ref.x : undefined,
+        desvioAlvo: avaliada ? ref.sigma : undefined,
+        incertezaDesignado: avaliada ? ref.ux : undefined,
+        incertezaExpandidaDesignado: avaliada ? Math.round(ref.ux * 2 * 100) / 100 : undefined,
+        acaoCorretiva: avaliada && codigo === 'P-MEL' && r === 2
+          ? 'Curva do espectrofotômetro refeita com padrões novos; '
+            + 'repetição do material retido confirmou o acerto.'
+          : undefined,
+      });
+    }
+  }
+}

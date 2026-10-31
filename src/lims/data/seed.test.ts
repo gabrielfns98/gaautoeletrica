@@ -11,10 +11,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   amostras, culturas, ensaios, equipamentos, grupos, laudos, parametros,
-  recomendacoesCultura, tabelasRecomendacao, tiposAnalise,
+  programasProficiencia, recomendacoesCultura, resultadosProficiencia,
+  rodadasProficiencia, tabelasRecomendacao, tiposAnalise,
   tiposEquipamento, verificacoesEquipamento,
 } from './seed';
 import { deRecomendacaoCultura, paraRecomendacaoCultura } from './mapas';
+import { avaliarTendencia, calcularEscore } from '../lib/interlaboratorial';
 import { recomendar, soloDosResultados } from '../lib/recomendacao';
 
 describe('grupos de análise', () => {
@@ -266,5 +268,130 @@ describe('ida e volta da recomendação pelo banco', () => {
     for (const r of recomendacoesCultura) {
       expect(deRecomendacaoCultura(paraRecomendacaoCultura(r))).toEqual(r);
     }
+  });
+});
+
+describe('ensaio de proficiência', () => {
+  const porId = new Map(parametros.map((p) => [p.id, p]));
+  const rodadaPorId = new Map(rodadasProficiencia.map((r) => [r.id, r]));
+
+  it('toda rodada aponta para um programa cadastrado', () => {
+    const ids = new Set(programasProficiencia.map((p) => p.id));
+    expect(rodadasProficiencia.filter((r) => !ids.has(r.programaId)).map((r) => r.id)).toEqual([]);
+  });
+
+  it('todo resultado aponta para rodada e parâmetro existentes', () => {
+    const orfaos = resultadosProficiencia
+      .filter((r) => !rodadaPorId.has(r.rodadaId) || !porId.has(r.parametroId))
+      .map((r) => r.id);
+    expect(orfaos).toEqual([]);
+  });
+
+  /* Designado sem σ entra na tela sem veredito e parece aprovado.
+     O banco recusa; a semente não pode produzir o que o banco
+     recusaria. */
+  it('designado e desvio alvo andam juntos', () => {
+    const quebrados = resultadosProficiencia
+      .filter((r) => (r.designado === undefined) !== (r.desvioAlvo === undefined))
+      .map((r) => r.id);
+    expect(quebrados).toEqual([]);
+  });
+
+  it('só rodada avaliada tem valores designados', () => {
+    for (const r of resultadosProficiencia) {
+      const avaliada = rodadaPorId.get(r.rodadaId)?.status === 'avaliada';
+      expect(r.designado !== undefined).toBe(avaliada);
+    }
+  });
+
+  /* O banco impõe (programa, código) único. Semente que viola isso
+     carrega bem na demonstração em memória e explode na primeira
+     carga real — e o print da tela mostrava duas rodadas "2025/1"
+     no mesmo programa. */
+  it('o código da rodada é único dentro do programa', () => {
+    const vistos = new Set<string>();
+    const repetidos: string[] = [];
+    for (const r of rodadasProficiencia) {
+      const chave = `${r.programaId}|${r.codigo}`;
+      if (vistos.has(chave)) repetidos.push(chave);
+      vistos.add(chave);
+    }
+    expect(repetidos).toEqual([]);
+  });
+
+  it('cada rodada tem um ensaio por parâmetro, sem repetir', () => {
+    for (const rodada of rodadasProficiencia) {
+      const ids = resultadosProficiencia
+        .filter((r) => r.rodadaId === rodada.id)
+        .map((r) => r.parametroId);
+      expect(ids.length).toBe(new Set(ids).size);
+    }
+  });
+
+  it('as datas respeitam a ordem recebimento → envio → avaliação', () => {
+    for (const r of rodadasProficiencia) {
+      if (r.dataEnvio && r.dataRecebimento) expect(r.dataEnvio >= r.dataRecebimento).toBe(true);
+      if (r.dataAvaliacao && r.dataEnvio) expect(r.dataAvaliacao >= r.dataEnvio).toBe(true);
+      if (r.status === 'avaliada') expect(r.dataAvaliacao).toBeDefined();
+    }
+  });
+
+  /* A demonstração existe para mostrar o recurso. Esta asserção já
+     pegou a semente calada: o viés do potássio tinha sido posto nas
+     duas rodadas que ainda não voltaram do organizador, e a tela
+     anunciava "ensaios com viés: 0" com o viés plantado no lugar
+     errado. */
+  it('a demonstração exibe o viés sistemático do potássio', () => {
+    const avaliadas = rodadasProficiencia
+      .filter((r) => r.status === 'avaliada')
+      .sort((a, b) => (a.dataRecebimento ?? '').localeCompare(b.dataRecebimento ?? ''));
+
+    const potassio = parametros.find((p) => p.codigo === 'K' && p.grupoId === 'solo')!;
+    const zs: number[] = [];
+    for (const rodada of avaliadas) {
+      const r = resultadosProficiencia.find(
+        (x) => x.rodadaId === rodada.id && x.parametroId === potassio.id,
+      );
+      if (!r?.designado || !r.desvioAlvo) continue;
+      const z = calcularEscore({
+        valor: r.valor, designado: r.designado, desvioAlvo: r.desvioAlvo,
+      }).z;
+      if (z !== undefined) zs.push(z);
+    }
+
+    expect(zs.length).toBeGreaterThanOrEqual(3);
+    expect(avaliarTendencia(zs).tendencia).toBe('tendencia-alta');
+  });
+
+  /* E a contrapartida: um ponto fora isolado não pode virar
+     tendência, senão a tela acusaria viés em tudo. */
+  it('o fósforo tem uma reprovação isolada, não tendência', () => {
+    const avaliadas = rodadasProficiencia
+      .filter((r) => r.status === 'avaliada')
+      .sort((a, b) => (a.dataRecebimento ?? '').localeCompare(b.dataRecebimento ?? ''));
+
+    const fosforo = parametros.find((p) => p.codigo === 'P-MEL')!;
+    const zs: number[] = [];
+    for (const rodada of avaliadas) {
+      const r = resultadosProficiencia.find(
+        (x) => x.rodadaId === rodada.id && x.parametroId === fosforo.id,
+      );
+      if (!r?.designado || !r.desvioAlvo) continue;
+      const z = calcularEscore({
+        valor: r.valor, designado: r.designado, desvioAlvo: r.desvioAlvo,
+      }).z;
+      if (z !== undefined) zs.push(z);
+    }
+
+    expect(zs.some((z) => Math.abs(z) >= 3)).toBe(true);
+    expect(avaliarTendencia(zs).tendencia).toBe('estavel');
+  });
+
+  it('a reprovação do fósforo tem ação corretiva registrada', () => {
+    const fosforo = parametros.find((p) => p.codigo === 'P-MEL')!;
+    const comAcao = resultadosProficiencia.filter(
+      (r) => r.parametroId === fosforo.id && r.acaoCorretiva,
+    );
+    expect(comAcao.length).toBeGreaterThan(0);
   });
 });

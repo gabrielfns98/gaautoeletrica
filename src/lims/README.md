@@ -115,6 +115,47 @@ Coberto por 62 asserções:
 npx vitest run src/lims/lib/recomendacao.test.ts
 ```
 
+## Qualidade analítica
+
+Duas perguntas diferentes, e por isso duas abas em `/lab/qualidade`:
+
+**Controle interno** responde *a bancada está estável?* — carta de
+Levey-Jennings sobre o material de referência, com as regras de Westgard.
+Já existia, mas morava dentro do módulo de pH, como se fosse assunto de
+eletrodo. É de todo ensaio.
+
+**Proficiência** responde *a bancada está certa?* Só o programa
+interlaboratorial responde isso, porque o valor verdadeiro vem de fora. Um
+laboratório pode repetir o mesmo erro com desvio padrão exemplar durante
+anos, e a carta de Levey-Jennings fica impecável o tempo todo. A ISO/IEC
+17025 (7.7.2) exige participação — PAQLF (Embrapa), IAC e congêneres.
+
+`lib/interlaboratorial.ts` implementa a leitura do resultado pela ISO 13528
+/ ISO/IEC 17043:
+
+- **z** = (x − X)/σ, classificado em ≤ 2 satisfatório, 2 a 3 questionável,
+  ≥ 3 insatisfatório. Não é o erro: é o erro em unidades do desvio padrão
+  que o programa considera aceitável para aquele ensaio, e por isso 0,3
+  mg/dm³ pode ser excelente num ensaio e reprovação em outro.
+- **z'** = (x − X)/√(σ² + u_X²), quando a incerteza do valor designado não é
+  desprezível. Sem ele, programa com poucos participantes reprova
+  laboratório por imprecisão da própria rodada.
+- **En** = (x − X)/√(U_lab² + U_X²), o único escore que avalia a incerteza
+  que o laboratório declara. O limite do En é 1, não 2.
+- **Tendência** — três rodadas seguidas do mesmo lado, com z médio acima de
+  1 σ, é viés do método, não dispersão. É o que a rodada isolada não mostra
+  e o controle interno nunca mostra.
+
+Os escores não são gravados: saem da conta toda vez. O organizador reemite
+relatório, e um z gravado continuaria afirmando o que a própria conta já
+não confirma.
+
+Coberto por 28 asserções:
+
+```sh
+npx vitest run src/lims/lib/interlaboratorial.test.ts
+```
+
 ## Importação — o caminho principal de entrada
 
 Amostras e resultados chegam em planilha, não digitados um a um. `lib/importacao.ts`
@@ -170,6 +211,7 @@ Três caminhos, intercambiáveis pela mesma interface `FontePh`:
 | `/lab/ph` | **Bancada, calibração, controle de qualidade e importação** |
 | `/lab/resultados` | **Lançamento em grade** — filtra a corrida e digita por coluna |
 | `/lab/ensaios` | Lista de trabalho, revisão técnica e aprovação em lote |
+| `/lab/qualidade` | **Controle interno** (Levey-Jennings, Westgard) e **proficiência** interlaboratorial |
 | `/lab/cadastros` | Tipo de Análise, Elemento, Metodologia, **Curva**, **Legenda**, **Fórmula**, **Recomendação**, Bandeja, Profundidade, Cultura, Convênio, Desconto, Observação Fixa, Modelo do Laudo |
 | `/lab/laudos` | Compilação dos resultados, assinatura do RT e código de verificação |
 | `/lab/crm` | Carteira, funil de oportunidades, histórico de relacionamento, propostas |
@@ -214,8 +256,8 @@ caberiam com folga no `localStorage`; só tema e operador ativo são persistidos
 
 O esquema de produção já está escrito e testado:
 
-- `supabase/migrations/` — 48 tabelas `lab_*` com RLS, gatilhos de integridade
-  do processo e os papéis de fábrica, em nove migrações.
+- `supabase/migrations/` — 51 tabelas `lab_*` com RLS, gatilhos de integridade
+  do processo e os papéis de fábrica, em dez migrações.
 - `supabase/tests/bancada_rls.test.sql` — 14 testes contra um Postgres de
   verdade (ver `supabase/tests/README.md`).
 
