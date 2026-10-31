@@ -57,7 +57,7 @@ function dividirLinha(linha: string, sep: string): string[] {
 }
 
 /** Quebra em linhas sem cortar um campo entre aspas que contenha quebra. */
-function dividirEmLinhas(texto: string): string[] {
+export function dividirEmLinhas(texto: string): string[] {
   const linhas: string[] = [];
   let atual = '';
   let dentroDeAspas = false;

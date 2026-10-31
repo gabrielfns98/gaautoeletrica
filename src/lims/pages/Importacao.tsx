@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CheckCircle2, ClipboardPaste, Download, FileUp, Columns3, History,
+  CheckCircle2, ClipboardPaste, Download, FileCog, FileUp, Columns3, History,
   TriangleAlert, Upload, XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ import {
 } from './importacao/LeituraBruta';
 import type { ConfigBruta } from './importacao/LeituraBruta';
 import { resultadoDaLeitura } from '../lib/aquisicao';
+import { prepararArquivo } from '../lib/instrumento';
 import {
   ALVOS_AMOSTRA, hashDoConteudo, lerData, lerNumero, lerTabela, resumir, sugerirMapeamento,
 } from '../lib/importacao';
@@ -292,6 +293,7 @@ function ImportarResultados() {
   const [arquivo, setArquivo] = useState('');
   const [mapa, setMapa] = useState<Record<number, string> | null>(null);
   const [bruta, setBruta] = useState<ConfigBruta>(CONFIG_BRUTA_PADRAO);
+  const [notasArquivo, setNotasArquivo] = useState<string[]>([]);
 
   const tabela = useMemo(() => (conteudo.trim() ? lerTabela(conteudo) : null), [conteudo]);
   const hash = useHashDoConteudo(conteudo);
@@ -452,10 +454,30 @@ function ImportarResultados() {
     <div className="space-y-5">
       <Entrada
         conteudo={conteudo}
-        aoMudar={(v, nome) => { setConteudo(v); setMapa(null); setArquivo(nome ?? ''); }}
+        aoMudar={(v, nome) => {
+          /* Arquivo de aparelho vem embrulhado em relatório, ou em
+             bloco por amostra. Desembrulhar antes evita que a
+             primeira linha do preâmbulo vire cabeçalho e todas as
+             colunas saiam trocadas, sem erro nenhum na tela. */
+          const preparado = prepararArquivo(v);
+          setConteudo(preparado.texto);
+          setNotasArquivo(preparado.notas);
+          setMapa(null);
+          setArquivo(nome ?? '');
+        }}
         exemplo={EXEMPLO_RESULTADOS}
         tabela={tabela}
       />
+
+      {notasArquivo.length > 0 && (
+        <div className="flex items-start gap-2.5 rounded-[var(--radius-lg)] border border-[hsl(var(--line-soft))] bg-[hsl(var(--surface-sunken))] px-5 py-3.5">
+          <FileCog className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+            <p className="font-medium text-foreground">Arquivo do aparelho reconhecido</p>
+            {notasArquivo.map((n) => <p key={n}>{n}</p>)}
+          </div>
+        </div>
+      )}
 
       {jaImportado && <AvisoRepetido importacao={jaImportado} />}
 
@@ -636,6 +658,7 @@ function ImportarAmostras() {
   const [conteudo, setConteudo] = useState('');
   const [arquivo, setArquivo] = useState('');
   const [mapa, setMapa] = useState<Record<number, string> | null>(null);
+  const [notasArquivo, setNotasArquivo] = useState<string[]>([]);
   const [clienteId, setClienteId] = useState(estado.clientes[0]?.id ?? '');
   const [tipoAnaliseId, setTipoAnaliseId] = useState(estado.tiposAnalise[0]?.id ?? '');
 
@@ -770,10 +793,30 @@ function ImportarAmostras() {
     <div className="space-y-5">
       <Entrada
         conteudo={conteudo}
-        aoMudar={(v, nome) => { setConteudo(v); setMapa(null); setArquivo(nome ?? ''); }}
+        aoMudar={(v, nome) => {
+          /* Arquivo de aparelho vem embrulhado em relatório, ou em
+             bloco por amostra. Desembrulhar antes evita que a
+             primeira linha do preâmbulo vire cabeçalho e todas as
+             colunas saiam trocadas, sem erro nenhum na tela. */
+          const preparado = prepararArquivo(v);
+          setConteudo(preparado.texto);
+          setNotasArquivo(preparado.notas);
+          setMapa(null);
+          setArquivo(nome ?? '');
+        }}
         exemplo={EXEMPLO_AMOSTRAS}
         tabela={tabela}
       />
+
+      {notasArquivo.length > 0 && (
+        <div className="flex items-start gap-2.5 rounded-[var(--radius-lg)] border border-[hsl(var(--line-soft))] bg-[hsl(var(--surface-sunken))] px-5 py-3.5">
+          <FileCog className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+            <p className="font-medium text-foreground">Arquivo do aparelho reconhecido</p>
+            {notasArquivo.map((n) => <p key={n}>{n}</p>)}
+          </div>
+        </div>
+      )}
 
       {jaImportado && <AvisoRepetido importacao={jaImportado} />}
 
