@@ -18,6 +18,7 @@ import {
   deUnidade,
   paraAmostra, paraCalibracao, paraCliente, paraCurva, paraEnsaio, paraLegenda,
   paraFormula, paraModeloImportacao, paraModeloLaudo, paraTipoEquipamento, paraVerificacao,
+  paraTabelaRecomendacao, paraRecomendacaoCultura,
   paraBandeja, paraConvenio, paraGrupo, paraImportacao, paraItemCadastro,
   paraLeituraPh, paraLote, paraMembro, paraMetodologia, paraMovimentoEstoque,
   paraCriterio, paraNotaFiscal, paraParametro, paraRegraDesconto, paraTipoAnalise,
@@ -610,6 +611,8 @@ const DESTINO_CADASTRO: Record<ColecaoCadastro, { tabela: string; linha: (item: 
   modelosImportacao: { tabela: 'lab_modelos_importacao', linha: paraModeloImportacao as (i: never) => object },
   formulas: { tabela: 'lab_formulas', linha: paraFormula as (i: never) => object },
   modelosLaudo: { tabela: 'lab_modelos_laudo', linha: paraModeloLaudo as (i: never) => object },
+  tabelasRecomendacao: { tabela: 'lab_tabelas_recomendacao', linha: paraTabelaRecomendacao as (i: never) => object },
+  recomendacoesCultura: { tabela: 'lab_recomendacoes_cultura', linha: paraRecomendacaoCultura as (i: never) => object },
 };
 
 export async function gravarCadastro(colecao: ColecaoCadastro, item: unknown): Promise<void> {

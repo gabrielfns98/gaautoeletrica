@@ -40,6 +40,7 @@ import type {
   Bandeja, ColecaoCadastro, Convenio, CriterioAceitacao, Curva, Importacao,
   Legenda, Metodologia, RegraDesconto, ItemSimples,
   Formula, ModeloImportacao, ModeloLaudo, TipoEquipamento, VerificacaoEquipamento,
+  TabelaRecomendacao, RecomendacaoCultura,
 } from '../types';
 
 /* ---------------- Formato do estado ---------------- */
@@ -78,6 +79,8 @@ export interface EstadoBancada {
   modelosImportacao: ModeloImportacao[];
   formulas: Formula[];
   modelosLaudo: ModeloLaudo[];
+  tabelasRecomendacao: TabelaRecomendacao[];
+  recomendacoesCultura: RecomendacaoCultura[];
   calibracoes: Calibracao[];
   amostrasControle: AmostraControle[];
   registrosCQ: RegistroCQ[];
@@ -128,6 +131,8 @@ function estadoInicial(): EstadoBancada {
     modelosImportacao: seed.modelosImportacao,
     formulas: seed.formulas,
     modelosLaudo: seed.modelosLaudo,
+    tabelasRecomendacao: seed.tabelasRecomendacao,
+    recomendacoesCultura: seed.recomendacoesCultura,
     calibracoes: seed.calibracoes,
     amostrasControle: seed.amostrasControle,
     registrosCQ: seed.registrosCQ,

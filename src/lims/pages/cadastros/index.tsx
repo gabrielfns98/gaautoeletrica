@@ -32,12 +32,14 @@ import type {
 import Curvas from './Curvas';
 import { Formulas } from './Formulas';
 import { ModelosLaudo } from './ModelosLaudo';
+import { Recomendacoes } from './Recomendacoes';
 import { rota } from '../../base';
 
 type Registro =
   | 'tipos-analise' | 'elementos' | 'curvas' | 'legendas' | 'metodologias'
   | 'bandejas' | 'profundidades' | 'culturas' | 'tipos-cliente'
-  | 'convenios' | 'descontos' | 'observacoes' | 'formulas' | 'modelos-laudo';
+  | 'convenios' | 'descontos' | 'observacoes' | 'formulas' | 'modelos-laudo'
+  | 'recomendacoes';
 
 const GRUPOS_REGISTRO: Array<{ titulo: string; itens: Array<{ id: Registro; rotulo: string }> }> = [
   {
@@ -49,6 +51,7 @@ const GRUPOS_REGISTRO: Array<{ titulo: string; itens: Array<{ id: Registro; rotu
       { id: 'curvas', rotulo: 'Curva' },
       { id: 'legendas', rotulo: 'Legenda' },
       { id: 'formulas', rotulo: 'Fórmula' },
+      { id: 'recomendacoes', rotulo: 'Recomendação' },
     ],
   },
   {
@@ -94,6 +97,7 @@ export default function Cadastros() {
     legendas: estado.legendas.length,
     formulas: estado.formulas.length,
     'modelos-laudo': estado.modelosLaudo.length,
+    recomendacoes: estado.tabelasRecomendacao.length,
     metodologias: estado.metodologias.length,
     bandejas: estado.bandejas.length,
     profundidades: estado.profundidades.length,
@@ -167,6 +171,7 @@ export default function Cadastros() {
           {aberto === 'legendas' && <Legendas />}
           {aberto === 'formulas' && <Formulas />}
           {aberto === 'modelos-laudo' && <ModelosLaudo />}
+          {aberto === 'recomendacoes' && <Recomendacoes />}
           {aberto === 'tipos-analise' && <TiposAnalise />}
           {aberto === 'elementos' && <Elementos />}
           {aberto === 'metodologias' && <Metodologias />}

@@ -69,6 +69,52 @@ Coberto por 34 asserções:
 npx tsx src/lims/lib/curva.test.ts
 ```
 
+## Recomendação de calagem e adubação
+
+O laudo diz o que o solo tem. O cliente mandou a amostra para saber o que
+fazer com ele, e é esse anexo que responde.
+
+`lib/recomendacao.ts` implementa os três métodos que convivem no Brasil,
+porque respondem a solos diferentes e um laboratório que atende mais de um
+estado usa mais de um:
+
+- **Saturação por bases** — `NC = T·(V₂−V₁)/100`. CFSEMG (MG) e Boletim 100 (SP).
+- **Neutralização do alumínio** — `NC = Y·Al³⁺ + [X − (Ca+Mg)]`. Cerrado, onde a
+  CTC é baixa e o método da saturação subestima a dose.
+- **Curva SMP** — dose lida numa tabela, interpolada entre pontos. RS e SC.
+
+Sobre os três vêm dois ajustes: o **PRNT** do corretivo que o cliente compra
+(a tabela publica para 100% teórico) e a **profundidade de incorporação**
+(corrigir 30 cm exige metade mais que corrigir 20).
+
+Também sai **gessagem** pelo critério do CFSEMG — `NG = 50·argila(%)`, quando
+há impedimento ao enraizamento em subsuperfície — e **adubação de
+manutenção**: P₂O₅ e K₂O pela classe de teor no solo, escalados pela
+produtividade esperada do talhão. O **nitrogênio não sai da análise**: nenhum
+extrator mede N disponível de forma útil, porque ele mineraliza ao longo da
+estação, então vem da cultura.
+
+Nada disso é constante de código. Tabela, método, alvo por cultura e as
+escadas de dose são cadastro (`/lab/cadastros` → Recomendação), porque a mesma
+amostra recomendada pelo CFSEMG e pelo Boletim 100 dá duas doses e as duas
+estão certas na sua região. O anexo cita qual tabela usou.
+
+Dado ausente nunca vira dose zero: zero recomenda **não comprar calcário**, e
+isso não pode sair de um CTC que ninguém mediu. Falta de dado produz "faltou
+para calcular: CTC a pH 7,0" — e uma amostra de que nada se pode calcular não
+ganha folha de anexo.
+
+> O anexo sai em folha própria, com campo de assinatura separado.
+> Recomendação é ato privativo de engenheiro agrônomo (CREA); o laudo é ensaio,
+> assinado pelo RT do laboratório. Imprimir os dois sob a mesma assinatura
+> faria o laboratório prescrever sem habilitação.
+
+Coberto por 62 asserções:
+
+```sh
+npx vitest run src/lims/lib/recomendacao.test.ts
+```
+
 ## Importação — o caminho principal de entrada
 
 Amostras e resultados chegam em planilha, não digitados um a um. `lib/importacao.ts`
@@ -124,7 +170,7 @@ Três caminhos, intercambiáveis pela mesma interface `FontePh`:
 | `/lab/ph` | **Bancada, calibração, controle de qualidade e importação** |
 | `/lab/resultados` | **Lançamento em grade** — filtra a corrida e digita por coluna |
 | `/lab/ensaios` | Lista de trabalho, revisão técnica e aprovação em lote |
-| `/lab/cadastros` | Tipo de Análise, Elemento, Metodologia, **Curva**, **Legenda**, Bandeja, Profundidade, Cultura, Convênio, Desconto, Observação Fixa |
+| `/lab/cadastros` | Tipo de Análise, Elemento, Metodologia, **Curva**, **Legenda**, **Fórmula**, **Recomendação**, Bandeja, Profundidade, Cultura, Convênio, Desconto, Observação Fixa, Modelo do Laudo |
 | `/lab/laudos` | Compilação dos resultados, assinatura do RT e código de verificação |
 | `/lab/crm` | Carteira, funil de oportunidades, histórico de relacionamento, propostas |
 | `/lab/financeiro` | Contas a receber e a pagar, fluxo de caixa, aging, despesas por categoria |
@@ -168,8 +214,8 @@ caberiam com folga no `localStorage`; só tema e operador ativo são persistidos
 
 O esquema de produção já está escrito e testado:
 
-- `supabase/migrations/20251008120000_bancada_lims.sql` — 29 tabelas com RLS,
-  gatilhos de integridade do processo e os papéis de fábrica.
+- `supabase/migrations/` — 48 tabelas `lab_*` com RLS, gatilhos de integridade
+  do processo e os papéis de fábrica, em nove migrações.
 - `supabase/tests/bancada_rls.test.sql` — 14 testes contra um Postgres de
   verdade (ver `supabase/tests/README.md`).
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dataISOLocal, diasEntre, tempoRelativo } from './format';
+import { dataISOLocal, diasEntre, numero, numeroAte, tempoRelativo } from './format';
 
 /* O laboratório trabalha em Brasília (UTC-3). Depois das 21h local
    já é o dia seguinte em UTC, e é aí que `toISOString().slice(0,10)`
@@ -67,5 +67,38 @@ describe('tempoRelativo', () => {
   it('usa dias e ontem para o passado recente', () => {
     expect(tempoRelativo(diasAtras(1))).toBe('ontem');
     expect(tempoRelativo(diasAtras(5))).toBe('há 5 dias');
+  });
+});
+
+describe('numeroAte', () => {
+  it('não completa com zero o que é inteiro', () => {
+    expect(numeroAte(60, 1)).toBe('60');
+    expect(numeroAte(90, 1)).toBe('90');
+  });
+
+  it('mantém a casa decimal quando existe, com vírgula', () => {
+    expect(numeroAte(2.9, 1)).toBe('2,9');
+    expect(numeroAte(1.5, 2)).toBe('1,5');
+  });
+
+  it('corta no máximo de casas pedido', () => {
+    expect(numeroAte(1.185, 2)).toBe('1,19');
+  });
+
+  it('valor inválido vira travessão', () => {
+    expect(numeroAte(NaN)).toBe('—');
+  });
+});
+
+describe('numero', () => {
+  /* Resultado de ensaio nunca omite a casa decimal: ela é a precisão
+     do método, e "5,8" e "5,80" dizem coisas diferentes no laudo. */
+  it('completa as casas, porque em ensaio a casa é precisão', () => {
+    expect(numero(5.8, 2)).toBe('5,80');
+    expect(numero(60, 1)).toBe('60,0');
+  });
+
+  it('usa vírgula decimal e ponto de milhar', () => {
+    expect(numero(1234.5, 1)).toBe('1.234,5');
   });
 });

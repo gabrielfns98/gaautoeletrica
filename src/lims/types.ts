@@ -238,6 +238,13 @@ export interface Amostra {
   talhao?: string;
   profundidade?: string;        // "0-20 cm"
   cultura?: string;
+  /**
+   * Produtividade esperada do talhão, na unidade da cultura (sc/ha,
+   * t/ha). Não é dado analítico: é o que o cliente planeja colher, e
+   * é o que escala as doses de P e K na recomendação — a mesma
+   * análise para 60 ou para 90 sacas pede adubação diferente.
+   */
+  produtividadeEsperada?: number;
   dataColeta: ISODate;
   dataRecepcao: ISODate;
   prazoEntrega: ISODate;
@@ -807,7 +814,8 @@ export type ColecaoCadastro =
   | 'unidades' | 'grupos' | 'parametros' | 'tiposAnalise' | 'metodologias'
   | 'bandejas' | 'profundidades' | 'culturas' | 'tiposCliente'
   | 'observacoesFixas' | 'convenios' | 'regrasDesconto' | 'criterios'
-  | 'tiposEquipamento' | 'modelosImportacao' | 'formulas' | 'modelosLaudo';
+  | 'tiposEquipamento' | 'modelosImportacao' | 'formulas' | 'modelosLaudo'
+  | 'tabelasRecomendacao' | 'recomendacoesCultura';
 
 export interface RegistroAuditoria {
   id: UUID;
@@ -1059,4 +1067,107 @@ export interface RegraDesconto extends ItemSimples {
   /** a partir de quantas amostras no mesmo lote */
   quantidadeMinima: number;
   percentual: number;
+}
+
+/* ---------------- Recomendação agronômica ---------------- */
+
+/**
+ * Como a necessidade de calagem é calculada.
+ *
+ * Os três convivem no Brasil porque respondem a solos diferentes, e
+ * um laboratório que atende mais de um estado usa mais de um:
+ *
+ * - `saturacao-bases` — eleva V% ao valor que a cultura pede. É o
+ *   método do CFSEMG (MG) e do Boletim 100 (SP).
+ * - `neutralizacao-al` — neutraliza o alumínio tóxico e repõe
+ *   Ca+Mg ao mínimo. Usado no Cerrado, onde a CTC é baixa e o
+ *   método da saturação subestima a dose.
+ * - `smp` — lê a dose numa curva tabulada do índice SMP. É o método
+ *   oficial do RS e de SC (CQFS-RS/SC).
+ */
+export type MetodoCalagem = 'saturacao-bases' | 'neutralizacao-al' | 'smp';
+
+/**
+ * Ponto da curva SMP: para cada índice, a dose de calcário PRNT 100%
+ * que leva o solo a cada pH alvo. Vem tabulada na publicação, não de
+ * equação, por isso é cadastro e se interpola entre pontos.
+ */
+export interface PontoSmp {
+  indice: number;
+  /** t/ha de calcário PRNT 100% para chegar a pH 5,5 */
+  ph55: number;
+  ph60: number;
+  ph65: number;
+}
+
+/**
+ * A tabela de referência que o laboratório adota para recomendar.
+ *
+ * Cada estado tem a sua, e a mesma amostra recomendada por duas
+ * tabelas dá duas doses — por isso a tabela é cadastro e o laudo
+ * cita qual usou.
+ */
+export interface TabelaRecomendacao {
+  id: UUID;
+  codigo: string;              // 'CFSEMG-5A'
+  nome: string;                // '5ª Aproximação — CFSEMG'
+  /** estado ou região: 'MG', 'SP', 'RS/SC', 'Cerrado' */
+  regiao: string;
+  fonte: string;
+  metodoCalagem: MetodoCalagem;
+  /**
+   * Profundidade de incorporação pressuposta pela tabela, em cm.
+   * A dose publicada vale para essa camada; incorporar mais fundo
+   * exige proporcionalmente mais corretivo.
+   */
+  profundidadeIncorporacao: number;
+  /** só no método SMP */
+  pontosSmp?: PontoSmp[];
+  padrao: boolean;
+  ativa: boolean;
+}
+
+/** Dose de um nutriente conforme o teor encontrado no solo. */
+export interface DosePorClasse {
+  /** teor no solo: limite inferior, inclusivo */
+  de?: number;
+  /** limite superior, exclusivo */
+  ate?: number;
+  /** kg/ha do nutriente na forma em que é vendido (P₂O₅, K₂O) */
+  dose: number;
+  /** rótulo da classe na publicação: 'Baixo', 'Médio', 'Adequado' */
+  classe: string;
+}
+
+/**
+ * O que a tabela pede para uma cultura.
+ *
+ * O nitrogênio não sai da análise de solo — nenhum extrator mede N
+ * disponível de forma útil, porque ele mineraliza na estação. Então
+ * vem da cultura e da produtividade esperada, não do resultado.
+ */
+export interface RecomendacaoCultura {
+  id: UUID;
+  tabelaId: UUID;
+  /** código da cultura no cadastro: 'SOJA' */
+  cultura: string;
+  /** método da saturação: V% a atingir */
+  saturacaoDesejada?: number;
+  /** método do alumínio: Ca+Mg mínimo, cmolc/dm³ */
+  caMgDesejado?: number;
+  /** método do alumínio: coeficiente do Al³⁺, função da textura */
+  fatorAluminio?: number;
+  /** método SMP: pH a atingir (5,5 / 6,0 / 6,5) */
+  phAlvo?: number;
+  /** produtividade de referência das doses abaixo */
+  produtividadeReferencia?: number;
+  unidadeProdutividade?: string;   // 'sc/ha', 't/ha'
+  /** kg/ha de N */
+  nitrogenio?: number;
+  /** kg/ha de P₂O₅ por teor de P no solo (mg/dm³) */
+  fosforo: DosePorClasse[];
+  /** kg/ha de K₂O por teor de K no solo (mg/dm³) */
+  potassio: DosePorClasse[];
+  observacao?: string;
+  ativa: boolean;
 }

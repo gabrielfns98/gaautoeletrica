@@ -23,6 +23,19 @@ export function numero(v: number, casas = 2): string {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
 }
 
+/**
+ * Número com **no máximo** `casas` decimais, sem completar com zero.
+ *
+ * Serve o que se lê como quantidade e não como medição: 60 sacas é
+ * "60 sc/ha", não "60,0 sc/ha"; 2,9 t/ha continua "2,9". Resultado
+ * de ensaio é o contrário — ali a casa decimal é a precisão do
+ * método e nunca se omite, então use `numero`.
+ */
+export function numeroAte(v: number, casas = 2): string {
+  if (!Number.isFinite(v)) return '—';
+  return v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
+}
+
 export function percentual(v: number, casas = 1): string {
   if (!Number.isFinite(v)) return '—';
   return `${numero(v, casas)}%`;

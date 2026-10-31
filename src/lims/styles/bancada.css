@@ -511,6 +511,15 @@
     page-break-after: auto;
   }
 
+  /* O anexo de recomendação é outro documento, com outra assinatura:
+     começa em folha própria. Sem isto ele emendava no rodapé da
+     última página do laudo e transbordava para a seguinte, partido
+     ao meio — o cabeçalho numa folha e as doses na outra. */
+  .folha-laudo.folha-anexo {
+    break-before: page;
+    page-break-before: always;
+  }
+
   .folha-laudo table { width: 100%; }
   .folha-laudo thead { display: table-header-group; }
   .folha-laudo tr { break-inside: avoid; page-break-inside: avoid; }

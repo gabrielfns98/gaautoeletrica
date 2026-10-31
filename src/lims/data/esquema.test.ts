@@ -8,23 +8,25 @@
    ============================================================ */
 
 import { expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const migracoes = [
-  '20251008120000_bancada_lims.sql',
-  '20251030120000_bancada_cadastros.sql',
-  '20251030130000_bancada_importacoes.sql',
-  '20251030140000_bancada_criterios.sql',
-  '20251030150000_bancada_equipamentos.sql',
-  '20251030160000_bancada_formulas.sql',
-  '20251030170000_bancada_modelo_laudo.sql',
-  '20251030180000_bancada_metodologia.sql',
-];
+const pasta = resolve(aqui, '../../../supabase/migrations');
+
+/* Lidas do diretório, não de uma lista escrita à mão.
+   A lista cravada já falhou de um jeito previsível: quem acrescenta
+   uma migração acrescenta tabela nova, e era exatamente aí que
+   esquecia de registrá-la aqui — então o teste passava sem conferir
+   o que tinha acabado de ser escrito. O prefixo `bancada` separa as
+   migrações deste sistema das que já existiam no repositório. */
+const migracoes = readdirSync(pasta)
+  .filter((f) => f.endsWith('.sql') && f.includes('_bancada_'))
+  .sort();
+
 const sql = migracoes
-  .map((arquivo) => readFileSync(resolve(aqui, '../../../supabase/migrations', arquivo), 'utf8'))
+  .map((arquivo) => readFileSync(resolve(pasta, arquivo), 'utf8'))
   .join('\n');
 const fonte = readFileSync(resolve(aqui, 'mapas.ts'), 'utf8');
 

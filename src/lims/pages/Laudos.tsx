@@ -3,7 +3,7 @@
    ============================================================ */
 
 import { useMemo, useState } from 'react';
-import { FileCheck2, Mail, PenLine, Printer, ShieldCheck } from 'lucide-react';
+import { FileCheck2, Mail, PenLine, Printer, ShieldCheck, Sprout } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,13 @@ import { modeloDoLaudo, montarLaudo, ordenarPeloModelo } from './laudo/montar';
 import { FolhaLaudo } from './laudo/Folha';
 import { FolhaFoliar } from './laudo/Foliar';
 import { FolhaAnalitica } from './laudo/Analitico';
+import { FolhaRecomendacao } from './laudo/Recomendacao';
 import type { Disposicao } from './laudo/Folha';
 import { data as fData, tempoRelativo } from '../lib/format';
 import {
   calcularRelacoes, conferirLaudo, faixaAdequada, podeEmitir as laudoLiberado,
 } from '../lib/resultado';
+import { codigoDaCultura, recomendar, soloDosResultados, tabelaPadrao } from '../lib/recomendacao';
 import {
   BarraFiltros, CabecalhoPagina, Indicador, Pilula, Secao, Segmentos, Tabela, Vazio, filtrar,
 } from '../components/primitivos';
@@ -160,6 +162,14 @@ function PreVisualizacao({
 
   const [disposicao, setDisposicao] = useState<Disposicao | undefined>();
 
+  /* Parâmetros da recomendação. São escolha do agrônomo, não do
+     laudo: o mesmo solo recomendado para 60 ou para 90 sacas dá
+     doses diferentes, e as duas estão certas. */
+  const [anexarRecomendacao, setAnexarRecomendacao] = useState(true);
+  const [tabelaEscolhida, setTabelaEscolhida] = useState<string | undefined>();
+  const [prnt, setPrnt] = useState(85);
+  const [profundidade, setProfundidade] = useState<number | undefined>();
+
   /* Pelo id, não pelo objeto: assinar tem de mudar a folha na hora. */
   const laudo = useMemo(
     () => estado.laudos.find((l) => l.id === laudoId) ?? null,
@@ -224,6 +234,41 @@ function PreVisualizacao({
         })),
       }).map((p) => ({ ...p, onde: `${amostra.protocolo}: ${p.onde ?? ''}` })));
   }, [montado, modelo.layout]);
+
+  /* A tabela de referência: a escolhida, ou a da UF do cliente, ou
+     a marcada como padrão. */
+  const tabela = useMemo(() => {
+    const escolhida = estado.tabelasRecomendacao.find((t) => t.id === tabelaEscolhida);
+    if (escolhida) return escolhida;
+    const uf = laudo ? clientePorId.get(laudo.clienteId)?.uf : undefined;
+    return tabelaPadrao(estado.tabelasRecomendacao, uf);
+  }, [estado.tabelasRecomendacao, tabelaEscolhida, laudo, clientePorId]);
+
+  /* A recomendação, uma por amostra.
+     Só para solo: recomendar calagem a partir de um laudo de
+     fertilizante ou de tecido vegetal não significa nada — o
+     extrator, as unidades e as faixas são de outro ensaio. */
+  const recomendacoes = useMemo(() => {
+    if (!montado || !tabela || laudo?.grupoId !== 'solo') return [];
+    return montado.amostras
+      .map((item) => ({
+        item,
+        recomendacao: recomendar(
+          soloDosResultados(item.resultados.map((r) => ({
+            codigo: r.parametro.codigo, valor: r.ensaio.valor,
+          }))),
+          tabela,
+          estado.recomendacoesCultura,
+          /* A amostra guarda o nome da cultura; o cadastro de
+             recomendação usa o código. A resolução passa pelo
+             cadastro de culturas, que conhece os dois. */
+          codigoDaCultura(estado.culturas, item.amostra.cultura),
+          { prnt, profundidade, produtividade: item.amostra.produtividadeEsperada },
+        ),
+      }))
+      // Amostra sem nada calculável não ganha folha em branco.
+      .filter(({ recomendacao }) => !recomendacao.vazia);
+  }, [montado, tabela, laudo?.grupoId, estado.recomendacoesCultura, estado.culturas, prnt, profundidade]);
 
   /* O modelo escolhe quais observações entram e em que ordem; sem
      escolha, valem as ativas do cadastro. */
@@ -316,6 +361,77 @@ function PreVisualizacao({
                 />
               )}
             </div>
+
+            {/* --- Recomendação agronômica --- */}
+            {recomendacoes.length > 0 && (
+              <>
+                <div className="mt-6 rounded-[var(--radius-md)] border border-[hsl(var(--line))] p-4 sem-impressao">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={anexarRecomendacao}
+                        onChange={(e) => setAnexarRecomendacao(e.target.checked)}
+                        className="h-4 w-4 accent-[hsl(var(--accent))]"
+                      />
+                      <Sprout className="h-4 w-4 text-muted-foreground" />
+                      Anexar recomendação de calagem e adubação
+                      <span className="num text-xs text-muted-foreground">
+                        ({recomendacoes.length} {recomendacoes.length === 1 ? 'amostra' : 'amostras'})
+                      </span>
+                    </label>
+                  </div>
+
+                  {anexarRecomendacao && (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <label className="text-xs text-muted-foreground">
+                        Tabela de referência
+                        <select
+                          value={tabela?.id ?? ''}
+                          onChange={(e) => setTabelaEscolhida(e.target.value)}
+                          className="mt-1 w-full rounded-[var(--radius-sm)] border border-[hsl(var(--line))] bg-[hsl(var(--surface-sunken))] px-2 py-1.5 text-xs text-foreground"
+                        >
+                          {estado.tabelasRecomendacao.filter((t) => t.ativa).map((t) => (
+                            <option key={t.id} value={t.id}>{t.nome} ({t.regiao})</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-xs text-muted-foreground">
+                        PRNT do corretivo (%)
+                        <input
+                          type="number" min={30} max={100} step={1} value={prnt}
+                          onChange={(e) => setPrnt(Number(e.target.value) || 85)}
+                          className="num mt-1 w-full rounded-[var(--radius-sm)] border border-[hsl(var(--line))] bg-[hsl(var(--surface-sunken))] px-2 py-1.5 text-xs text-foreground"
+                        />
+                      </label>
+                      <label className="text-xs text-muted-foreground">
+                        Incorporação (cm)
+                        <input
+                          type="number" min={5} max={60} step={5}
+                          value={profundidade ?? tabela?.profundidadeIncorporacao ?? 20}
+                          onChange={(e) => setProfundidade(Number(e.target.value) || undefined)}
+                          className="num mt-1 w-full rounded-[var(--radius-sm)] border border-[hsl(var(--line))] bg-[hsl(var(--surface-sunken))] px-2 py-1.5 text-xs text-foreground"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {anexarRecomendacao && tabela && (
+                  <div className="mt-4">
+                    <FolhaRecomendacao
+                      laudo={laudo}
+                      amostras={recomendacoes}
+                      cliente={cliente}
+                      unidade={unidade}
+                      modelo={modelo}
+                      nomeDaCultura={(codigo) =>
+                        estado.culturas.find((c) => c.codigo === codigo)?.nome ?? codigo}
+                    />
+                  </div>
+                )}
+              </>
+            )}
 
             {/* --- Ações --- */}
             <div className="mt-6 flex flex-wrap gap-2 sem-impressao">

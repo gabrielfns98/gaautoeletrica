@@ -12,6 +12,7 @@ import type {
   Prioridade, StatusAmostra, StatusCalibracao, StatusEnsaio, TabelaPreco,
   Unidade, Usuario, UUID,
   Formula, ModeloImportacao, ModeloLaudo, TipoEquipamento, VerificacaoEquipamento,
+  TabelaRecomendacao, RecomendacaoCultura, DosePorClasse, PontoSmp,
 } from '../types';
 
 /* ---------------- auxiliares ---------------- */
@@ -89,7 +90,8 @@ export interface LinhaAmostra {
   id: string; protocolo: string; lote_recepcao_id: string; cliente_id: string;
   grupo_id: string; unidade_id: string; identificacao_campo: string;
   fazenda: string | null; talhao: string | null; profundidade: string | null;
-  cultura: string | null; data_coleta: string | null; data_recepcao: string;
+  cultura: string | null; produtividade_esperada: number | null;
+  data_coleta: string | null; data_recepcao: string;
   prazo_entrega: string; status: string; prioridade: string;
   massa_recebida: number | null; temperatura_recebimento: number | null;
   conforme_no_recebimento: boolean; nao_conformidade: string | null;
@@ -200,7 +202,8 @@ export const deAmostra = (l: LinhaAmostra): Amostra => ({
   clienteId: l.cliente_id, grupoId: l.grupo_id as Amostra['grupoId'],
   unidadeId: l.unidade_id, identificacaoCampo: l.identificacao_campo,
   fazenda: opc(l.fazenda), talhao: opc(l.talhao), profundidade: opc(l.profundidade),
-  cultura: opc(l.cultura), dataColeta: txt(l.data_coleta),
+  cultura: opc(l.cultura), produtividadeEsperada: num(l.produtividade_esperada),
+  dataColeta: txt(l.data_coleta),
   dataRecepcao: l.data_recepcao, prazoEntrega: l.prazo_entrega,
   status: l.status as StatusAmostra, prioridade: l.prioridade as Prioridade,
   massaRecebida: num(l.massa_recebida),
@@ -277,7 +280,8 @@ export const paraAmostra = (a: Amostra): LinhaAmostra => ({
   cliente_id: a.clienteId, grupo_id: a.grupoId, unidade_id: a.unidadeId,
   identificacao_campo: a.identificacaoCampo, fazenda: a.fazenda ?? null,
   talhao: a.talhao ?? null, profundidade: a.profundidade ?? null,
-  cultura: a.cultura ?? null, data_coleta: a.dataColeta || null,
+  cultura: a.cultura ?? null, produtividade_esperada: a.produtividadeEsperada ?? null,
+  data_coleta: a.dataColeta || null,
   data_recepcao: a.dataRecepcao, prazo_entrega: a.prazoEntrega,
   status: a.status, prioridade: a.prioridade,
   massa_recebida: a.massaRecebida ?? null,
@@ -964,4 +968,61 @@ export const paraModeloLaudo = (m: ModeloLaudo): LinhaModeloLaudo => ({
   observacao_ids: m.observacaoIds, mostrar_incerteza: m.mostrarIncerteza,
   mostrar_interpretacao: m.mostrarInterpretacao, mostrar_metodos: m.mostrarMetodos,
   cargo_assinatura: m.cargoAssinatura, disposicao_padrao: m.disposicaoPadrao, ativo: m.ativo,
+});
+
+/* ---------------- Recomendação agronômica ---------------- */
+
+export interface LinhaTabelaRecomendacao {
+  id: string; codigo: string; nome: string; regiao: string; fonte: string;
+  metodo_calagem: string; profundidade_incorporacao: number;
+  pontos_smp: PontoSmp[] | null; padrao: boolean; ativa: boolean;
+}
+
+export const deTabelaRecomendacao = (l: LinhaTabelaRecomendacao): TabelaRecomendacao => ({
+  id: l.id, codigo: l.codigo, nome: l.nome, regiao: l.regiao, fonte: l.fonte,
+  metodoCalagem: l.metodo_calagem as TabelaRecomendacao['metodoCalagem'],
+  profundidadeIncorporacao: l.profundidade_incorporacao,
+  pontosSmp: l.pontos_smp ?? undefined,
+  padrao: l.padrao, ativa: l.ativa,
+});
+
+export const paraTabelaRecomendacao = (t: TabelaRecomendacao): LinhaTabelaRecomendacao => ({
+  id: t.id, codigo: t.codigo, nome: t.nome, regiao: t.regiao, fonte: t.fonte,
+  metodo_calagem: t.metodoCalagem,
+  profundidade_incorporacao: t.profundidadeIncorporacao,
+  pontos_smp: t.pontosSmp ?? null, padrao: t.padrao, ativa: t.ativa,
+});
+
+export interface LinhaRecomendacaoCultura {
+  id: string; tabela_id: string; cultura: string;
+  saturacao_desejada: number | null; ca_mg_desejado: number | null;
+  fator_aluminio: number | null; ph_alvo: number | null;
+  produtividade_referencia: number | null; unidade_produtividade: string | null;
+  nitrogenio: number | null;
+  fosforo: DosePorClasse[]; potassio: DosePorClasse[];
+  observacao: string | null; ativa: boolean;
+}
+
+export const deRecomendacaoCultura = (l: LinhaRecomendacaoCultura): RecomendacaoCultura => ({
+  id: l.id, tabelaId: l.tabela_id, cultura: l.cultura,
+  saturacaoDesejada: num(l.saturacao_desejada), caMgDesejado: num(l.ca_mg_desejado),
+  fatorAluminio: num(l.fator_aluminio), phAlvo: num(l.ph_alvo),
+  produtividadeReferencia: num(l.produtividade_referencia),
+  unidadeProdutividade: opc(l.unidade_produtividade),
+  nitrogenio: num(l.nitrogenio),
+  fosforo: l.fosforo ?? [], potassio: l.potassio ?? [],
+  observacao: opc(l.observacao), ativa: l.ativa,
+});
+
+export const paraRecomendacaoCultura = (r: RecomendacaoCultura): LinhaRecomendacaoCultura => ({
+  id: r.id, tabela_id: r.tabelaId, cultura: r.cultura,
+  saturacao_desejada: r.saturacaoDesejada ?? null,
+  ca_mg_desejado: r.caMgDesejado ?? null,
+  fator_aluminio: r.fatorAluminio ?? null,
+  ph_alvo: r.phAlvo ?? null,
+  produtividade_referencia: r.produtividadeReferencia ?? null,
+  unidade_produtividade: r.unidadeProdutividade ?? null,
+  nitrogenio: r.nitrogenio ?? null,
+  fosforo: r.fosforo, potassio: r.potassio,
+  observacao: r.observacao ?? null, ativa: r.ativa,
 });

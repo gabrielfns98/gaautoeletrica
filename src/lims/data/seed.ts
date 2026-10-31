@@ -19,6 +19,7 @@ import type {
   StatusAmostra, TabelaPreco, TipoAnalise, Titulo, Unidade, Usuario,
   Bandeja, Convenio, Curva, Legenda, Metodologia, PontoCurva, RegraDesconto,
   ItemSimples, TipoAjuste, CriterioAceitacao,
+  TabelaRecomendacao, RecomendacaoCultura, DosePorClasse,
 } from '../types';
 
 /* ---------------- PRNG determinístico (mulberry32) ---------------- */
@@ -730,6 +731,20 @@ const CULTURAS_FOLIARES = ['SOJA', 'CAFE', 'CACAU', 'LARANJA'];
 
 const TALHOES = ['T-01', 'T-02', 'T-03', 'T-04A', 'T-04B', 'T-07', 'T-11', 'T-12', 'T-15', 'T-22', 'Pivô 3', 'Pivô 8'];
 const CULTURAS = ['Soja', 'Milho 2ª safra', 'Algodão', 'Cana-de-açúcar', 'Café', 'Pastagem', 'Feijão', 'Sorgo'];
+
+/* Produtividade que o produtor espera do talhão, por cultura. Não é
+   dado analítico: é o que escala as doses de P e K na recomendação.
+   Os intervalos são de lavoura comercial conduzida. */
+const PRODUTIVIDADE: Record<string, [number, number]> = {
+  Soja: [50, 80],
+  'Milho 2ª safra': [5, 11],
+  'Algodão': [3, 5],
+  'Cana-de-açúcar': [70, 110],
+  'Café': [20, 45],
+  Pastagem: [6, 14],
+  'Feijão': [1.8, 3.2],
+  Sorgo: [3.5, 6.5],
+};
 const PROFUNDIDADES = ['0-20 cm', '20-40 cm', '40-60 cm', '0-10 cm'];
 
 /**
@@ -978,6 +993,17 @@ for (let l = 0; l < 210; l++) {
   for (let a = 0; a < qtd; a++) {
     const status = sortearStatus(diasAtrasRecepcao, grupo.prazoPadraoDias);
     const fazenda = escolher(FAZENDAS);
+    /* A cultura é o que resolve a faixa de interpretação no laudo
+       foliar e o alvo da recomendação no laudo de solo. Amostra de
+       folha sai só com cultura que tem faixa cadastrada, senão o
+       laudo nasce bloqueado na conferência — que é o comportamento
+       certo, mas não ajuda a demonstração. */
+    const cultura = grupoLote === 'foliar'
+      ? escolher(CULTURAS_FOLIARES)
+      : ['solo', 'seiva', 'nematoides'].includes(grupoLote)
+        ? escolher(CULTURAS)
+        : undefined;
+    const faixaProdutividade = cultura ? PRODUTIVIDADE[cultura] : undefined;
     const amostra: Amostra = {
       id: `am-${String(amostras.length + 1).padStart(4, '0')}`,
       protocolo: `${ano}.${String(++seqProtocolo).padStart(6, '0')}`,
@@ -991,15 +1017,12 @@ for (let l = 0; l < 210; l++) {
       fazenda: grupoLote === 'solo' || grupoLote === 'foliar' ? fazenda : undefined,
       talhao: grupoLote === 'solo' ? escolher(TALHOES) : undefined,
       profundidade: grupoLote === 'solo' ? escolher(PROFUNDIDADES) : undefined,
-      /* A cultura é o que resolve a faixa de interpretação no laudo
-         foliar. Amostra de folha sai só com cultura que tem faixa
-         cadastrada, senão o laudo nasce bloqueado na conferência —
-         que é o comportamento certo, mas não ajuda a demonstração. */
-      cultura: grupoLote === 'foliar'
-        ? escolher(CULTURAS_FOLIARES)
-        : ['solo', 'seiva', 'nematoides'].includes(grupoLote)
-          ? escolher(CULTURAS)
-          : undefined,
+      cultura,
+      /* Só solo: é a recomendação de calagem e adubação que usa a
+         produtividade, e ela só existe para solo. */
+      produtividadeEsperada: grupoLote === 'solo' && faixaProdutividade
+        ? inteiro(faixaProdutividade[0] * 10, faixaProdutividade[1] * 10) / 10
+        : undefined,
       dataColeta: diasAtras(diasAtrasRecepcao + inteiro(1, 6)),
       dataRecepcao: lote.dataRecepcao,
       // Amostra recente ainda tem prazo pela frente; antiga já venceu.
@@ -2604,4 +2627,267 @@ export const observacoesFixas: ItemSimples[] = [
   { id: 'obs-07', codigo: 'OBS-JURIDICO', nome: 'Este laudo não tem fins jurídicos.', ativo: true },
   { id: 'obs-08', codigo: 'OBS-DESCARTE', nome: 'Após 90 dias todas as amostras serão descartadas.', ativo: true },
   { id: 'obs-09', codigo: 'OBS-IDENTIFICACAO', nome: 'A identificação da amostra é de exclusiva responsabilidade do remetente.', ativo: true },
+];
+
+/* ---------------- Recomendação agronômica ---------------- */
+
+/**
+ * As tabelas de referência que o laboratório oferece.
+ *
+ * Os valores abaixo são os publicados, como circulam nas quatro
+ * referências mais usadas no país. Eles existem aqui para que o
+ * sistema chegue utilizável — não como verdade cravada: o cadastro
+ * é editável justamente porque cada laboratório confere contra a
+ * publicação que atende sua região e ajusta o que seu agrônomo
+ * assina. É ele quem responde pela recomendação, não o software.
+ */
+export const tabelasRecomendacao: TabelaRecomendacao[] = [
+  {
+    id: 'trc-cfsemg', codigo: 'CFSEMG-5A', nome: '5ª Aproximação — CFSEMG',
+    regiao: 'MG', fonte: 'CFSEMG — Recomendações para o uso de corretivos e fertilizantes em Minas Gerais, 5ª Aproximação (1999)',
+    metodoCalagem: 'saturacao-bases', profundidadeIncorporacao: 20,
+    padrao: true, ativa: true,
+  },
+  {
+    id: 'trc-iac', codigo: 'IAC-100', nome: 'Boletim 100 — IAC',
+    regiao: 'SP', fonte: 'IAC — Boletim Técnico 100: Recomendações de adubação e calagem para o Estado de São Paulo',
+    metodoCalagem: 'saturacao-bases', profundidadeIncorporacao: 20,
+    padrao: false, ativa: true,
+  },
+  {
+    id: 'trc-cerrado', codigo: 'CERRADO-AL', nome: 'Neutralização do alumínio — Cerrado',
+    regiao: 'Cerrado', fonte: 'Embrapa Cerrados — Cerrado: correção do solo e adubação',
+    metodoCalagem: 'neutralizacao-al', profundidadeIncorporacao: 20,
+    padrao: false, ativa: true,
+  },
+  {
+    /* A curva do Sul é tabelada, não tem equação: a dose se lê no
+       índice SMP. Os pontos abaixo são a tabela abreviada — o
+       módulo interpola entre eles, que é como a publicação manda
+       tratar índice intermediário. */
+    id: 'trc-sul', codigo: 'CQFS-RS-SC', nome: 'Curva SMP — CQFS-RS/SC',
+    regiao: 'RS/SC', fonte: 'CQFS-RS/SC — Manual de calagem e adubação para os Estados do Rio Grande do Sul e de Santa Catarina',
+    metodoCalagem: 'smp', profundidadeIncorporacao: 20,
+    padrao: false, ativa: true,
+    pontosSmp: [
+      { indice: 4.4, ph55: 15.0, ph60: 21.0, ph65: 29.0 },
+      { indice: 4.6, ph55: 11.9, ph60: 16.0, ph65: 21.0 },
+      { indice: 4.8, ph55: 9.5, ph60: 12.8, ph65: 16.2 },
+      { indice: 5.0, ph55: 7.7, ph60: 10.1, ph65: 12.5 },
+      { indice: 5.2, ph55: 6.2, ph60: 8.0, ph65: 9.7 },
+      { indice: 5.4, ph55: 5.1, ph60: 6.3, ph65: 7.6 },
+      { indice: 5.6, ph55: 4.1, ph60: 5.0, ph65: 5.8 },
+      { indice: 5.8, ph55: 3.3, ph60: 3.9, ph65: 4.5 },
+      { indice: 6.0, ph55: 2.7, ph60: 3.0, ph65: 3.4 },
+      { indice: 6.2, ph55: 2.1, ph60: 2.3, ph65: 2.6 },
+      { indice: 6.4, ph55: 1.6, ph60: 1.8, ph65: 2.0 },
+      { indice: 6.6, ph55: 1.2, ph60: 1.3, ph65: 1.5 },
+      { indice: 6.8, ph55: 0.8, ph60: 0.9, ph65: 1.0 },
+      { indice: 7.0, ph55: 0.5, ph60: 0.6, ph65: 0.6 },
+      { indice: 7.2, ph55: 0.0, ph60: 0.0, ph65: 0.0 },
+    ],
+  },
+];
+
+/* As classes de teor que mais se repetem, para não reescrever a
+   mesma escada em cada cultura. A dose é que muda por cultura. */
+function classesFosforo(doses: [number, number, number, number, number]): DosePorClasse[] {
+  return [
+    { ate: 6, dose: doses[0], classe: 'Muito baixo' },
+    { de: 6, ate: 12, dose: doses[1], classe: 'Baixo' },
+    { de: 12, ate: 20, dose: doses[2], classe: 'Médio' },
+    { de: 20, ate: 30, dose: doses[3], classe: 'Bom' },
+    { de: 30, dose: doses[4], classe: 'Muito bom' },
+  ];
+}
+
+function classesPotassio(doses: [number, number, number, number, number]): DosePorClasse[] {
+  return [
+    { ate: 25, dose: doses[0], classe: 'Muito baixo' },
+    { de: 25, ate: 50, dose: doses[1], classe: 'Baixo' },
+    { de: 50, ate: 80, dose: doses[2], classe: 'Médio' },
+    { de: 80, ate: 120, dose: doses[3], classe: 'Bom' },
+    { de: 120, dose: doses[4], classe: 'Muito bom' },
+  ];
+}
+
+export const recomendacoesCultura: RecomendacaoCultura[] = [
+  /* ---- CFSEMG (MG) — método da saturação por bases ---- */
+  {
+    id: 'rcl-mg-soja', tabelaId: 'trc-cfsemg', cultura: 'SOJA',
+    saturacaoDesejada: 60,
+    produtividadeReferencia: 60, unidadeProdutividade: 'sc/ha',
+    nitrogenio: 0,
+    fosforo: classesFosforo([120, 90, 60, 40, 20]),
+    potassio: classesPotassio([100, 80, 60, 40, 20]),
+    observacao: 'N dispensado: a fixação biológica supre a cultura inoculada.',
+    ativa: true,
+  },
+  {
+    id: 'rcl-mg-milho', tabelaId: 'trc-cfsemg', cultura: 'MILHO2',
+    saturacaoDesejada: 60,
+    produtividadeReferencia: 8, unidadeProdutividade: 't/ha',
+    nitrogenio: 120,
+    fosforo: classesFosforo([140, 100, 70, 50, 30]),
+    potassio: classesPotassio([120, 90, 70, 50, 30]),
+    observacao: 'N em plantio e cobertura, parcelado.',
+    ativa: true,
+  },
+  {
+    id: 'rcl-mg-algodao', tabelaId: 'trc-cfsemg', cultura: 'ALGODAO',
+    saturacaoDesejada: 70,
+    produtividadeReferencia: 4, unidadeProdutividade: 't/ha',
+    nitrogenio: 140,
+    fosforo: classesFosforo([150, 110, 80, 60, 40]),
+    potassio: classesPotassio([140, 110, 80, 60, 40]),
+    ativa: true,
+  },
+  {
+    id: 'rcl-mg-cana', tabelaId: 'trc-cfsemg', cultura: 'CANA',
+    saturacaoDesejada: 60,
+    produtividadeReferencia: 90, unidadeProdutividade: 't/ha',
+    nitrogenio: 60,
+    fosforo: classesFosforo([150, 120, 90, 60, 30]),
+    potassio: classesPotassio([150, 120, 90, 60, 30]),
+    observacao: 'Dose de cana-planta; a soca pede mais N.',
+    ativa: true,
+  },
+  {
+    id: 'rcl-mg-cafe', tabelaId: 'trc-cfsemg', cultura: 'CAFE',
+    saturacaoDesejada: 60,
+    produtividadeReferencia: 30, unidadeProdutividade: 'sc/ha',
+    nitrogenio: 300,
+    fosforo: classesFosforo([80, 60, 40, 30, 20]),
+    potassio: classesPotassio([200, 160, 120, 90, 60]),
+    observacao: 'Lavoura em produção, parcelado ao longo das águas.',
+    ativa: true,
+  },
+  {
+    id: 'rcl-mg-pasto', tabelaId: 'trc-cfsemg', cultura: 'PASTO',
+    saturacaoDesejada: 50,
+    produtividadeReferencia: 10, unidadeProdutividade: 't/ha',
+    nitrogenio: 50,
+    fosforo: classesFosforo([80, 60, 40, 25, 0]),
+    potassio: classesPotassio([80, 60, 40, 20, 0]),
+    observacao: 'Pastagem de braquiária em formação; V% menor que o de grão.',
+    ativa: true,
+  },
+  {
+    id: 'rcl-mg-feijao', tabelaId: 'trc-cfsemg', cultura: 'FEIJAO',
+    saturacaoDesejada: 60,
+    produtividadeReferencia: 2.5, unidadeProdutividade: 't/ha',
+    nitrogenio: 80,
+    fosforo: classesFosforo([120, 90, 60, 40, 20]),
+    potassio: classesPotassio([100, 80, 60, 40, 20]),
+    ativa: true,
+  },
+  {
+    id: 'rcl-mg-sorgo', tabelaId: 'trc-cfsemg', cultura: 'SORGO',
+    saturacaoDesejada: 60,
+    produtividadeReferencia: 5, unidadeProdutividade: 't/ha',
+    nitrogenio: 90,
+    fosforo: classesFosforo([110, 80, 60, 40, 20]),
+    potassio: classesPotassio([100, 80, 60, 40, 20]),
+    ativa: true,
+  },
+
+  /* ---- Boletim 100 (SP) — mesmo método, alvos mais altos ---- */
+  {
+    id: 'rcl-sp-soja', tabelaId: 'trc-iac', cultura: 'SOJA',
+    saturacaoDesejada: 70,
+    produtividadeReferencia: 60, unidadeProdutividade: 'sc/ha',
+    nitrogenio: 0,
+    fosforo: classesFosforo([120, 90, 60, 40, 20]),
+    potassio: classesPotassio([100, 80, 60, 40, 20]),
+    ativa: true,
+  },
+  {
+    id: 'rcl-sp-cana', tabelaId: 'trc-iac', cultura: 'CANA',
+    saturacaoDesejada: 60,
+    produtividadeReferencia: 100, unidadeProdutividade: 't/ha',
+    nitrogenio: 60,
+    fosforo: classesFosforo([150, 120, 90, 60, 30]),
+    potassio: classesPotassio([150, 120, 90, 60, 30]),
+    ativa: true,
+  },
+  {
+    id: 'rcl-sp-cafe', tabelaId: 'trc-iac', cultura: 'CAFE',
+    saturacaoDesejada: 70,
+    produtividadeReferencia: 30, unidadeProdutividade: 'sc/ha',
+    nitrogenio: 300,
+    fosforo: classesFosforo([80, 60, 40, 30, 20]),
+    potassio: classesPotassio([200, 160, 120, 90, 60]),
+    ativa: true,
+  },
+  {
+    id: 'rcl-sp-milho', tabelaId: 'trc-iac', cultura: 'MILHO2',
+    saturacaoDesejada: 70,
+    produtividadeReferencia: 8, unidadeProdutividade: 't/ha',
+    nitrogenio: 120,
+    fosforo: classesFosforo([140, 100, 70, 50, 30]),
+    potassio: classesPotassio([120, 90, 70, 50, 30]),
+    ativa: true,
+  },
+
+  /* ---- Cerrado — neutralização do alumínio ----
+     O coeficiente do Al cresce com a argila: solo arenoso tampona
+     menos e precisa de menos calcário por unidade de Al³⁺. */
+  {
+    id: 'rcl-cer-soja', tabelaId: 'trc-cerrado', cultura: 'SOJA',
+    fatorAluminio: 2, caMgDesejado: 2,
+    produtividadeReferencia: 60, unidadeProdutividade: 'sc/ha',
+    nitrogenio: 0,
+    fosforo: classesFosforo([140, 100, 70, 45, 25]),
+    potassio: classesPotassio([110, 85, 65, 45, 25]),
+    observacao: 'Coeficiente 2 para solo de textura média; argilosos usam 3.',
+    ativa: true,
+  },
+  {
+    id: 'rcl-cer-milho', tabelaId: 'trc-cerrado', cultura: 'MILHO2',
+    fatorAluminio: 2, caMgDesejado: 2,
+    produtividadeReferencia: 8, unidadeProdutividade: 't/ha',
+    nitrogenio: 120,
+    fosforo: classesFosforo([150, 110, 80, 55, 30]),
+    potassio: classesPotassio([130, 100, 75, 55, 30]),
+    ativa: true,
+  },
+  {
+    id: 'rcl-cer-algodao', tabelaId: 'trc-cerrado', cultura: 'ALGODAO',
+    fatorAluminio: 3, caMgDesejado: 2.5,
+    produtividadeReferencia: 4, unidadeProdutividade: 't/ha',
+    nitrogenio: 140,
+    fosforo: classesFosforo([160, 120, 85, 60, 40]),
+    potassio: classesPotassio([150, 115, 85, 60, 40]),
+    observacao: 'Algodão é exigente em Ca; coeficiente 3 e Ca+Mg maior.',
+    ativa: true,
+  },
+
+  /* ---- Sul — curva SMP ---- */
+  {
+    id: 'rcl-sul-soja', tabelaId: 'trc-sul', cultura: 'SOJA',
+    phAlvo: 6.0,
+    produtividadeReferencia: 60, unidadeProdutividade: 'sc/ha',
+    nitrogenio: 0,
+    fosforo: classesFosforo([120, 90, 60, 40, 20]),
+    potassio: classesPotassio([100, 80, 60, 40, 20]),
+    ativa: true,
+  },
+  {
+    id: 'rcl-sul-milho', tabelaId: 'trc-sul', cultura: 'MILHO2',
+    phAlvo: 6.0,
+    produtividadeReferencia: 8, unidadeProdutividade: 't/ha',
+    nitrogenio: 120,
+    fosforo: classesFosforo([140, 100, 70, 50, 30]),
+    potassio: classesPotassio([120, 90, 70, 50, 30]),
+    ativa: true,
+  },
+  {
+    id: 'rcl-sul-feijao', tabelaId: 'trc-sul', cultura: 'FEIJAO',
+    phAlvo: 5.5,
+    produtividadeReferencia: 2.5, unidadeProdutividade: 't/ha',
+    nitrogenio: 80,
+    fosforo: classesFosforo([120, 90, 60, 40, 20]),
+    potassio: classesPotassio([100, 80, 60, 40, 20]),
+    ativa: true,
+  },
 ];
