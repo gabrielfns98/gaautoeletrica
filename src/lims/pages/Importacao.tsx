@@ -20,6 +20,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAcoes, useBancada, useIndices } from '../data/store';
 import { BarraModelos } from './importacao/Modelos';
 import {
+  CONFIG_BRUTA_PADRAO, PainelLeituraBruta, curvaDoParametro,
+} from './importacao/LeituraBruta';
+import type { ConfigBruta } from './importacao/LeituraBruta';
+import { resultadoDaLeitura } from '../lib/aquisicao';
+import {
   ALVOS_AMOSTRA, hashDoConteudo, lerData, lerNumero, lerTabela, resumir, sugerirMapeamento,
 } from '../lib/importacao';
 import { lerXlsx, matrizParaTexto } from '../lib/xlsx';
@@ -271,7 +276,11 @@ function Resumo({ linhas }: { linhas: Array<LinhaValidada<unknown>> }) {
 interface LinhaResultado {
   chave: string;
   protocolo?: string;
-  valores: Array<{ parametro: Parametro; ensaio?: Ensaio; valor?: number; nota?: string }>;
+  valores: Array<{
+    parametro: Parametro; ensaio?: Ensaio; valor?: number; nota?: string;
+    /** o que o aparelho leu, quando a planilha traz leitura bruta */
+    bruto?: number;
+  }>;
 }
 
 function ImportarResultados() {
@@ -282,6 +291,7 @@ function ImportarResultados() {
   const [conteudo, setConteudo] = useState('');
   const [arquivo, setArquivo] = useState('');
   const [mapa, setMapa] = useState<Record<number, string> | null>(null);
+  const [bruta, setBruta] = useState<ConfigBruta>(CONFIG_BRUTA_PADRAO);
 
   const tabela = useMemo(() => (conteudo.trim() ? lerTabela(conteudo) : null), [conteudo]);
   const hash = useHashDoConteudo(conteudo);
@@ -349,19 +359,49 @@ function ImportarResultados() {
       const doLote = ensaiosPorAmostra.get(amostra.id) ?? [];
       const valores = colunasElemento.map(({ indice, parametro }) => {
         const bruto = celulas[indice] ?? '';
-        const valor = lerNumero(bruto, tabela.decimalVirgula);
+        const lido = lerNumero(bruto, tabela.decimalVirgula);
         const ensaio = doLote.find((e) => e.parametroId === parametro.id);
 
-        let nota: string | undefined;
+        /* Leitura bruta passa pela curva e pelo preparo antes de virar
+           resultado. É a conta que hoje se faz em planilha — e que a
+           planilha faz sem saber do LQ nem do maior padrão. */
+        let valor = lido;
+        let notaConversao: string | undefined;
+        if (bruta.ativo && lido !== undefined) {
+          const curva = curvaDoParametro(estado.curvas, parametro.id, bruta.curvaPorParametro[parametro.id]);
+          if (!curva) {
+            valor = undefined;
+            notaConversao = 'sem curva cadastrada para converter';
+          } else {
+            const maiorPadrao = curva.pontos.reduce((m, p) => Math.max(m, p.concentracao), 0);
+            const r = resultadoDaLeitura(
+              lido,
+              { coefAngular: curva.coefAngular, coefLinear: curva.coefLinear, lod: curva.lod, loq: curva.loq },
+              bruta.preparo,
+              maiorPadrao || undefined,
+            );
+            if (r.situacao === 'acima-faixa') {
+              valor = undefined;
+              notaConversao = 'acima do maior padrão — diluir e reler';
+            } else if (!r.reportavel) {
+              valor = undefined;
+              notaConversao = r.situacao === 'abaixo-lod' ? 'abaixo do limite de detecção' : '< LQ — não reportável';
+            } else {
+              valor = Number(r.resultado.toFixed(parametro.casasDecimais));
+            }
+          }
+        }
+
+        let nota: string | undefined = notaConversao;
         if (bruto.trim() === '') nota = 'vazio';
-        else if (valor === undefined) nota = 'não numérico';
-        else if (!ensaio) nota = 'ensaio não previsto para esta amostra';
-        else if (ensaio.status === 'aprovado') nota = 'já aprovado — não será sobrescrito';
-        else if (parametro.limiteInferior !== undefined &&
+        else if (lido === undefined) nota = 'não numérico';
+        else if (!nota && !ensaio) nota = 'ensaio não previsto para esta amostra';
+        else if (!nota && ensaio?.status === 'aprovado') nota = 'já aprovado — não será sobrescrito';
+        else if (!nota && valor !== undefined && parametro.limiteInferior !== undefined &&
                  (valor < parametro.limiteInferior || valor > (parametro.limiteSuperior ?? Infinity))) {
           nota = 'fora da faixa do método';
         }
-        return { parametro, ensaio, valor, nota };
+        return { parametro, ensaio, valor, nota, bruto: bruta.ativo ? lido : undefined };
       });
 
       const aproveitaveis = valores.filter((v) => v.valor !== undefined && v.ensaio && v.ensaio.status !== 'aprovado');
@@ -381,7 +421,7 @@ function ImportarResultados() {
             : undefined,
       };
     });
-  }, [tabela, mapeamento, estado.amostras, parametroPorId, ensaiosPorAmostra]);
+  }, [tabela, mapeamento, estado.amostras, estado.curvas, bruta, parametroPorId, ensaiosPorAmostra]);
 
   const paraGravar = useMemo(
     () => linhas.filter((l) => l.situacao !== 'erro').flatMap((l) =>
@@ -418,6 +458,17 @@ function ImportarResultados() {
       />
 
       {jaImportado && <AvisoRepetido importacao={jaImportado} />}
+
+      {tabela && tabela.colunas.length > 0 && (
+        <PainelLeituraBruta
+          config={bruta}
+          aoMudar={setBruta}
+          parametros={Object.values(mapeamento)
+            .filter((v) => v !== 'chave' && v !== 'ignorar')
+            .map((id) => parametroPorId.get(id))
+            .filter((p): p is Parametro => Boolean(p))}
+        />
+      )}
 
       {tabela && tabela.colunas.length > 0 && (
         <Secao
@@ -511,7 +562,13 @@ function ImportarResultados() {
                           {l.dados.valores.map((v) => (
                             <span
                               key={v.parametro.id}
-                              title={v.nota ?? v.parametro.nome}
+                              title={
+                                // Mostra a conta inteira: o analista confere
+                                // a conversão sem abrir planilha.
+                                v.bruto !== undefined
+                                  ? `${v.parametro.nome} · leitura ${numero(v.bruto, 4)}${v.nota ? ` · ${v.nota}` : ''}`
+                                  : v.nota ?? v.parametro.nome
+                              }
                               className={cn(
                                 'num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[0.66rem]',
                                 v.nota && v.nota !== 'vazio'
@@ -522,6 +579,9 @@ function ImportarResultados() {
                               )}
                             >
                               <span className="opacity-60">{v.parametro.codigo}</span>
+                              {v.bruto !== undefined && (
+                                <span className="opacity-50">{numero(v.bruto, 3)} →</span>
+                              )}
                               {v.valor !== undefined ? numero(v.valor, v.parametro.casasDecimais) : '—'}
                             </span>
                           ))}
