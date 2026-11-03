@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { faixaDe, fontesCitadas, interpretar, legendaDe } from './interpretacao';
-import { legendas as legendasSeed, parametros } from '../data/seed';
+import { legendas as legendasSeed, parametros } from '../data/catalogo';
 import type { Legenda } from '../types';
 
 const base: Omit<Legenda, 'id' | 'codigo' | 'nome' | 'faixas'> = {

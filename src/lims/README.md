@@ -244,13 +244,36 @@ rota é bloqueada.
 
 ## Dados
 
-A massa de demonstração (`data/seed.ts`) é gerada por um PRNG determinístico:
-a mesma semente produz sempre o mesmo laboratório — cerca de 120 lotes, 990
-amostras, 2.900 ensaios e 1.100 leituras de pH, com status coerente com a idade
-de cada amostra.
+O sistema sobe **vazio**, como um laboratório o recebe.
 
-Ela vive **em memória**. Os traces de estabilização somam alguns megabytes e não
-caberiam com folga no `localStorage`; só tema e operador ativo são persistidos.
+`data/catalogo.ts` é o que acompanha a instalação: 16 grupos de análise, 103
+elementos com método, unidade e LQ, 20 pacotes, 69 faixas de interpretação
+(CFSEMG, Boletim 100, CEPLAC), 8 fórmulas de calculados, modelos de laudo,
+famílias de equipamento e as 4 tabelas de recomendação. São normas publicadas e
+convenções do setor, todas editáveis nos Cadastros — sem elas prontas, o
+primeiro dia de uso seria cadastrar trezentos registros antes de lançar um
+resultado.
+
+Não há cliente, amostra, laudo, equipamento, título nem movimento de estoque.
+Uma instalação que nasce com movimento inventado convida alguém a emitir
+documento a partir de dado que ninguém mediu.
+
+`data/demonstracao.ts` é um laboratório fictício completo — cerca de 120 lotes,
+990 amostras, 2.900 ensaios, 1.100 leituras de pH, laudos, equipamentos,
+estoque e seis rodadas de proficiência — gerado por um PRNG determinístico: a
+mesma semente produz sempre o mesmo laboratório, o que torna telas e gráficos
+reprodutíveis e deixa os testes de contrato afirmarem coisas verificáveis.
+
+Ela **não carrega sozinha**. Entra por `VITE_BANCADA_DEMO=1` na publicação, ou
+pelo botão em **Configurações → Dados**. O carregamento é `import()` dinâmico,
+então o gerador fica num pedaço separado do pacote (37 kB) e uma instalação que
+nunca pede demonstração não chega a baixá-lo. Quando está carregada, a barra do
+topo diz **Dados de demonstração** em toda tela — massa fictícia não pode passar
+por laudo real.
+
+O estado vive **em memória**. Os traces de estabilização somam alguns megabytes
+e não caberiam com folga no `localStorage`; só tema, operador ativo e a escolha
+da demonstração são persistidos.
 
 ### Ligar no Supabase
 

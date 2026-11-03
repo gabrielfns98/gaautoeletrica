@@ -22,6 +22,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { useAcoes, useBancada, useFilaPh } from '../data/store';
+import { nomeCurto } from '../lib/format';
 import type { Modulo } from '../types';
 import { rota } from '../base';
 
@@ -250,7 +251,7 @@ function RodapeLateral() {
 /* ---------------- Topo ---------------- */
 
 function Topo({ aoAbrirMenu }: { aoAbrirMenu: () => void }) {
-  const { usuario, papel, tema, alternarTema, estado, modo, sair } = useBancada();
+  const { usuario, papel, tema, alternarTema, estado, modo, sair, demonstracao } = useBancada();
   const { trocarUsuario } = useAcoes();
 
   return (
@@ -265,12 +266,22 @@ function Topo({ aoAbrirMenu }: { aoAbrirMenu: () => void }) {
         <Menu className="h-4 w-4" />
       </Button>
 
-      <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
-        <Activity className="h-3.5 w-3.5 text-[hsl(var(--success))]" />
-        <span>Bancada operante</span>
-        <span className="text-muted-foreground/40">·</span>
-        <span className="num">{estado.amostras.filter((a) => a.status === 'em-analise').length} amostras em análise</span>
-      </div>
+      {/* Massa fictícia não pode passar por dado real: quem está vendo
+          a demonstração precisa saber disso em toda tela, inclusive
+          antes de imprimir um laudo. */}
+      {demonstracao ? (
+        <div className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[hsl(var(--warning))]/40 bg-[hsl(var(--warning))]/10 px-2 py-1 text-xs text-[hsl(var(--warning))]">
+          <FlaskConical className="h-3.5 w-3.5" />
+          <span>Dados de demonstração</span>
+        </div>
+      ) : (
+        <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
+          <Activity className="h-3.5 w-3.5 text-[hsl(var(--success))]" />
+          <span>Bancada operante</span>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="num">{estado.amostras.filter((a) => a.status === 'em-analise').length} amostras em análise</span>
+        </div>
+      )}
 
       <div className="ml-auto flex items-center gap-1.5">
         <Button
@@ -300,7 +311,7 @@ function Topo({ aoAbrirMenu }: { aoAbrirMenu: () => void }) {
               </span>
               <span className="hidden text-left sm:block">
                 <span className="block text-xs font-medium leading-tight text-foreground">
-                  {usuario.nome.split(' ')[0]} {usuario.nome.split(' ').pop()}
+                  {nomeCurto(usuario.nome)}
                 </span>
                 <span className="block text-[0.66rem] leading-tight text-muted-foreground">
                   {papel?.nome}

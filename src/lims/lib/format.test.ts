@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dataISOLocal, diasEntre, numero, numeroAte, tempoRelativo } from './format';
+import { dataISOLocal, diasEntre, nomeCurto, numero, numeroAte, tempoRelativo } from './format';
 
 /* O laboratório trabalha em Brasília (UTC-3). Depois das 21h local
    já é o dia seguinte em UTC, e é aí que `toISOString().slice(0,10)`
@@ -100,5 +100,23 @@ describe('numero', () => {
 
   it('usa vírgula decimal e ponto de milhar', () => {
     expect(numero(1234.5, 1)).toBe('1.234,5');
+  });
+});
+
+describe('nomeCurto', () => {
+  it('primeiro e último nome', () => {
+    expect(nomeCurto('Helena Vasconcelos Prado')).toBe('Helena Prado');
+  });
+
+  /* O defeito que isto evita: `[0]` e `.pop()` devolvem a mesma
+     palavra num nome de um termo só, e a barra do topo de toda
+     instalação nova dizia "Administrador Administrador". */
+  it('nome de uma palavra sai uma vez só', () => {
+    expect(nomeCurto('Administrador')).toBe('Administrador');
+  });
+
+  it('espaços sobrando não viram nome vazio', () => {
+    expect(nomeCurto('  Marina   Lins  ')).toBe('Marina Lins');
+    expect(nomeCurto('   ')).toBe('');
   });
 });

@@ -10,11 +10,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  amostras, culturas, ensaios, equipamentos, grupos, laudos, parametros,
-  programasProficiencia, recomendacoesCultura, resultadosProficiencia,
-  rodadasProficiencia, tabelasRecomendacao, tiposAnalise,
-  tiposEquipamento, verificacoesEquipamento,
-} from './seed';
+  culturas, grupos, parametros, programasProficiencia, recomendacoesCultura,
+  tabelasRecomendacao, tiposAnalise, tiposEquipamento,
+} from './catalogo';
+import {
+  amostras, ensaios, equipamentos, laudos, resultadosProficiencia,
+  rodadasProficiencia, verificacoesEquipamento,
+} from './demonstracao';
 import { deRecomendacaoCultura, paraRecomendacaoCultura } from './mapas';
 import { avaliarTendencia, calcularEscore } from '../lib/interlaboratorial';
 import { recomendar, soloDosResultados } from '../lib/recomendacao';

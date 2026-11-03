@@ -226,6 +226,19 @@ export function mascaraCep(v: string): string {
 
 /* ---------------- Texto ---------------- */
 
+/**
+ * Primeiro e último nome, para a barra do topo.
+ *
+ * Um nome de uma palavra só tem de sair uma vez: `[0]` e `.pop()`
+ * devolvem a mesma palavra, e "Administrador" virava "Administrador
+ * Administrador" em toda tela de instalação nova.
+ */
+export function nomeCurto(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length <= 1) return partes[0] ?? '';
+  return `${partes[0]} ${partes[partes.length - 1]}`;
+}
+
 export function iniciais(nome: string): string {
   const partes = nome.trim().split(/\s+/).filter((p) => p.length > 2);
   if (partes.length === 0) return nome.slice(0, 2).toUpperCase();

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { calcularDerivados, entradasDerivadas } from './formula';
 import { hMaisAlPorSmp } from './ph';
-import { formulas, parametros } from '../data/seed';
+import { formulas, parametros } from '../data/catalogo';
 
 const codigo = (c: string) => parametros.find((p) => p.codigo === c)!;
 

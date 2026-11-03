@@ -15,7 +15,7 @@ import {
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 
-import * as seed from './seed';
+import * as catalogo from './catalogo';
 import { COM_BANCO, supabase } from './supabase';
 import {
   apagarEnsaio,
@@ -100,59 +100,147 @@ export interface EstadoBancada {
   criterios: CriterioAceitacao[];
 }
 
-function estadoInicial(): EstadoBancada {
+/**
+ * O sistema como um laboratório o recebe: o catálogo de referência
+ * pronto e nada mais.
+ *
+ * Nenhum cliente, nenhuma amostra, nenhum laudo. Uma instalação que
+ * já nasce com movimento inventado convida alguém a emitir um
+ * documento a partir de um dado que ninguém mediu, e esconde do
+ * laboratório o trabalho real de configurar a própria operação.
+ */
+function estadoVazio(): EstadoBancada {
   return {
-    unidades: seed.unidades,
-    unidadeAtivaId: seed.unidades[0].id,
-    usuarios: seed.usuarios,
-    usuarioAtualId: seed.usuarioAtual.id,
+    /* --- Identidade e acesso: o mínimo para abrir o sistema --- */
+    unidades: catalogo.unidades,
+    unidadeAtivaId: catalogo.unidades[0].id,
+    usuarios: catalogo.usuarios,
+    usuarioAtualId: catalogo.usuarioAtual.id,
     papeis: PAPEIS_PADRAO,
-    grupos: seed.grupos,
-    tiposAnalise: seed.tiposAnalise,
-    curvas: seed.curvas,
-    legendas: seed.legendas,
-    metodologias: seed.metodologias,
-    bandejas: seed.bandejas,
-    profundidades: seed.profundidades,
-    culturas: seed.culturas,
-    tiposCliente: seed.tiposCliente,
-    convenios: seed.convenios,
-    regrasDesconto: seed.regrasDesconto,
-    observacoesFixas: seed.observacoesFixas,
-    parametros: seed.parametros,
-    clientes: seed.clientes,
-    contatos: seed.contatos,
-    oportunidades: seed.oportunidades,
-    interacoes: seed.interacoes,
-    tabelasPreco: seed.tabelasPreco,
-    lotesRecepcao: seed.lotesRecepcao,
-    amostras: seed.amostras,
-    ensaios: seed.ensaios,
-    leiturasPh: seed.leiturasPh,
-    equipamentos: seed.equipamentos,
-    tiposEquipamento: seed.tiposEquipamento,
-    verificacoesEquipamento: seed.verificacoesEquipamento,
-    modelosImportacao: seed.modelosImportacao,
-    formulas: seed.formulas,
-    modelosLaudo: seed.modelosLaudo,
-    tabelasRecomendacao: seed.tabelasRecomendacao,
-    recomendacoesCultura: seed.recomendacoesCultura,
-    programasProficiencia: seed.programasProficiencia,
-    rodadasProficiencia: seed.rodadasProficiencia,
-    resultadosProficiencia: seed.resultadosProficiencia,
-    calibracoes: seed.calibracoes,
-    amostrasControle: seed.amostrasControle,
-    registrosCQ: seed.registrosCQ,
-    laudos: seed.laudos,
-    orcamentos: seed.orcamentos,
-    titulos: seed.titulos,
-    notasFiscais: seed.notasFiscais,
-    itensEstoque: seed.itensEstoque,
-    lotesReagente: seed.lotesReagente,
-    movimentosEstoque: seed.movimentosEstoque,
-    auditoria: seed.auditoria,
+
+    /* --- Catálogo de referência: acompanha o sistema --- */
+    grupos: catalogo.grupos,
+    parametros: catalogo.parametros,
+    tiposAnalise: catalogo.tiposAnalise,
+    legendas: catalogo.legendas,
+    formulas: catalogo.formulas,
+    metodologias: catalogo.metodologias,
+    criterios: catalogo.criterios,
+    bandejas: catalogo.bandejas,
+    profundidades: catalogo.profundidades,
+    culturas: catalogo.culturas,
+    tiposCliente: catalogo.tiposCliente,
+    observacoesFixas: catalogo.observacoesFixas,
+    tiposEquipamento: catalogo.tiposEquipamento,
+    modelosImportacao: catalogo.modelosImportacao,
+    modelosLaudo: catalogo.modelosLaudo,
+    tabelasRecomendacao: catalogo.tabelasRecomendacao,
+    recomendacoesCultura: catalogo.recomendacoesCultura,
+    programasProficiencia: catalogo.programasProficiencia,
+
+    /* --- Operação: tudo que pertence a um laboratório específico --- */
+    clientes: [],
+    contatos: [],
+    tabelasPreco: [],
+    convenios: [],
+    regrasDesconto: [],
+    oportunidades: [],
+    interacoes: [],
+    orcamentos: [],
+    lotesRecepcao: [],
+    amostras: [],
+    ensaios: [],
+    leiturasPh: [],
+    laudos: [],
+    equipamentos: [],
+    verificacoesEquipamento: [],
+    calibracoes: [],
+    curvas: [],
+    amostrasControle: [],
+    registrosCQ: [],
+    rodadasProficiencia: [],
+    resultadosProficiencia: [],
+    titulos: [],
+    notasFiscais: [],
+    itensEstoque: [],
+    lotesReagente: [],
+    movimentosEstoque: [],
+    auditoria: [],
     importacoes: [],
-    criterios: seed.criterios,
+  };
+}
+
+/** As coleções que a demonstração preenche; o catálogo não se toca. */
+export type Demonstracao = Partial<EstadoBancada>;
+
+const CHAVE_DEMO = 'bancada:demonstracao';
+
+/**
+ * Se a massa de demonstração deve entrar nesta sessão.
+ *
+ * Duas portas, porque servem a gente diferente: a variável de
+ * ambiente é de quem publica (a demonstração do Vercel sobe com
+ * ela ligada), e a escolha guardada no navegador é de quem está
+ * mostrando o sistema a alguém e liga na hora.
+ */
+export function demonstracaoPedida(): boolean {
+  try {
+    const guardado = localStorage.getItem(CHAVE_DEMO);
+    if (guardado !== null) return guardado === '1';
+  } catch {
+    // Navegação privada ou site data bloqueado: vale o ambiente.
+  }
+  return import.meta.env.VITE_BANCADA_DEMO === '1';
+}
+
+function lembrarDemonstracao(ligada: boolean): void {
+  try {
+    localStorage.setItem(CHAVE_DEMO, ligada ? '1' : '0');
+  } catch {
+    // Sem persistir, a escolha vale só nesta aba. Melhor que falhar.
+  }
+}
+
+/**
+ * Carrega a massa sob demanda.
+ *
+ * `import()` e não `import` de topo: assim o gerador — que é o
+ * maior arquivo do sistema e constrói mil amostras com traços de
+ * estabilização — fica num pedaço separado do pacote, e uma
+ * instalação que nunca pede demonstração nem chega a baixá-lo.
+ */
+async function carregarMassa(): Promise<Demonstracao> {
+  const d = await import('./demonstracao');
+  return {
+    unidades: d.unidades,
+    usuarios: d.usuarios,
+    clientes: d.clientes,
+    contatos: d.contatos,
+    tabelasPreco: d.tabelasPreco,
+    convenios: d.convenios,
+    regrasDesconto: d.regrasDesconto,
+    oportunidades: d.oportunidades,
+    interacoes: d.interacoes,
+    orcamentos: d.orcamentos,
+    lotesRecepcao: d.lotesRecepcao,
+    amostras: d.amostras,
+    ensaios: d.ensaios,
+    leiturasPh: d.leiturasPh,
+    laudos: d.laudos,
+    equipamentos: d.equipamentos,
+    verificacoesEquipamento: d.verificacoesEquipamento,
+    calibracoes: d.calibracoes,
+    curvas: d.curvas,
+    amostrasControle: d.amostrasControle,
+    registrosCQ: d.registrosCQ,
+    rodadasProficiencia: d.rodadasProficiencia,
+    resultadosProficiencia: d.resultadosProficiencia,
+    titulos: d.titulos,
+    notasFiscais: d.notasFiscais,
+    itensEstoque: d.itensEstoque,
+    lotesReagente: d.lotesReagente,
+    movimentosEstoque: d.movimentosEstoque,
+    auditoria: d.auditoria,
   };
 }
 
@@ -189,6 +277,7 @@ type Acao =
   | { tipo: 'salvar-modelo-importacao'; modelo: ModeloImportacao }
   | { tipo: 'auditar'; registro: RegistroAuditoria }
   | { tipo: 'carregar'; carga: CargaBancada }
+  | { tipo: 'carregar-demonstracao'; dados: Demonstracao }
   | { tipo: 'restaurar' };
 
 const substituir = <T extends { id: UUID }>(lista: T[], item: T): T[] => {
@@ -375,8 +464,14 @@ function redutor(estado: EstadoBancada, acao: Acao): EstadoBancada {
     case 'auditar':
       return { ...estado, auditoria: [acao.registro, ...estado.auditoria].slice(0, 400) };
 
+    /* A massa entra por cima do estado vazio e só nas coleções de
+       operação: o catálogo que o laboratório já ajustou continua
+       como estava. */
+    case 'carregar-demonstracao':
+      return { ...estado, ...acao.dados, unidadeAtivaId: acao.dados.unidades?.[0]?.id ?? estado.unidadeAtivaId };
+
     case 'restaurar':
-      return estadoInicial();
+      return estadoVazio();
 
     default:
       return estado;
@@ -406,6 +501,10 @@ interface ContextoBancada {
   podeVerModulo: (modulo: Modulo) => boolean;
   /** Registra na trilha de auditoria. */
   auditar: (acao: string, entidade: string, entidadeId: string, detalhe: string) => void;
+  /** Se a massa de demonstração está carregada nesta sessão. */
+  demonstracao: boolean;
+  /** Liga a massa de demonstração, ou devolve o sistema ao estado de recém-instalado. */
+  alternarDemonstracao: (ligada: boolean) => void;
 }
 
 const Contexto = createContext<ContextoBancada | null>(null);
@@ -422,7 +521,7 @@ function gravarPreferencia(chave: string, valor: string): void {
 
 export function BancadaProvider({ children }: { children: ReactNode }) {
   const [estado, despachar] = useReducer(redutor, undefined, () => {
-    const base = estadoInicial();
+    const base = estadoVazio();
     const salvo = lerPreferencia(CHAVE_USUARIO);
     if (salvo && base.usuarios.some((u) => u.id === salvo)) {
       return { ...base, usuarioAtualId: salvo };
@@ -473,6 +572,33 @@ export function BancadaProvider({ children }: { children: ReactNode }) {
     );
     return () => { clearTimeout(prazo); ouvinte.subscription.unsubscribe(); };
   }, [recarregar]);
+
+  /* A demonstração, quando pedida. O estado começa vazio e a massa
+     chega depois, porque `import()` é assíncrono — e é justamente
+     isso que mantém o gerador fora do pacote de quem não a pede.
+     Uma instalação com banco nunca entra aqui: ali os dados são do
+     laboratório. */
+  const [demonstracao, setDemonstracao] = useState(() => !COM_BANCO && demonstracaoPedida());
+
+  useEffect(() => {
+    if (COM_BANCO || !demonstracao) return;
+    let cancelado = false;
+    void carregarMassa().then((dados) => {
+      if (!cancelado) despachar({ tipo: 'carregar-demonstracao', dados });
+    });
+    return () => { cancelado = true; };
+  }, [demonstracao]);
+
+  const alternarDemonstracao = useCallback((ligada: boolean) => {
+    lembrarDemonstracao(ligada);
+    if (ligada) { setDemonstracao(true); return; }
+    /* Desligar devolve o sistema ao estado de recém-instalado. Não
+       dá para "tirar" a massa de um estado que já foi mexido: o que
+       o laboratório gravou por cima dela some junto, e é isso que
+       limpar significa. */
+    setDemonstracao(false);
+    despachar({ tipo: 'restaurar' });
+  }, []);
 
   const [tema, setTema] = useState<Tema>(() =>
     (lerPreferencia(CHAVE_TEMA) as Tema) ?? 'dark');
@@ -528,8 +654,10 @@ export function BancadaProvider({ children }: { children: ReactNode }) {
     () => ({
       estado, despachar, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo,
       auditar, sair, recarregar, modo: COM_BANCO ? 'banco' : 'demonstracao',
+      demonstracao, alternarDemonstracao,
     }),
-    [estado, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo, auditar, sair, recarregar],
+    [estado, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo, auditar,
+      sair, recarregar, demonstracao, alternarDemonstracao],
   );
 
   if (COM_BANCO) {

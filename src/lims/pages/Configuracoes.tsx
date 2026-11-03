@@ -3,7 +3,7 @@
    ============================================================ */
 
 import { useState } from 'react';
-import { Building2, Moon, Palette, Sun } from 'lucide-react';
+import { Building2, Database, Moon, Palette, Sun } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,10 +20,10 @@ import {
 import { ReguaPh } from '../components/ph-visual';
 import type { CriterioAceitacao, GrupoAnalise, Parametro } from '../types';
 
-type Aba = 'unidade' | 'grupos' | 'parametros' | 'criterios' | 'aparencia';
+type Aba = 'unidade' | 'grupos' | 'parametros' | 'criterios' | 'aparencia' | 'dados';
 
 export default function Configuracoes() {
-  const { estado, unidade, tema, alternarTema } = useBancada();
+  const { estado, unidade, tema, alternarTema, modo, demonstracao, alternarDemonstracao } = useBancada();
   const [aba, setAba] = useState<Aba>('unidade');
   const [busca, setBusca] = useState('');
   const [phExemplo, setPhExemplo] = useState(5.4);
@@ -45,6 +45,7 @@ export default function Configuracoes() {
               { valor: 'parametros', rotulo: 'Parâmetros', contagem: estado.parametros.length },
               { valor: 'criterios', rotulo: 'Critérios de aceitação' },
               { valor: 'aparencia', rotulo: 'Aparência' },
+              { valor: 'dados', rotulo: 'Dados' },
             ]}
           />
         </div>
@@ -216,6 +217,70 @@ export default function Configuracoes() {
                 })}
               </div>
             </div>
+          </Secao>
+        </div>
+      )}
+
+      {aba === 'dados' && (
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Secao
+            titulo="Massa de demonstração"
+            descricao="Um laboratório fictício completo, para apresentar o sistema a quem ainda não tem dados."
+          >
+            {modo === 'banco' ? (
+              <p className="text-sm text-muted-foreground">
+                Esta instalação lê e grava no banco: os dados são do laboratório, e não há
+                demonstração a carregar.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  O sistema vem vazio, como um laboratório o recebe: o catálogo de
+                  referência pronto — elementos, faixas de interpretação, fórmulas, modelos
+                  de laudo e tabelas de recomendação — e nenhum cliente, amostra ou laudo.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Ligar a demonstração acrescenta cerca de mil amostras, com ensaios,
+                  laudos, equipamentos e histórico. Desligar devolve o sistema ao estado de
+                  recém-instalado — <span className="text-foreground">o que tiver sido
+                  cadastrado por cima também sai</span>.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant={demonstracao ? 'outline' : 'default'}
+                    onClick={() => alternarDemonstracao(!demonstracao)}
+                    className="gap-2"
+                  >
+                    <Database className="h-4 w-4" />
+                    {demonstracao ? 'Limpar e voltar ao sistema vazio' : 'Carregar demonstração'}
+                  </Button>
+                  <Pilula tom={demonstracao ? 'alerta' : 'sucesso'} pontinho>
+                    {demonstracao ? 'Demonstração carregada' : 'Sistema vazio'}
+                  </Pilula>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  A escolha fica salva neste navegador. Numa publicação, a variável
+                  <span className="num text-foreground"> VITE_BANCADA_DEMO=1 </span>
+                  liga a demonstração por padrão.
+                </p>
+              </div>
+            )}
+          </Secao>
+
+          <Secao titulo="Contagem atual" descricao="O que existe no sistema neste momento.">
+            <Campos
+              colunas={2}
+              itens={[
+                { rotulo: 'Clientes', valor: <span className="num">{estado.clientes.length}</span> },
+                { rotulo: 'Amostras', valor: <span className="num">{estado.amostras.length}</span> },
+                { rotulo: 'Ensaios', valor: <span className="num">{estado.ensaios.length}</span> },
+                { rotulo: 'Laudos', valor: <span className="num">{estado.laudos.length}</span> },
+                { rotulo: 'Equipamentos', valor: <span className="num">{estado.equipamentos.length}</span> },
+                { rotulo: 'Elementos no catálogo', valor: <span className="num">{estado.parametros.length}</span> },
+                { rotulo: 'Faixas de interpretação', valor: <span className="num">{estado.legendas.length}</span> },
+                { rotulo: 'Tabelas de recomendação', valor: <span className="num">{estado.tabelasRecomendacao.length}</span> },
+              ]}
+            />
           </Secao>
         </div>
       )}
