@@ -258,11 +258,19 @@ export default function Configuracoes() {
                     {demonstracao ? 'Demonstração carregada' : 'Sistema vazio'}
                   </Pilula>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  A escolha fica salva neste navegador. Numa publicação, a variável
-                  <span className="num text-foreground"> VITE_BANCADA_DEMO=1 </span>
-                  liga a demonstração por padrão.
-                </p>
+                <div className="space-y-1.5 border-t border-[hsl(var(--line))] pt-3">
+                  <p className="text-xs text-muted-foreground">
+                    A escolha fica salva neste navegador. Para mandar o sistema a alguém já
+                    no estado certo, o endereço decide:
+                  </p>
+                  <p className="num text-xs text-foreground">?demo=1 <span className="text-muted-foreground">— abre com a demonstração</span></p>
+                  <p className="num text-xs text-foreground">?demo=0 <span className="text-muted-foreground">— abre vazio, como numa instalação nova</span></p>
+                  <p className="text-xs text-muted-foreground">
+                    Numa publicação, a variável
+                    <span className="num text-foreground"> VITE_BANCADA_DEMO=1 </span>
+                    define o padrão de quem chega sem escolha nenhuma.
+                  </p>
+                </div>
               </div>
             )}
           </Secao>

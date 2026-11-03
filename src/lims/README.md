@@ -264,8 +264,16 @@ estoque e seis rodadas de proficiência — gerado por um PRNG determinístico: 
 mesma semente produz sempre o mesmo laboratório, o que torna telas e gráficos
 reprodutíveis e deixa os testes de contrato afirmarem coisas verificáveis.
 
-Ela **não carrega sozinha**. Entra por `VITE_BANCADA_DEMO=1` na publicação, ou
-pelo botão em **Configurações → Dados**. O carregamento é `import()` dinâmico,
+Ela **não carrega sozinha**. Três portas, em ordem de precedência:
+
+| Porta | Para quem |
+|---|---|
+| `?demo=0` / `?demo=1` no endereço | mandar o link já no estado que se quer mostrar |
+| Botão em **Configurações → Dados** | quem está com o sistema aberto |
+| `VITE_BANCADA_DEMO=1` | quem publica, define o padrão |
+
+O endereço também grava a escolha, senão ela se perderia no primeiro clique do
+menu — que troca de rota e descarta a busca. O carregamento é `import()` dinâmico,
 então o gerador fica num pedaço separado do pacote (37 kB) e uma instalação que
 nunca pede demonstração não chega a baixá-lo. Quando está carregada, a barra do
 topo diz **Dados de demonstração** em toda tela — massa fictícia não pode passar

@@ -175,15 +175,39 @@ export type Demonstracao = Partial<EstadoBancada>;
 
 const CHAVE_DEMO = 'bancada:demonstracao';
 
+function lembrarDemonstracao(ligada: boolean): void {
+  try {
+    localStorage.setItem(CHAVE_DEMO, ligada ? '1' : '0');
+  } catch {
+    // Sem persistir, a escolha vale só nesta aba. Melhor que falhar.
+  }
+}
+
 /**
  * Se a massa de demonstração deve entrar nesta sessão.
  *
- * Duas portas, porque servem a gente diferente: a variável de
- * ambiente é de quem publica (a demonstração do Vercel sobe com
- * ela ligada), e a escolha guardada no navegador é de quem está
- * mostrando o sistema a alguém e liga na hora.
+ * Três portas, em ordem de precedência, porque servem a gente
+ * diferente:
+ *
+ * 1. `?demo=0` ou `?demo=1` no endereço — para mandar a alguém o
+ *    link do sistema já no estado que se quer mostrar, sem pedir
+ *    que procure um botão em Configurações.
+ * 2. A escolha guardada no navegador, de quem apertou o botão.
+ * 3. A variável de ambiente, de quem publicou.
+ *
+ * O endereço também grava a escolha: sem isso ela se perderia no
+ * primeiro clique do menu, que troca de rota e descarta a busca.
  */
 export function demonstracaoPedida(): boolean {
+  try {
+    const pedido = new URLSearchParams(window.location.search).get('demo');
+    if (pedido === '0' || pedido === '1') {
+      lembrarDemonstracao(pedido === '1');
+      return pedido === '1';
+    }
+  } catch {
+    // Sem window (teste, renderização fora do navegador): segue adiante.
+  }
   try {
     const guardado = localStorage.getItem(CHAVE_DEMO);
     if (guardado !== null) return guardado === '1';
@@ -191,14 +215,6 @@ export function demonstracaoPedida(): boolean {
     // Navegação privada ou site data bloqueado: vale o ambiente.
   }
   return import.meta.env.VITE_BANCADA_DEMO === '1';
-}
-
-function lembrarDemonstracao(ligada: boolean): void {
-  try {
-    localStorage.setItem(CHAVE_DEMO, ligada ? '1' : '0');
-  } catch {
-    // Sem persistir, a escolha vale só nesta aba. Melhor que falhar.
-  }
 }
 
 /**
