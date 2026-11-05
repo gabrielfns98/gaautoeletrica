@@ -519,6 +519,12 @@ interface ContextoBancada {
   auditar: (acao: string, entidade: string, entidadeId: string, detalhe: string) => void;
   /** Se a massa de demonstração está carregada nesta sessão. */
   demonstracao: boolean;
+  /** O papel do usuário de verdade; `papel` é o que está sendo mostrado. */
+  papelReal: Papel | undefined;
+  /** Se este usuário pode usar o "ver como". */
+  podeVerComo: boolean;
+  /** Mostra o sistema como outro papel; `null` volta ao papel real. */
+  verComo: (papelId: string | null) => void;
   /** Liga a massa de demonstração, ou devolve o sistema ao estado de recém-instalado. */
   alternarDemonstracao: (ligada: boolean) => void;
 }
@@ -628,10 +634,34 @@ export function BancadaProvider({ children }: { children: ReactNode }) {
     () => estado.usuarios.find((u) => u.id === estado.usuarioAtualId) ?? estado.usuarios[0],
     [estado.usuarios, estado.usuarioAtualId],
   );
-  const papel = useMemo(
+  const papelReal = useMemo(
     () => estado.papeis.find((p) => p.id === usuario.papelId),
     [estado.papeis, usuario.papelId],
   );
+
+  /* "Ver como": mostra o sistema pelos olhos de outro papel sem
+     cadastrar ninguém — é para apresentar o sistema e explicar quem
+     vê o quê. Muda o que aparece (menu, botões, telas bloqueadas),
+     não quem é a pessoa: o que for gravado continua no nome do
+     usuário real, e a regra de não aprovar o próprio resultado
+     segue valendo para ele.
+     Com banco ligado, só o administrador pode; ali o servidor
+     confere a identidade real de qualquer jeito, então a prévia não
+     abre dado nenhum, mas um recepcionista "vendo como admin" seria
+     no mínimo confuso. */
+  const [papelVistoId, setPapelVistoId] = useState<string | null>(null);
+  const podeVerComo = !COM_BANCO || papelReal?.id === 'papel-admin';
+  useEffect(() => { setPapelVistoId(null); }, [usuario.id]);
+
+  const papel = useMemo(
+    () => (podeVerComo && papelVistoId
+      ? estado.papeis.find((p) => p.id === papelVistoId) ?? papelReal
+      : papelReal),
+    [podeVerComo, papelVistoId, estado.papeis, papelReal],
+  );
+  const verComo = useCallback((papelId: string | null) => {
+    setPapelVistoId(papelId && papelId !== usuario.papelId ? papelId : null);
+  }, [usuario.papelId]);
   const unidade = useMemo(
     () => estado.unidades.find((u) => u.id === estado.unidadeAtivaId) ?? estado.unidades[0],
     [estado.unidades, estado.unidadeAtivaId],
@@ -670,10 +700,10 @@ export function BancadaProvider({ children }: { children: ReactNode }) {
     () => ({
       estado, despachar, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo,
       auditar, sair, recarregar, modo: COM_BANCO ? 'banco' : 'demonstracao',
-      demonstracao, alternarDemonstracao,
+      demonstracao, alternarDemonstracao, papelReal, podeVerComo, verComo,
     }),
     [estado, usuario, papel, unidade, tema, alternarTema, pode, podeVerModulo, auditar,
-      sair, recarregar, demonstracao, alternarDemonstracao],
+      sair, recarregar, demonstracao, alternarDemonstracao, papelReal, podeVerComo, verComo],
   );
 
   if (COM_BANCO) {

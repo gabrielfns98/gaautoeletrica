@@ -151,3 +151,10 @@ describe('telaDoCaminho', () => {
     for (const nome of Object.values(TELAS)) expect(nome).toBeTruthy();
   });
 });
+
+describe('guia — ver como', () => {
+  it('quem pergunta como ver como outro papel acha a resposta', () => {
+    expect(buscarNoGuia('como vejo o sistema como analista?')[0].id).toBe('usuarios');
+    expect(buscarNoGuia('ver como financeiro')[0].id).toBe('usuarios');
+  });
+});

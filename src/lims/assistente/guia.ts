@@ -48,11 +48,12 @@ Quem pode cadastrar: administrador, responsável técnico e recepção.`,
   {
     id: 'usuarios',
     titulo: 'Usuários, papéis e "operar como"',
-    palavras: ['usuario', 'usuário', 'analista', 'papel', 'papéis', 'permissao', 'permissão', 'acesso', 'login', 'equipe', 'operar como', 'trocar usuario', 'habilitacao', 'habilitação', 'crq', 'responsavel tecnico', 'rt'],
+    palavras: ['usuario', 'usuário', 'analista', 'papel', 'papéis', 'permissao', 'permissão', 'acesso', 'login', 'equipe', 'operar como', 'ver como', 'visao', 'visão', 'perspectiva', 'trocar usuario', 'habilitacao', 'habilitação', 'crq', 'responsavel tecnico', 'rt'],
     texto: `Menu Usuários e papéis → Novo usuário. Informe nome, e-mail, cargo e papel.
 Papéis de fábrica: Administrador (tudo), Responsável Técnico (aprova resultados e assina laudos), Analista de bancada (executa ensaios e lança resultados, não aprova), Recepção de amostras (protocola lotes e cadastra clientes), Comercial (cadastro de clientes).
 Regras: quem lança resultado (Analista, RT) precisa estar habilitado em pelo menos uma análise, marcada em Habilitações. Quem aprova resultado (RT) precisa do registro no conselho, porque ele sai impresso sob a assinatura do laudo.
-Para ver o sistema pelos olhos de outra pessoa: clique no seu nome no canto superior direito → Operar como → escolha o usuário. O menu passa a mostrar só o que aquele papel pode usar.
+Para mostrar a alguém o que cada papel enxerga, sem cadastrar ninguém: botão Ver como, na barra do topo → escolha o papel (Administrador, Responsável Técnico, Analista de bancada, Recepção, Comercial, Financeiro). O menu e os botões passam a ser os daquele papel, e um aviso no alto da tela mostra qual papel está sendo exibido, com o botão para voltar. O que for gravado nesse modo fica no nome do usuário real. O papel Financeiro, nesta fase, vê só o Painel, porque os módulos dele ficaram para a próxima fase.
+Para usar o sistema como um usuário cadastrado de verdade: clique no seu nome no canto superior direito → Operar como → escolha o usuário.
 A aba Papéis e permissões mostra e edita a matriz de módulo × ação de cada papel.`,
   },
   {
@@ -382,7 +383,7 @@ export function conferirConversa(
 
 /** Perguntas sugeridas conforme a tela em que a pessoa está. */
 export const SUGESTOES: Record<string, string[]> = {
-  Painel: ['Por onde eu começo?', 'Como cadastro um analista?', 'Os dados ficam salvos?'],
+  Painel: ['Por onde eu começo?', 'Como vejo o sistema como analista?', 'Os dados ficam salvos?'],
   Clientes: ['Quais dados são obrigatórios?', 'Como desativo um cliente?'],
   'Recepção': ['Como protocolo um lote?', 'Como registro uma não conformidade?'],
   Resultados: ['Como lanço os resultados?', 'Por que a grade está vazia?', 'Como a CTC é calculada?'],

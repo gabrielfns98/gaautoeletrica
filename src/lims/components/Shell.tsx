@@ -7,9 +7,9 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  Activity, Award, Barcode, Beaker, Boxes, ClipboardList, FileCheck2, FlaskConical, Gauge,
-  Layers, LayoutDashboard, LogOut, Menu, Moon, Receipt, ScrollText, Settings, ShieldCheck,
-  Sun, TableProperties, TestTubes, Upload, Users, Wallet, X,
+  Activity, Award, Barcode, Beaker, Boxes, Check, ChevronDown, ClipboardList, Eye, FileCheck2,
+  FlaskConical, Gauge, Layers, LayoutDashboard, LogOut, Menu, Moon, Receipt, ScrollText,
+  Settings, ShieldCheck, Sun, TableProperties, TestTubes, Upload, Users, Wallet, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -25,7 +25,9 @@ import { useAcoes, useBancada, useFilaPh } from '../data/store';
 import { nomeCurto } from '../lib/format';
 import { Assistente } from './Assistente';
 import { COMERCIAL_ADIADO, adiado } from '../escopo';
-import type { Modulo } from '../types';
+import { ROTULO_MODULO } from '../lib/rbac';
+import { MODULOS } from '../types';
+import type { Modulo, Papel } from '../types';
 import { rota } from '../base';
 
 interface ItemNav {
@@ -122,6 +124,7 @@ export default function Shell() {
           <Topo aoAbrirMenu={() => setMenuAberto(true)} />
           <main key={local.pathname} className="bench-grid flex-1 px-5 py-7 sm:px-8 sm:py-9">
             <div className="mx-auto w-full max-w-[86rem]">
+              <AvisoVerComo />
               <Outlet />
             </div>
           </main>
@@ -258,6 +261,94 @@ function RodapeLateral() {
   );
 }
 
+/* ---------------- Ver como ---------------- */
+
+/** Os módulos do papel que estão guardados para a próxima fase. */
+function alcanceDoPapel(papel: Papel | undefined) {
+  const vistos = MODULOS.filter((m) => papel?.permissoes.includes(`${m}:ver`));
+  return { adiados: vistos.filter((m) => adiado(m)) };
+}
+
+/**
+ * Seletor de papel. Serve para apresentar o sistema: "é isto que o
+ * analista vê, é isto que a recepção vê". Não cria usuário nenhum.
+ */
+function VerComo() {
+  const { papel, papelReal, podeVerComo, verComo, estado } = useBancada();
+  if (!podeVerComo) return null;
+  const outro = papel?.id !== papelReal?.id;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant={outro ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          aria-label={`Ver o sistema como outro papel. Agora: ${papel?.nome ?? 'sem papel'}`}
+        >
+          <Eye className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Ver como:</span>
+          <span className="max-w-[9rem] truncate">{papel?.nome ?? '—'}</span>
+          <ChevronDown className="h-3 w-3 opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+          Mostra o sistema como cada papel enxerga. Ninguém é cadastrado e o que for gravado
+          continua no seu nome.
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {estado.papeis.map((p) => (
+          <DropdownMenuItem key={p.id} onClick={() => verComo(p.id)} className="gap-2.5">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: `hsl(${p.cor})` }} aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs">
+                {p.nome}{p.id === papelReal?.id && <span className="text-muted-foreground"> (o seu)</span>}
+              </span>
+            </span>
+            {p.id === papel?.id && <Check className="h-3.5 w-3.5 text-primary" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Aviso fixo enquanto outro papel está sendo mostrado. */
+function AvisoVerComo() {
+  const { papel, papelReal, usuario, verComo } = useBancada();
+  if (!papel || papel.id === papelReal?.id) return null;
+
+  const { adiados } = alcanceDoPapel(papel);
+  /* O Financeiro é descrito como "contas a receber e notas fiscais",
+     e esses módulos estão guardados para a próxima fase. Sem dizer
+     isso, quem olha lê a descrição, não acha nada daquilo no menu e
+     conclui que o sistema está quebrado. */
+  const nomesAdiados = adiados.map((m) => ROTULO_MODULO[m].toLowerCase());
+
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+      <Eye className="h-4 w-4 shrink-0 text-primary" />
+      <p className="min-w-0 flex-1 text-foreground">
+        Você está vendo o sistema como <strong>{papel.nome}</strong>. {papel.descricao}
+        {nomesAdiados.length > 0 && (
+          <span className="mt-1 block text-muted-foreground">
+            Os módulos {nomesAdiados.join(' e ')} deste papel estão previstos para a próxima fase
+            e ainda não aparecem no menu.
+          </span>
+        )}
+        <span className="mt-1 block text-xs text-muted-foreground">
+          O que for gravado agora fica no nome de {usuario.nome}.
+        </span>
+      </p>
+      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => verComo(null)}>
+        Voltar para {papelReal?.nome ?? 'o meu papel'}
+      </Button>
+    </div>
+  );
+}
+
 /* ---------------- Topo ---------------- */
 
 function Topo({ aoAbrirMenu }: { aoAbrirMenu: () => void }) {
@@ -294,6 +385,7 @@ function Topo({ aoAbrirMenu }: { aoAbrirMenu: () => void }) {
       )}
 
       <div className="ml-auto flex items-center gap-1.5">
+        <VerComo />
         <Button
           variant="ghost"
           size="icon"
