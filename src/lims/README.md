@@ -223,6 +223,29 @@ Três caminhos, intercambiáveis pela mesma interface `FontePh`:
 
 ---
 
+## Assistente de uso
+
+O botão **Ajuda**, no canto inferior direito de toda tela, abre uma conversa sobre
+como usar o sistema. A pergunta vai para `api/assistente.ts`, uma função no
+servidor do Vercel que consulta o Claude (`claude-opus-5-5`) e devolve a resposta
+em streaming. Junto com a pergunta vão a tela aberta, o papel de quem pergunta, os
+menus que esse papel enxerga e se os dados estão sendo gravados, para a resposta
+caber na situação real.
+
+O conhecimento do assistente é `src/lims/assistente/guia.ts`: o sistema descrito
+tela por tela, com os nomes de menu e de botão que aparecem na interface. **Ao
+mudar uma tela, mude o guia** — um assistente que manda clicar num botão que não
+existe é pior que nenhum.
+
+- A chave da API fica só no servidor, na variável `ANTHROPIC_API_KEY` do projeto
+  no Vercel. Nunca vai para o navegador.
+- Sem a chave, ou com o serviço fora do ar, o widget responde pelo próprio guia,
+  procurando o trecho que casa com a pergunta, e diz que está fazendo isso.
+- O contexto que vem do navegador entra nas instruções do modelo só depois de
+  conferido contra listas fechadas: tela, papel e menus são nomes conhecidos,
+  contagens são números. Texto livre não passa.
+- O widget não aparece na impressão do laudo.
+
 ## Fora do escopo por enquanto
 
 O laboratório pediu foco na parte do analista e deixou o financeiro para

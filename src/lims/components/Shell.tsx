@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { useAcoes, useBancada, useFilaPh } from '../data/store';
 import { nomeCurto } from '../lib/format';
+import { Assistente } from './Assistente';
 import { COMERCIAL_ADIADO, adiado } from '../escopo';
 import type { Modulo } from '../types';
 import { rota } from '../base';
@@ -125,6 +126,7 @@ export default function Shell() {
             </div>
           </main>
         </div>
+        <Assistente />
       </div>
     </div>
   );
