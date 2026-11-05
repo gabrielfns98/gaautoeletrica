@@ -214,9 +214,7 @@ Três caminhos, intercambiáveis pela mesma interface `FontePh`:
 | `/lab/qualidade` | **Controle interno** (Levey-Jennings, Westgard) e **proficiência** interlaboratorial |
 | `/lab/cadastros` | Tipo de Análise, Elemento, Metodologia, **Curva**, **Legenda**, **Fórmula**, **Recomendação**, Bandeja, Profundidade, Cultura, Convênio, Desconto, Observação Fixa, Modelo do Laudo |
 | `/lab/laudos` | Compilação dos resultados, assinatura do RT e código de verificação |
-| `/lab/crm` | Carteira, funil de oportunidades, histórico de relacionamento, propostas |
-| `/lab/financeiro` | Contas a receber e a pagar, fluxo de caixa, aging, despesas por categoria |
-| `/lab/fiscal` | NFS-e com ISS e retenções federais apuradas automaticamente |
+| `/lab/crm` | **Clientes** — cadastro de quem manda amostra; primeiro passo antes da recepção |
 | `/lab/estoque` | Reagentes e padrões, lotes com validade, produtos controlados |
 | `/lab/equipamentos` | Parque instalado, estado metrológico, desgaste do eletrodo, manutenção |
 | `/lab/usuarios` | Usuários e matriz de permissões por módulo × ação |
@@ -224,6 +222,17 @@ Três caminhos, intercambiáveis pela mesma interface `FontePh`:
 | `/lab/configuracoes` | Unidade, catálogo de ensaios, critérios metrológicos, aparência |
 
 ---
+
+## Fora do escopo por enquanto
+
+O laboratório pediu foco na parte do analista e deixou o financeiro para
+depois. **Financeiro**, **Fiscal** e a parte comercial do CRM (funil e
+propostas) continuam no código, testados, mas não aparecem: nem no menu, nem
+por endereço digitado (que volta ao Painel), nem como indicador no Painel. O
+papel Financeiro também deixa de ser oferecido ao cadastrar alguém.
+
+A decisão mora num arquivo só, `src/lims/escopo.ts`. Voltar com um módulo é
+tirar o nome dele de lá.
 
 ## Permissões
 

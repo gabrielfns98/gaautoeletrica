@@ -19,6 +19,7 @@ import {
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
 import { PainelRegistro, novoId } from '../components/editor';
+import { COMERCIAL_ADIADO } from '../escopo';
 import { data as fData, mascaraDocumento, moeda, moedaCompacta, numero, tempoRelativo } from '../lib/format';
 import {
   BarraFiltros, CabecalhoPagina, Campos, Indicador, Pilula, Secao, Segmentos, Tabela, Vazio, filtrar,
@@ -41,7 +42,7 @@ export default function Crm() {
   const { clientePorId, usuarioPorId } = useIndices();
   const { moverOportunidade, salvarCliente } = useAcoes();
 
-  const [aba, setAba] = useState<Aba>('funil');
+  const [aba, setAba] = useState<Aba>(COMERCIAL_ADIADO ? 'carteira' : 'funil');
   const [busca, setBusca] = useState('');
   const [cliente, setCliente] = useState<Cliente | null>(null);
 
@@ -68,11 +69,13 @@ export default function Crm() {
   return (
     <>
       <CabecalhoPagina
-        eyebrow="Comercial"
-        titulo="CRM"
-        descricao="Carteira de clientes, funil de oportunidades e histórico de relacionamento da equipe técnica comercial."
+        eyebrow={COMERCIAL_ADIADO ? 'Cadastro' : 'Comercial'}
+        titulo={COMERCIAL_ADIADO ? 'Clientes' : 'CRM'}
+        descricao={COMERCIAL_ADIADO
+          ? 'Quem manda amostra. A recepção protocola cada lote para um cliente daqui, e o laudo sai com os dados dele.'
+          : 'Carteira de clientes, funil de oportunidades e histórico de relacionamento da equipe técnica comercial.'}
       >
-        <div className="mt-6">
+        {!COMERCIAL_ADIADO && <div className="mt-6">
           <Segmentos
             valor={aba}
             aoMudar={setAba}
@@ -82,15 +85,15 @@ export default function Crm() {
               { valor: 'propostas', rotulo: 'Propostas', contagem: estado.orcamentos.length },
             ]}
           />
-        </div>
+        </div>}
       </CabecalhoPagina>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {!COMERCIAL_ADIADO && <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Indicador rotulo="Pipeline aberto" valor={moedaCompacta(kpis.pipeline)} detalhe={`ponderado ${moedaCompacta(kpis.ponderado)}`} icone={Target} destaque />
         <Indicador rotulo="Taxa de ganho" valor={`${numero(kpis.taxaGanho, 0)}%`} detalhe="sobre oportunidades fechadas" icone={TrendingUp} />
         <Indicador rotulo="Ticket médio" valor={moedaCompacta(kpis.ticket)} detalhe="contratos ganhos" />
         <Indicador rotulo="Clientes ativos" valor={kpis.ativos} detalhe={`${estado.contatos.length} contatos cadastrados`} icone={Users} />
-      </div>
+      </div>}
 
       {aba === 'funil' && (
         <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-6">
@@ -138,6 +141,7 @@ export default function Crm() {
           itens={estado.clientes}
           larguraDialogo="sm:max-w-2xl"
           aoClicar={setCliente}
+          permissao="crm:editar"
           vazio={(
             <Vazio
               icone={Building2}
@@ -200,8 +204,10 @@ export default function Crm() {
             { tipo: 'texto', chave: 'logradouro', rotulo: 'Endereço', largura: 2 },
             { tipo: 'texto', chave: 'municipio', rotulo: 'Município', obrigatorio: true },
             { tipo: 'texto', chave: 'uf', rotulo: 'UF', obrigatorio: true },
-            { tipo: 'texto', chave: 'condicaoPagamento', rotulo: 'Condição de pagamento' },
-            { tipo: 'numero', chave: 'limiteCredito', rotulo: 'Limite de crédito', min: 0, passo: 1000 },
+            ...(COMERCIAL_ADIADO ? [] : [
+              { tipo: 'texto' as const, chave: 'condicaoPagamento' as const, rotulo: 'Condição de pagamento' },
+              { tipo: 'numero' as const, chave: 'limiteCredito' as const, rotulo: 'Limite de crédito', min: 0, passo: 1000 },
+            ]),
             { tipo: 'area', chave: 'observacoes', rotulo: 'Observações' },
             { tipo: 'booleano', chave: 'ativo', rotulo: 'Ativo' },
           ]}
@@ -363,8 +369,17 @@ function FichaCliente({ cliente, aoFechar }: { cliente: Cliente | null; aoFechar
 
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <Indicador rotulo="Amostras" valor={dados.amostras.length} />
-              <Indicador rotulo="Faturado" valor={moedaCompacta(dados.faturado)} />
-              <Indicador rotulo="Em aberto" valor={moedaCompacta(dados.aberto)} destaque={dados.aberto > 0} />
+              {COMERCIAL_ADIADO ? (
+                <>
+                  <Indicador rotulo="Em análise" valor={dados.amostras.filter((a) => a.status !== 'liberada' && a.status !== 'cancelada').length} />
+                  <Indicador rotulo="Laudos" valor={estado.laudos.filter((l) => l.clienteId === cliente.id).length} />
+                </>
+              ) : (
+                <>
+                  <Indicador rotulo="Faturado" valor={moedaCompacta(dados.faturado)} />
+                  <Indicador rotulo="Em aberto" valor={moedaCompacta(dados.aberto)} destaque={dados.aberto > 0} />
+                </>
+              )}
             </div>
 
             <div className="mt-5 panel p-5">
@@ -374,10 +389,14 @@ function FichaCliente({ cliente, aoFechar }: { cliente: Cliente | null; aoFechar
                   { rotulo: 'Praça', valor: `${cliente.municipio}/${cliente.uf}` },
                   { rotulo: 'E-mail', valor: cliente.email },
                   { rotulo: 'Telefone', valor: <span className="num">{cliente.telefone}</span> },
-                  { rotulo: 'Tabela de preço', valor: `${tabela?.nome} (−${tabela?.desconto}%)` },
-                  { rotulo: 'Condição', valor: cliente.condicaoPagamento },
-                  { rotulo: 'Limite de crédito', valor: <span className="num">{moeda(cliente.limiteCredito)}</span> },
-                  { rotulo: 'Consultor', valor: cliente.consultorId ? usuarioPorId.get(cliente.consultorId)?.nome ?? '—' : '—' },
+                  { rotulo: 'Endereço', valor: cliente.logradouro || '—' },
+                  ...(COMERCIAL_ADIADO ? [] : [
+                    // Sem tabela cadastrada isto imprimia "undefined (−undefined%)".
+                    { rotulo: 'Tabela de preço', valor: tabela ? `${tabela.nome} (−${tabela.desconto}%)` : '—' },
+                    { rotulo: 'Condição', valor: cliente.condicaoPagamento },
+                    { rotulo: 'Limite de crédito', valor: <span className="num">{moeda(cliente.limiteCredito)}</span> },
+                    { rotulo: 'Consultor', valor: cliente.consultorId ? usuarioPorId.get(cliente.consultorId)?.nome ?? '—' : '—' },
+                  ]),
                 ]}
               />
               {cliente.observacoes && (
@@ -412,7 +431,7 @@ function FichaCliente({ cliente, aoFechar }: { cliente: Cliente | null; aoFechar
               </div>
             )}
 
-            {dados.oportunidades.length > 0 && (
+            {!COMERCIAL_ADIADO && dados.oportunidades.length > 0 && (
               <div className="mt-5">
                 <h3 className="label-micro mb-3">Oportunidades</h3>
                 <ul className="space-y-2">

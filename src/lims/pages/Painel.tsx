@@ -9,7 +9,8 @@ import {
   Tooltip, XAxis, YAxis,
 } from 'recharts';
 import {
-  ArrowRight, Clock, FlaskConical, TableProperties, TestTubes, TrendingUp, TriangleAlert, Wallet,
+  ArrowRight, ClipboardCheck, Clock, FlaskConical, ShieldCheck, TableProperties, TestTubes,
+  TrendingUp, TriangleAlert, Wallet,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBancada, useIndices } from '../data/store';
 import { podeLer } from '../lib/equipamento';
 import { data as fData, diasEntre, moeda, moedaCompacta, numero, tempoRelativo } from '../lib/format';
+import { adiado } from '../escopo';
 import { BarraProporcao, CabecalhoPagina, Indicador, Pilula, Secao, Tabela, Vazio } from '../components/primitivos';
 import { ChipPh } from '../components/ph-visual';
 import type { Amostra } from '../types';
@@ -76,9 +78,16 @@ export default function Painel() {
     const vencidos = estado.titulos.filter((t) => t.tipo === 'receber' && t.status === 'vencido');
     const inadimplencia = vencidos.reduce((s, t) => s + t.valor - t.valorPago, 0);
 
+    /* O que está parado esperando outra pessoa. Lido e não revisado é
+       trabalho da bancada que ainda não virou resultado; revisado e
+       não aprovado é o que falta para o laudo poder ser assinado. */
+    const aguardandoRevisao = estado.ensaios.filter((e) => e.status === 'lido').length;
+    const aguardandoAprovacao = estado.ensaios.filter((e) => e.status === 'revisado').length;
+
     return {
       emAnalise, atrasadas, prazoMedio, lidosHoje, pendentes, faturado, inadimplencia,
       vencidos: vencidos.length, notasDoMes: notasDoMes.length,
+      aguardandoRevisao, aguardandoAprovacao,
     };
   }, [estado]);
 
@@ -236,18 +245,37 @@ export default function Painel() {
           icone={FlaskConical}
           destaque
         />
-        <Indicador
-          rotulo="Faturamento do mês"
-          valor={moedaCompacta(kpis.faturado)}
-          detalhe={`${kpis.notasDoMes} ${kpis.notasDoMes === 1 ? 'nota autorizada' : 'notas autorizadas'} na competência`}
-          icone={Wallet}
-        />
-        <Indicador
-          rotulo="A receber vencido"
-          valor={moedaCompacta(kpis.inadimplencia)}
-          detalhe={`${kpis.vencidos} títulos em atraso`}
-          icone={TrendingUp}
-        />
+        {adiado('financeiro') ? (
+          <>
+            <Indicador
+              rotulo="Aguardando revisão"
+              valor={kpis.aguardandoRevisao}
+              detalhe="lidos na bancada, à espera de outro par de olhos"
+              icone={ClipboardCheck}
+            />
+            <Indicador
+              rotulo="Aguardando aprovação"
+              valor={kpis.aguardandoAprovacao}
+              detalhe={`${kpis.atrasadas.length} ${kpis.atrasadas.length === 1 ? 'amostra' : 'amostras'} fora do prazo`}
+              icone={ShieldCheck}
+            />
+          </>
+        ) : (
+          <>
+            <Indicador
+              rotulo="Faturamento do mês"
+              valor={moedaCompacta(kpis.faturado)}
+              detalhe={`${kpis.notasDoMes} ${kpis.notasDoMes === 1 ? 'nota autorizada' : 'notas autorizadas'} na competência`}
+              icone={Wallet}
+            />
+            <Indicador
+              rotulo="A receber vencido"
+              valor={moedaCompacta(kpis.inadimplencia)}
+              detalhe={`${kpis.vencidos} títulos em atraso`}
+              icone={TrendingUp}
+            />
+          </>
+        )}
       </div>
 
       {kpis.atrasadas.length > 0 && (
@@ -551,10 +579,12 @@ export default function Painel() {
         </Secao>
       </div>
 
-      <p className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-        <FlaskConical className="h-3.5 w-3.5" />
-        {moeda(estado.titulos.filter((t) => t.tipo === 'receber' && t.status === 'aberto').reduce((s, t) => s + t.valor, 0))} a receber em aberto
-      </p>
+      {!adiado('financeiro') && (
+        <p className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <FlaskConical className="h-3.5 w-3.5" />
+          {moeda(estado.titulos.filter((t) => t.tipo === 'receber' && t.status === 'aberto').reduce((s, t) => s + t.valor, 0))} a receber em aberto
+        </p>
+      )}
     </>
   );
 }

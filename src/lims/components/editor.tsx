@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 
 import { useBancada } from '../data/store';
+import type { Permissao } from '../types';
 import { BarraFiltros, Pilula, Secao, Tabela, Vazio, filtrar } from './primitivos';
 import type { Coluna } from './primitivos';
 
@@ -143,6 +144,7 @@ export function Formulario<T extends { id: string }>({
 export function PainelRegistro<T extends { id: string }>({
   titulo, descricao, itens, colunas, campos, criar, aoSalvar, ativoDe, alternarAtivo,
   rotuloDe, camposBusca, extraFormulario, validar, larguraDialogo, aoClicar, vazio,
+  permissao = 'configuracoes:editar',
 }: {
   titulo: string;
   descricao?: string;
@@ -165,13 +167,19 @@ export function PainelRegistro<T extends { id: string }>({
   aoClicar?: (item: NoInfer<T>) => void;
   /** substitui o aviso padrão de lista vazia */
   vazio?: ReactNode;
+  /**
+   * Quem pode criar e editar. O padrão é o dos Cadastros; um registro
+   * que pertence a outro módulo — clientes, por exemplo — passa o dele,
+   * senão a recepção vê a lista e não acha o botão Novo.
+   */
+  permissao?: Permissao;
 }) {
   const { pode } = useBancada();
   const [busca, setBusca] = useState('');
   const [rascunho, setRascunho] = useState<T | null>(null);
   const [novoItem, setNovoItem] = useState(false);
 
-  const editavel = pode('configuracoes:editar');
+  const editavel = pode(permissao);
   const visiveis = useMemo(() => filtrar(itens, busca, camposBusca), [itens, busca, camposBusca]);
   const erro = rascunho && validar ? validar(rascunho) : undefined;
 

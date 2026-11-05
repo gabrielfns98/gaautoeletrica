@@ -34,6 +34,7 @@ import Auditoria from './pages/Auditoria';
 import Cadastros from './pages/cadastros';
 import Configuracoes from './pages/Configuracoes';
 import { rota } from './base';
+import { adiado } from './escopo';
 
 /** Bloqueia a rota quando o papel do usuário não enxerga o módulo. */
 function Protegido({ modulo, children }: { modulo: Modulo; children: ReactElement }) {
@@ -69,8 +70,20 @@ export default function LimsApp() {
           <Route path="qualidade" element={<Protegido modulo="analises"><Qualidade /></Protegido>} />
           <Route path="laudos" element={<Protegido modulo="laudos"><Laudos /></Protegido>} />
           <Route path="crm" element={<Protegido modulo="crm"><Crm /></Protegido>} />
-          <Route path="financeiro" element={<Protegido modulo="financeiro"><Financeiro /></Protegido>} />
-          <Route path="fiscal" element={<Protegido modulo="fiscal"><Fiscal /></Protegido>} />
+          {/* Adiados não respondem nem por endereço digitado: um link
+              guardado do tempo da demonstração cai no painel. */}
+          <Route
+            path="financeiro"
+            element={adiado('financeiro')
+              ? <Navigate to={rota()} replace />
+              : <Protegido modulo="financeiro"><Financeiro /></Protegido>}
+          />
+          <Route
+            path="fiscal"
+            element={adiado('fiscal')
+              ? <Navigate to={rota()} replace />
+              : <Protegido modulo="fiscal"><Fiscal /></Protegido>}
+          />
           <Route path="estoque" element={<Protegido modulo="estoque"><Estoque /></Protegido>} />
           <Route path="equipamentos" element={<Protegido modulo="equipamentos"><Equipamentos /></Protegido>} />
           <Route path="usuarios" element={<Protegido modulo="usuarios"><Usuarios /></Protegido>} />

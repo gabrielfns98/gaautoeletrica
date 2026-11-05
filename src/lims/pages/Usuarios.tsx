@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
 import { FichaUsuario, usuarioEmBranco } from './usuarios/FichaUsuario';
+import { adiado, papelVisivel } from '../escopo';
 import { ROTULO_ACAO, ROTULO_MODULO } from '../lib/rbac';
 import { ACOES, MODULOS } from '../types';
 import { dataHora, tempoRelativo } from '../lib/format';
@@ -163,7 +164,7 @@ export default function Usuarios() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {estado.papeis.map((x) => <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>)}
+                        {estado.papeis.filter((x) => papelVisivel(x.id) || x.id === u.papelId).map((x) => <SelectItem key={x.id} value={x.id}>{x.nome}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   );
@@ -228,7 +229,7 @@ export default function Usuarios() {
         aberto={ficha !== null}
         usuario={ficha?.usuario ?? null}
         novo={ficha?.novo ?? false}
-        papeis={estado.papeis}
+        papeis={estado.papeis.filter((p) => papelVisivel(p.id) || p.id === ficha?.usuario.papelId)}
         grupos={estado.grupos}
         outros={estado.usuarios}
         aoFechar={() => setFicha(null)}
@@ -247,7 +248,7 @@ export default function Usuarios() {
         <div className="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)]">
           <Secao titulo="Papéis" semPadding>
             <ul className="divide-y divide-[hsl(var(--line-soft))]">
-              {estado.papeis.map((p) => {
+              {estado.papeis.filter((p) => papelVisivel(p.id)).map((p) => {
                 const ativo = p.id === papelSelecionado;
                 const quantos = estado.usuarios.filter((u) => u.papelId === p.id).length;
                 return (
@@ -294,7 +295,7 @@ export default function Usuarios() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MODULOS.map((m) => {
+                    {MODULOS.filter((m) => !adiado(m)).map((m) => {
                       const temVer = papel.permissoes.includes(`${m}:ver`);
                       return (
                         <tr key={m} className="border-b border-[hsl(var(--line-soft))] last:border-0">

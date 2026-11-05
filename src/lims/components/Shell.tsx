@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { useAcoes, useBancada, useFilaPh } from '../data/store';
 import { nomeCurto } from '../lib/format';
+import { COMERCIAL_ADIADO, adiado } from '../escopo';
 import type { Modulo } from '../types';
 import { rota } from '../base';
 
@@ -39,6 +40,11 @@ const GRUPOS_NAV: Array<{ titulo: string; itens: ItemNav[] }> = [
     titulo: 'Operação',
     itens: [
       { modulo: 'dashboard', rotulo: 'Painel', caminho: rota(), icone: LayoutDashboard, fim: true },
+      /* Clientes vem antes da Recepção porque é o primeiro passo: o
+         lote é protocolado para um cliente. */
+      ...(COMERCIAL_ADIADO
+        ? [{ modulo: 'crm' as Modulo, rotulo: 'Clientes', caminho: rota('/crm'), icone: Users }]
+        : []),
       { modulo: 'recepcao', rotulo: 'Recepção', caminho: rota('/recepcao'), icone: ClipboardList },
       { modulo: 'amostras', rotulo: 'Importação', caminho: rota('/importacao'), icone: Upload },
       { modulo: 'amostras', rotulo: 'Etiquetas', caminho: rota('/etiquetas'), icone: Barcode },
@@ -53,10 +59,12 @@ const GRUPOS_NAV: Array<{ titulo: string; itens: ItemNav[] }> = [
   {
     titulo: 'Comercial',
     itens: [
-      { modulo: 'crm', rotulo: 'CRM', caminho: rota('/crm'), icone: Users },
-      { modulo: 'financeiro', rotulo: 'Financeiro', caminho: rota('/financeiro'), icone: Wallet },
-      { modulo: 'fiscal', rotulo: 'Fiscal', caminho: rota('/fiscal'), icone: Receipt },
-    ],
+      ...(COMERCIAL_ADIADO
+        ? []
+        : [{ modulo: 'crm' as Modulo, rotulo: 'CRM', caminho: rota('/crm'), icone: Users }]),
+      { modulo: 'financeiro' as Modulo, rotulo: 'Financeiro', caminho: rota('/financeiro'), icone: Wallet },
+      { modulo: 'fiscal' as Modulo, rotulo: 'Fiscal', caminho: rota('/fiscal'), icone: Receipt },
+    ].filter((i: ItemNav) => !adiado(i.modulo)),
   },
   {
     titulo: 'Recursos',

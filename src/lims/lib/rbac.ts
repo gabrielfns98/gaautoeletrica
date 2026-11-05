@@ -40,6 +40,9 @@ export const PAPEIS_PADRAO: Papel[] = [
       // recepção não está na bancada — sem isto, a tela de recepção
       // aparece só de leitura para quem responde pelo laboratório.
       ...todas('recepcao', 'ver', 'criar', 'editar', 'exportar'),
+      // Quem protocola o lote cadastra o cliente dele: com o comercial
+      // adiado, o cadastro de clientes é o primeiro passo da recepção.
+      ...todas('crm', 'ver', 'criar', 'editar'),
       ...todas('amostras', 'ver', 'criar', 'editar', 'exportar'),
       ...todas('ph', 'ver', 'criar', 'editar', 'aprovar', 'exportar'),
       ...todas('analises', 'ver', 'criar', 'editar', 'aprovar', 'exportar'),
@@ -81,7 +84,8 @@ export const PAPEIS_PADRAO: Papel[] = [
       ...todas('recepcao', 'ver', 'criar', 'editar', 'exportar'),
       ...todas('amostras', 'ver', 'criar', 'editar'),
       ...todas('analises', 'ver'),
-      ...todas('crm', 'ver'),
+      // Cliente novo chega com a primeira amostra, no balcão.
+      ...todas('crm', 'ver', 'criar', 'editar'),
       ...todas('laudos', 'ver'),
     ],
   },
