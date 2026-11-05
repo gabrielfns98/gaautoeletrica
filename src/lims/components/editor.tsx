@@ -142,7 +142,7 @@ export function Formulario<T extends { id: string }>({
 
 export function PainelRegistro<T extends { id: string }>({
   titulo, descricao, itens, colunas, campos, criar, aoSalvar, ativoDe, alternarAtivo,
-  rotuloDe, camposBusca, extraFormulario, validar, larguraDialogo,
+  rotuloDe, camposBusca, extraFormulario, validar, larguraDialogo, aoClicar, vazio,
 }: {
   titulo: string;
   descricao?: string;
@@ -161,6 +161,10 @@ export function PainelRegistro<T extends { id: string }>({
   /** mensagem quando o rascunho não pode ser salvo */
   validar?: (rascunho: NoInfer<T>) => string | undefined;
   larguraDialogo?: string;
+  /** clique na linha, quando o registro tem uma ficha a abrir além da edição */
+  aoClicar?: (item: NoInfer<T>) => void;
+  /** substitui o aviso padrão de lista vazia */
+  vazio?: ReactNode;
 }) {
   const { pode } = useBancada();
   const [busca, setBusca] = useState('');
@@ -248,7 +252,8 @@ export function PainelRegistro<T extends { id: string }>({
         colunas={editavel ? colunasComAcoes : colunas}
         dados={visiveis}
         chaveDe={(i) => i.id}
-        vazio={<Vazio titulo={`Nenhum item em ${titulo.toLowerCase()}`} descricao={editavel ? 'Use o botão Novo para cadastrar.' : undefined} />}
+        aoClicar={aoClicar}
+        vazio={vazio ?? <Vazio titulo={`Nenhum item em ${titulo.toLowerCase()}`} descricao={editavel ? 'Use o botão Novo para cadastrar.' : undefined} />}
       />
 
       <Dialog open={rascunho !== null} onOpenChange={(a) => { if (!a) setRascunho(null); }}>

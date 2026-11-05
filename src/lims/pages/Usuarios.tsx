@@ -3,7 +3,7 @@
    ============================================================ */
 
 import { useMemo, useState } from 'react';
-import { KeyRound, Lock, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { KeyRound, Lock, Pencil, Plus, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
+import { FichaUsuario, usuarioEmBranco } from './usuarios/FichaUsuario';
 import { ROTULO_ACAO, ROTULO_MODULO } from '../lib/rbac';
 import { ACOES, MODULOS } from '../types';
 import { dataHora, tempoRelativo } from '../lib/format';
@@ -29,6 +30,8 @@ export default function Usuarios() {
   const { usuarioPorId } = useIndices();
 
   const [aba, setAba] = useState<Aba>('usuarios');
+  const [ficha, setFicha] = useState<{ usuario: Usuario; novo: boolean } | null>(null);
+  const { unidade } = useBancada();
   const [busca, setBusca] = useState('');
   const [papelSelecionado, setPapelSelecionado] = useState(estado.papeis[1]?.id ?? estado.papeis[0].id);
 
@@ -92,7 +95,22 @@ export default function Usuarios() {
       </div>
 
       {aba === 'usuarios' && (
-        <Secao semPadding>
+        <Secao
+          semPadding
+          titulo="Equipe"
+          descricao="Cada pessoa entra com o próprio usuário. O papel decide o que ela vê; quem lê um ensaio não pode aprová-lo."
+          acoes={podeEditar ? (
+            <Button
+              size="sm" className="h-8 gap-1.5 text-xs"
+              onClick={() => setFicha({
+                usuario: usuarioEmBranco(unidade.id, 'papel-analista'),
+                novo: true,
+              })}
+            >
+              <Plus className="h-3.5 w-3.5" /> Novo usuário
+            </Button>
+          ) : undefined}
+        >
           <div className="px-5 pt-5">
             <BarraFiltros busca={busca} aoBuscar={setBusca} placeholder="Buscar por nome, e-mail ou cargo…" />
           </div>
@@ -185,6 +203,18 @@ export default function Usuarios() {
                   </Pilula>
                 ),
               },
+              ...(podeEditar ? [{
+                chave: '__editar', titulo: '', alinhamento: 'direita' as const,
+                render: (u: Usuario) => (
+                  <Button
+                    variant="ghost" size="icon" className="h-7 w-7"
+                    title="Editar" aria-label={`Editar ${u.nome}`}
+                    onClick={() => setFicha({ usuario: { ...u }, novo: false })}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                ),
+              }] : []),
             ]}
             dados={filtrar(estado.usuarios, busca, (u) => [u.nome, u.email, u.cargo])}
             chaveDe={(u) => u.id}
@@ -193,6 +223,25 @@ export default function Usuarios() {
           />
         </Secao>
       )}
+
+      <FichaUsuario
+        aberto={ficha !== null}
+        usuario={ficha?.usuario ?? null}
+        novo={ficha?.novo ?? false}
+        papeis={estado.papeis}
+        grupos={estado.grupos}
+        outros={estado.usuarios}
+        aoFechar={() => setFicha(null)}
+        aoSalvar={(u) => {
+          salvarUsuario(u);
+          toast.success(ficha?.novo ? `${u.nome} cadastrado.` : 'Usuário atualizado.', {
+            description: ficha?.novo
+              ? 'Para usar o sistema com este usuário, abra o menu do seu nome no canto superior direito e escolha "Operar como".'
+              : undefined,
+          });
+          setFicha(null);
+        }}
+      />
 
       {aba === 'papeis' && (
         <div className="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)]">

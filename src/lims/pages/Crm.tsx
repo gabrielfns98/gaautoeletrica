@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { useAcoes, useBancada, useIndices } from '../data/store';
+import { PainelRegistro, novoId } from '../components/editor';
 import { data as fData, mascaraDocumento, moeda, moedaCompacta, numero, tempoRelativo } from '../lib/format';
 import {
   BarraFiltros, CabecalhoPagina, Campos, Indicador, Pilula, Secao, Segmentos, Tabela, Vazio, filtrar,
@@ -38,7 +39,7 @@ type Aba = 'funil' | 'carteira' | 'propostas';
 export default function Crm() {
   const { estado, pode } = useBancada();
   const { clientePorId, usuarioPorId } = useIndices();
-  const { moverOportunidade } = useAcoes();
+  const { moverOportunidade, salvarCliente } = useAcoes();
 
   const [aba, setAba] = useState<Aba>('funil');
   const [busca, setBusca] = useState('');
@@ -131,51 +132,107 @@ export default function Crm() {
       )}
 
       {aba === 'carteira' && (
-        <Secao semPadding>
-          <div className="px-5 pt-5">
-            <BarraFiltros busca={busca} aoBuscar={setBusca} placeholder="Buscar por razão social, CNPJ, município ou segmento…" />
-          </div>
-          <Tabela
-            colunas={[
-              { chave: 'codigo', titulo: 'Código', valor: (c) => c.codigo, render: (c) => <span className="num text-xs text-muted-foreground">{c.codigo}</span> },
-              {
-                chave: 'nome', titulo: 'Cliente', valor: (c) => c.nome,
-                render: (c) => (
-                  <span className="block min-w-0">
-                    <span className="block truncate text-xs font-medium text-foreground">{c.nome}</span>
-                    <span className="num block truncate text-[0.66rem] text-muted-foreground">{mascaraDocumento(c.documento)}</span>
-                  </span>
-                ),
-              },
-              { chave: 'segmento', titulo: 'Segmento', secundaria: true, render: (c) => <span className="text-xs text-muted-foreground">{c.segmento}</span> },
-              { chave: 'local', titulo: 'Praça', render: (c) => <span className="text-xs text-muted-foreground">{c.municipio}/{c.uf}</span> },
-              {
-                chave: 'consultor', titulo: 'Consultor', secundaria: true,
-                render: (c) => <span className="text-xs text-muted-foreground">{c.consultorId ? usuarioPorId.get(c.consultorId)?.nome.split(' ')[0] : '—'}</span>,
-              },
-              { chave: 'cond', titulo: 'Pagamento', secundaria: true, render: (c) => <span className="num text-xs text-muted-foreground">{c.condicaoPagamento}</span> },
-              {
-                chave: 'amostras', titulo: 'Amostras', alinhamento: 'direita',
-                valor: (c) => estado.amostras.filter((a) => a.clienteId === c.id).length,
-                render: (c) => <span className="num text-xs">{estado.amostras.filter((a) => a.clienteId === c.id).length}</span>,
-              },
-              {
-                chave: 'status', titulo: '', alinhamento: 'direita',
-                render: (c) => (
-                  <span className="flex items-center justify-end gap-2">
-                    {!c.ativo && <Pilula tom="neutro" className="px-1.5 py-0 text-[0.6rem]">inativo</Pilula>}
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                  </span>
-                ),
-              },
-            ]}
-            dados={clientesFiltrados}
-            chaveDe={(c) => c.id}
-            aoClicar={setCliente}
-            ordenacaoInicial={{ chave: 'nome', direcao: 'asc' }}
-            vazio={<Vazio icone={Building2} titulo="Nenhum cliente encontrado" />}
-          />
-        </Secao>
+        <PainelRegistro
+          titulo="Carteira de clientes"
+          descricao="Quem manda amostra. O cadastro alimenta a recepção, o laudo e a cobrança — sem cliente não há lote a protocolar."
+          itens={estado.clientes}
+          larguraDialogo="sm:max-w-2xl"
+          aoClicar={setCliente}
+          vazio={(
+            <Vazio
+              icone={Building2}
+              titulo="Nenhum cliente cadastrado"
+              descricao="Use o botão Novo. É o primeiro passo: a recepção protocola lotes para um cliente."
+            />
+          )}
+          colunas={[
+            {
+              chave: 'codigo', titulo: 'Código', valor: (c: Cliente) => c.codigo,
+              render: (c) => <span className="num text-xs text-muted-foreground">{c.codigo}</span>,
+            },
+            {
+              chave: 'nome', titulo: 'Cliente', valor: (c) => c.nome,
+              render: (c) => (
+                <span className="block min-w-0">
+                  <span className="block truncate text-xs font-medium text-foreground">{c.nome}</span>
+                  <span className="num block truncate text-[0.66rem] text-muted-foreground">{mascaraDocumento(c.documento)}</span>
+                </span>
+              ),
+            },
+            {
+              chave: 'segmento', titulo: 'Segmento', secundaria: true,
+              render: (c) => <span className="text-xs text-muted-foreground">{c.segmento}</span>,
+            },
+            {
+              chave: 'local', titulo: 'Praça',
+              valor: (c) => `${c.municipio}/${c.uf}`,
+              render: (c) => <span className="text-xs text-muted-foreground">{c.municipio}/{c.uf}</span>,
+            },
+            {
+              chave: 'amostras', titulo: 'Amostras', alinhamento: 'direita',
+              valor: (c) => estado.amostras.filter((a) => a.clienteId === c.id).length,
+              render: (c) => (
+                <span className="num text-xs">{estado.amostras.filter((a) => a.clienteId === c.id).length}</span>
+              ),
+            },
+          ]}
+          campos={[
+            { tipo: 'texto', chave: 'nome', rotulo: 'Razão social', largura: 2, obrigatorio: true },
+            { tipo: 'texto', chave: 'nomeFantasia', rotulo: 'Nome fantasia', largura: 2 },
+            {
+              tipo: 'selecao', chave: 'tipo', rotulo: 'Tipo',
+              opcoes: [
+                { valor: 'PJ', rotulo: 'Pessoa jurídica' },
+                { valor: 'PF', rotulo: 'Pessoa física' },
+              ],
+            },
+            { tipo: 'texto', chave: 'documento', rotulo: 'CNPJ / CPF', obrigatorio: true },
+            { tipo: 'texto', chave: 'inscricaoEstadual', rotulo: 'Inscrição estadual' },
+            {
+              tipo: 'selecao', chave: 'segmento', rotulo: 'Segmento',
+              opcoes: estado.tiposCliente
+                .filter((t) => t.ativo)
+                .map((t) => ({ valor: t.nome, rotulo: t.nome })),
+            },
+            { tipo: 'texto', chave: 'email', rotulo: 'E-mail', largura: 2 },
+            { tipo: 'texto', chave: 'telefone', rotulo: 'Telefone' },
+            { tipo: 'texto', chave: 'cep', rotulo: 'CEP' },
+            { tipo: 'texto', chave: 'logradouro', rotulo: 'Endereço', largura: 2 },
+            { tipo: 'texto', chave: 'municipio', rotulo: 'Município', obrigatorio: true },
+            { tipo: 'texto', chave: 'uf', rotulo: 'UF', obrigatorio: true },
+            { tipo: 'texto', chave: 'condicaoPagamento', rotulo: 'Condição de pagamento' },
+            { tipo: 'numero', chave: 'limiteCredito', rotulo: 'Limite de crédito', min: 0, passo: 1000 },
+            { tipo: 'area', chave: 'observacoes', rotulo: 'Observações' },
+            { tipo: 'booleano', chave: 'ativo', rotulo: 'Ativo' },
+          ]}
+          validar={(c) => {
+            if (!c.nome.trim()) return 'A razão social vai impressa no laudo.';
+            if (!c.documento.trim()) return 'O CNPJ ou CPF vai impresso no laudo.';
+            if (!c.municipio.trim() || !c.uf.trim()) return 'Informe município e UF.';
+            /* Dois clientes com o mesmo documento duplicam a carteira e
+               o histórico de amostras se divide entre os dois. */
+            const repetido = estado.clientes.find(
+              (x) => x.id !== c.id && x.documento.replace(/\D/g, '') === c.documento.replace(/\D/g, ''),
+            );
+            if (repetido) return `Este documento já está em ${repetido.nome}.`;
+            return undefined;
+          }}
+          criar={() => ({
+            id: novoId('cli'),
+            codigo: String(estado.clientes.length + 1).padStart(4, '0'),
+            nome: '', tipo: 'PJ' as const, documento: '',
+            email: '', telefone: '', municipio: '', uf: '', cep: '', logradouro: '',
+            segmento: estado.tiposCliente.find((t) => t.ativo)?.nome ?? '',
+            tabelaPrecoId: estado.tabelasPreco[0]?.id ?? '',
+            limiteCredito: 0, condicaoPagamento: '28 DDL',
+            ativo: true, criadoEm: new Date().toISOString(),
+          })}
+          aoSalvar={(c) => salvarCliente(c)}
+          ativoDe={(c) => c.ativo}
+          alternarAtivo={(c) => ({ ...c, ativo: !c.ativo })}
+          rotuloDe={(c) => c.nome}
+          camposBusca={(c) => [c.nome, c.nomeFantasia, c.documento, c.municipio, c.segmento, c.codigo]}
+        />
       )}
 
       {aba === 'propostas' && (
