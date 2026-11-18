@@ -5,7 +5,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { ArrowRight, CreditCard, Loader2, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CURSO, whatsappLink } from "@/config/curso";
+import { CURSO, MODO_DEMO, whatsappLink } from "@/config/curso";
 import { cn } from "@/lib/utils";
 import type { InscricaoSalva } from "./Pagamento";
 
@@ -89,6 +89,13 @@ const InscricaoForm = ({ onInscrito }: Props) => {
   const onSubmit = async (data: FormData) => {
     setEnviando(true);
     const valor = data.forma_pagamento === "pix" ? (CURSO.valorPix ?? CURSO.valor) : CURSO.valor;
+
+    if (MODO_DEMO) {
+      await new Promise((r) => setTimeout(r, 600));
+      setEnviando(false);
+      onInscrito({ codigo: gerarCodigo(), nome: data.nome.trim(), forma_pagamento: data.forma_pagamento });
+      return;
+    }
 
     // Tenta algumas vezes caso o código gerado já exista (muito improvável).
     for (let tentativa = 0; tentativa < 3; tentativa++) {

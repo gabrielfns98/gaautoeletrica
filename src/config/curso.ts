@@ -10,7 +10,7 @@
  * Enquanto a chave Pix ou o link não estiverem preenchidos, a página mostra
  * a opção de finalizar o pagamento pelo WhatsApp no lugar deles.
  */
-export const CURSO = {
+const CONFIG = {
   turma: "natal-2026",
   titulo: "Autoelétrica básica para iniciantes",
   cargaHoraria: 13,
@@ -54,7 +54,24 @@ export const CURSO = {
       "https://www.google.com/maps/search/?api=1&query=" +
       encodeURIComponent("Rua Sebastiana Teresa da Silva Montadon, 40, Uberaba - MG, 38035-676"),
   },
-} as const;
+};
+
+/**
+ * Modo de teste: ativado só no build de demonstração (`vite build --mode demo`).
+ * Não grava no banco e usa preço/chave Pix fictícios para visualizar a página.
+ */
+export const MODO_DEMO = import.meta.env.VITE_CURSO_DEMO === "1";
+
+export const CURSO: typeof CONFIG = MODO_DEMO
+  ? {
+      ...CONFIG,
+      valor: 297,
+      valorPix: 267,
+      condicoes: "em até 3x",
+      pix: { ...CONFIG.pix, chave: "teste@exemplo.com" },
+      linkPagamento: "https://example.com",
+    }
+  : CONFIG;
 
 export const formatBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
