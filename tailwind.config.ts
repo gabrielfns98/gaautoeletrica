@@ -18,7 +18,18 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				display: ['"Inter Tight"', 'Inter', 'system-ui', 'sans-serif'],
+				body: ['Inter', 'system-ui', 'sans-serif'],
+			},
 			colors: {
+				curso: {
+					cream: '#F4F2EC',
+					yellow: '#FFC61A',
+					'yellow-dark': '#E9AE00',
+					ink: '#161616',
+					muted: '#6B6862',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

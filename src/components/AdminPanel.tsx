@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { Wrench, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import CourseRegistrationsAdmin from '@/components/CourseRegistrationsAdmin';
 
 interface Service {
   id: string;
@@ -174,6 +175,8 @@ const AdminPanel = () => {
   }
 
   return (
+    <div className="space-y-8">
+    <CourseRegistrationsAdmin />
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -230,6 +233,7 @@ const AdminPanel = () => {
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 };
 
