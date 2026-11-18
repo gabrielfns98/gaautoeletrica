@@ -33,7 +33,7 @@ const CONFIG = {
   ],
 
   pix: {
-    chave: "",
+    chave: "27182784000172", // CNPJ
     nomeRecebedor: "GA AUTO ELETRICA",
     cidade: "UBERABA",
   },
@@ -58,20 +58,11 @@ const CONFIG = {
 
 /**
  * Modo de teste: ativado só no build de demonstração (`vite build --mode demo`).
- * Não grava no banco e usa preço/chave Pix fictícios para visualizar a página.
+ * Usa a configuração real, mas não grava as inscrições no banco.
  */
 export const MODO_DEMO = import.meta.env.VITE_CURSO_DEMO === "1";
 
-export const CURSO: typeof CONFIG = MODO_DEMO
-  ? {
-      ...CONFIG,
-      valor: 297,
-      valorPix: 267,
-      condicoes: "em até 3x",
-      pix: { ...CONFIG.pix, chave: "teste@exemplo.com" },
-      linkPagamento: "https://example.com",
-    }
-  : CONFIG;
+export const CURSO = CONFIG;
 
 export const formatBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

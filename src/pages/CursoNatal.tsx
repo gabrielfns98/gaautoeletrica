@@ -130,7 +130,7 @@ const CursoNatal = () => {
     <div className="min-h-screen bg-curso-cream font-body text-curso-ink antialiased">
       {MODO_DEMO && (
         <div className="bg-red-600 px-4 py-2 text-center text-xs font-semibold text-white">
-          MODO DE TESTE · valores e chave Pix fictícios · inscrições não são salvas · não faça pagamentos
+          MODO DE TESTE · as inscrições não são salvas · o QR Code Pix é real (chave CNPJ da G.A.)
         </div>
       )}
       {/* Banner com a marca */}
