@@ -117,7 +117,7 @@ const Footer = () => {
 
             <Button 
               className="w-full mt-6 bg-gradient-primary shadow-glow hover:shadow-lg transition-all duration-smooth"
-              onClick={() => window.open("https://wa.me/553499866638")}
+              onClick={() => window.open("https://wa.me/5534998667638")}
             >
               <MessageCircle size={16} className="mr-2" />
               WhatsApp
