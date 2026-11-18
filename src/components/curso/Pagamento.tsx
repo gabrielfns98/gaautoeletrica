@@ -147,7 +147,7 @@ const Pagamento = ({ inscricao, onNovaInscricao }: Props) => {
         <div className="space-y-3 text-center">
           {CURSO.valor ? (
             <p className="text-sm text-curso-muted">
-              Valor: <strong className="text-lg text-curso-ink">{formatBRL(CURSO.valor)}</strong>
+              Valor no cartão: <strong className="text-lg text-curso-ink">{formatBRL(CURSO.valor)}</strong>
               {CURSO.condicoes ? <span className="block">{CURSO.condicoes}</span> : null}
             </p>
           ) : null}
@@ -166,7 +166,15 @@ const Pagamento = ({ inscricao, onNovaInscricao }: Props) => {
           </p>
         </div>
       ) : (
-        <FallbackWhats texto="O link de pagamento no cartão é enviado pelo WhatsApp." href={whatsappLink(msgPagarWhats)} />
+        <div className="space-y-3">
+          {CURSO.valor ? (
+            <p className="text-center text-sm text-curso-muted">
+              Valor no cartão: <strong className="text-lg text-curso-ink">{formatBRL(CURSO.valor)}</strong>
+              {CURSO.condicoes ? <span className="block">{CURSO.condicoes}</span> : null}
+            </p>
+          ) : null}
+          <FallbackWhats texto="O link de pagamento no cartão é enviado pelo WhatsApp." href={whatsappLink(msgPagarWhats)} />
+        </div>
       )}
 
       <div className="rounded-xl bg-curso-ink p-4 text-white">

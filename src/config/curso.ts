@@ -4,7 +4,7 @@
  * ⚠️ PREENCHER ANTES DE PUBLICAR:
  *   - pix.chave            → chave Pix que vai receber (CNPJ, CPF, e-mail, telefone +55... ou aleatória)
  *   - pix.nomeRecebedor    → nome do titular da conta (como aparece no banco, até 25 letras)
- *   - valor / valorAVista  → preço do curso (deixe null para "consulte pelo WhatsApp")
+ *   - valor / valorPix     → preço do curso (deixe null para "consulte pelo WhatsApp")
  *   - linkPagamento        → link de pagamento do cartão (Mercado Pago, PagSeguro, InfinitePay, Stone...)
  *
  * Enquanto a chave Pix ou o link não estiverem preenchidos, a página mostra
@@ -16,11 +16,11 @@ const CONFIG = {
   cargaHoraria: 13,
 
   /** Preço cheio (cartão / link de pagamento). null = "consulte". */
-  valor: null as number | null,
+  valor: 450 as number | null,
   /** Preço no Pix. null = mesmo valor de `valor`. */
-  valorPix: null as number | null,
+  valorPix: 400 as number | null,
   /** Texto curto sobre parcelamento exibido junto ao preço, ex.: "ou em até 3x no cartão". */
-  condicoes: "",
+  condicoes: "em até 3x",
 
   vagas: {
     /** Mostra o aviso de vagas limitadas. */
