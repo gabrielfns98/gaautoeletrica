@@ -69,7 +69,6 @@ const Pagamento = ({ inscricao, onNovaInscricao }: Props) => {
   };
 
   const formaTexto = forma === "pix" ? "Pix" : "cartão (link de pagamento)";
-  const msgComprovante = `Olá! Fiz minha inscrição no Treinamento de Natal (${CURSO.titulo}).\n${resumo(inscricao)}\nPagamento via ${formaTexto}. Segue o comprovante.`;
   const msgPagarWhats = `Olá! Fiz minha inscrição no Treinamento de Natal (${CURSO.titulo}).\n${resumo(inscricao)}\nQuero pagar via ${formaTexto}. Pode me passar os dados?`;
 
   return (
@@ -187,22 +186,6 @@ const Pagamento = ({ inscricao, onNovaInscricao }: Props) => {
           <FallbackWhats texto="O link de pagamento no cartão é enviado pelo WhatsApp." href={whatsappLink(msgPagarWhats)} />
         </div>
       )}
-
-      <div className="rounded-xl bg-curso-ink p-4 text-white">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-curso-yellow">Último passo</p>
-        <p className="mt-1 text-sm text-white/80">
-          Depois de pagar, envie o comprovante pelo WhatsApp para confirmarmos sua vaga.
-        </p>
-        <a
-          href={whatsappLink(msgComprovante)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-3 font-bold text-white transition-colors hover:bg-[#1fb857]"
-        >
-          <WhatsAppIcon className="h-5 w-5" />
-          Enviar comprovante
-        </a>
-      </div>
 
       <button
         type="button"

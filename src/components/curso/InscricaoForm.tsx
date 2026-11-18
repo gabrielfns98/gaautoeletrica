@@ -96,8 +96,7 @@ const InscricaoForm = ({ onInscrito }: Props) => {
     if (MODO_DEMO) {
       await new Promise((r) => setTimeout(r, 600));
     } else {
-      // Avisa a oficina no WhatsApp. Se falhar, o aluno segue normalmente:
-      // a mensagem do comprovante também leva todos os dados da inscrição.
+      // Envia a inscrição para a oficina (planilha/aviso). Se falhar, o aluno segue para o pagamento.
       try {
         const resp = await fetch("/api/inscricao", {
           method: "POST",

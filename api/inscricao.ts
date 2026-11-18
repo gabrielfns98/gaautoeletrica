@@ -103,7 +103,7 @@ export async function POST(request: Request) {
       experiencia ? `🔧 ${experiencia}` : null,
       `💳 Vai pagar no ${forma === "pix" ? "Pix" : "cartão"} (${brl(valor)})`,
       "",
-      "⏳ Aguardando pagamento/comprovante",
+      "⏳ Aguardando pagamento",
     ]
       .filter((l) => l !== null)
       .join("\n");

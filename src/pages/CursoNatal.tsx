@@ -4,12 +4,12 @@ import {
   ArrowRight,
   Award,
   BookOpen,
+  CalendarCheck,
   CalendarDays,
   Check,
   ClipboardList,
   MapPin,
   QrCode,
-  Send,
   Users,
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -40,7 +40,7 @@ const BRINDES = [
 const PASSOS = [
   { icon: ClipboardList, titulo: "Preencha seus dados", texto: "Leva menos de 1 minuto." },
   { icon: QrCode, titulo: "Pague por Pix ou cartão", texto: "QR Code na hora ou link de pagamento." },
-  { icon: Send, titulo: "Envie o comprovante", texto: "Pelo WhatsApp, e sua vaga está garantida." },
+  { icon: CalendarCheck, titulo: "Pronto, vaga garantida", texto: "É só vir no dia 18/12, às 19h." },
 ];
 
 const FAQ = [
@@ -58,11 +58,11 @@ const FAQ = [
   },
   {
     p: "Como faço o pagamento?",
-    r: "Depois de preencher a inscrição, você escolhe: Pix (QR Code ou Copia e Cola) ou cartão pelo link de pagamento. Em seguida, é só enviar o comprovante pelo WhatsApp.",
+    r: "Depois de preencher a inscrição, você escolhe: Pix (QR Code ou Copia e Cola) ou cartão (em até 3x) pelo link do Mercado Pago.",
   },
   {
     p: "Quando minha vaga fica confirmada?",
-    r: "Assim que recebermos o comprovante de pagamento. Nós respondemos pelo WhatsApp confirmando sua inscrição.",
+    r: "Assim que o pagamento for identificado. Qualquer dúvida, é só chamar a gente no WhatsApp.",
   },
   {
     p: "Onde vai ser?",
