@@ -39,7 +39,7 @@ const CONFIG = {
   },
 
   /** Link de pagamento para cartão de crédito/débito. Vazio = finalizar pelo WhatsApp. */
-  linkPagamento: "",
+  linkPagamento: "https://mpago.li/1sM8CPN",
 
   whatsapp: {
     /** Somente números, com DDI 55 + DDD. */
