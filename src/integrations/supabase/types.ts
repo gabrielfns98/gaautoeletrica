@@ -25,6 +25,7 @@ export type Database = {
           forma_pagamento: string
           id: string
           nome: string
+          notificado_em: string | null
           observacoes: string | null
           status: string
           turma: string
@@ -42,6 +43,7 @@ export type Database = {
           forma_pagamento: string
           id?: string
           nome: string
+          notificado_em?: string | null
           observacoes?: string | null
           status?: string
           turma?: string
@@ -59,6 +61,7 @@ export type Database = {
           forma_pagamento?: string
           id?: string
           nome?: string
+          notificado_em?: string | null
           observacoes?: string | null
           status?: string
           turma?: string

@@ -114,6 +114,10 @@ const InscricaoForm = ({ onInscrito }: Props) => {
       });
 
       if (!error) {
+        // Avisa a oficina no WhatsApp (não bloqueia o aluno se falhar).
+        supabase.functions.invoke("notificar-inscricao", { body: { codigo } }).then(({ error: e }) => {
+          if (e) console.warn("Aviso de inscrição não enviado:", e);
+        });
         setEnviando(false);
         onInscrito({ codigo, nome: data.nome.trim(), forma_pagamento: data.forma_pagamento });
         return;

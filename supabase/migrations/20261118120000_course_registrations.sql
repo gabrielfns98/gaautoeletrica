@@ -13,6 +13,7 @@ CREATE TABLE public.course_registrations (
   valor NUMERIC(10,2),
   status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'pago', 'cancelado')),
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 500),
+  notificado_em TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
