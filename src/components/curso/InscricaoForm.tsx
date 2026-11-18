@@ -2,10 +2,8 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
 import { ArrowRight, CreditCard, Loader2, QrCode } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { CURSO, MODO_DEMO, whatsappLink } from "@/config/curso";
+import { MODO_DEMO } from "@/config/curso";
 import { cn } from "@/lib/utils";
 import type { InscricaoSalva } from "./Pagamento";
 
@@ -49,15 +47,11 @@ const schema = z.object({
   cidade: z.string().trim().max(80),
   experiencia: z.enum(["nenhuma", "basica", "trabalho_na_area"]),
   forma_pagamento: z.enum(["pix", "link"]),
+  /** Campo-isca invisível contra robôs de spam. */
+  empresa: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
-
-const gerarCodigo = () => {
-  const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(5));
-  return "NATAL" + Array.from(bytes, (b) => alfabeto[b % alfabeto.length]).join("");
-};
 
 const inputCls =
   "w-full rounded-lg border border-curso-ink/15 bg-white px-3.5 py-3 text-[15px] text-curso-ink placeholder:text-curso-ink/35 outline-none transition focus:border-curso-ink focus:ring-2 focus:ring-curso-yellow/60";
@@ -83,62 +77,53 @@ const InscricaoForm = ({ onInscrito }: Props) => {
       cidade: "Uberaba",
       experiencia: "nenhuma",
       forma_pagamento: "pix",
+      empresa: "",
     },
   });
 
   const onSubmit = async (data: FormData) => {
     setEnviando(true);
-    const valor = data.forma_pagamento === "pix" ? (CURSO.valorPix ?? CURSO.valor) : CURSO.valor;
+    const inscricao: InscricaoSalva = {
+      nome: data.nome.trim(),
+      whatsapp: mascaraTelefone(data.whatsapp),
+      email: data.email.trim(),
+      cpf: data.cpf,
+      cidade: data.cidade.trim(),
+      experiencia: data.experiencia,
+      forma_pagamento: data.forma_pagamento,
+    };
 
     if (MODO_DEMO) {
       await new Promise((r) => setTimeout(r, 600));
-      setEnviando(false);
-      onInscrito({ codigo: gerarCodigo(), nome: data.nome.trim(), forma_pagamento: data.forma_pagamento });
-      return;
-    }
-
-    // Tenta algumas vezes caso o código gerado já exista (muito improvável).
-    for (let tentativa = 0; tentativa < 3; tentativa++) {
-      const codigo = gerarCodigo();
-      const { error } = await supabase.from("course_registrations").insert({
-        codigo,
-        turma: CURSO.turma,
-        nome: data.nome.trim(),
-        whatsapp: mascaraTelefone(data.whatsapp),
-        email: data.email.trim() || null,
-        cpf: data.cpf || null,
-        cidade: data.cidade.trim() || null,
-        experiencia: data.experiencia,
-        forma_pagamento: data.forma_pagamento,
-        valor,
-      });
-
-      if (!error) {
-        // Avisa a oficina no WhatsApp (não bloqueia o aluno se falhar).
-        supabase.functions.invoke("notificar-inscricao", { body: { codigo } }).then(({ error: e }) => {
-          if (e) console.warn("Aviso de inscrição não enviado:", e);
+    } else {
+      // Avisa a oficina no WhatsApp. Se falhar, o aluno segue normalmente:
+      // a mensagem do comprovante também leva todos os dados da inscrição.
+      try {
+        const resp = await fetch("/api/inscricao", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...inscricao, empresa: data.empresa }),
         });
-        setEnviando(false);
-        onInscrito({ codigo, nome: data.nome.trim(), forma_pagamento: data.forma_pagamento });
-        return;
-      }
-      if (error.code !== "23505") {
-        console.error("Erro ao salvar inscrição:", error);
-        break;
+        if (!resp.ok) console.warn("Aviso de inscrição não enviado:", await resp.text());
+      } catch (e) {
+        console.warn("Aviso de inscrição não enviado:", e);
       }
     }
 
     setEnviando(false);
-    const msg = `Olá! Quero me inscrever no Treinamento de Natal (${CURSO.titulo}).\nNome: ${data.nome}\nWhatsApp: ${data.whatsapp}`;
-    toast.error("Não conseguimos salvar sua inscrição agora.", {
-      description: "Tente novamente ou finalize pelo WhatsApp.",
-      action: { label: "WhatsApp", onClick: () => window.open(whatsappLink(msg), "_blank") },
-      duration: 10000,
-    });
+    onInscrito(inscricao);
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+      <input
+        type="text"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="absolute -left-[9999px] h-0 w-0 opacity-0"
+        {...register("empresa")}
+      />
       <Campo label="Nome completo" erro={errors.nome?.message} htmlFor="nome">
         <input id="nome" autoComplete="name" placeholder="Como vai sair no certificado" className={inputCls} {...register("nome")} />
       </Campo>

@@ -8,10 +8,26 @@ import { WhatsAppIcon } from "./icons";
 import { cn } from "@/lib/utils";
 
 export interface InscricaoSalva {
-  codigo: string;
   nome: string;
+  whatsapp: string;
+  email?: string;
+  cpf?: string;
+  cidade?: string;
+  experiencia?: string;
   forma_pagamento: "pix" | "link";
 }
+
+/** Dados da inscrição em texto, para as mensagens de WhatsApp. */
+const resumo = (i: InscricaoSalva) =>
+  [
+    `Nome: ${i.nome}`,
+    `WhatsApp: ${i.whatsapp}`,
+    i.cpf ? `CPF: ${i.cpf}` : null,
+    i.email ? `E-mail: ${i.email}` : null,
+    i.cidade ? `Cidade: ${i.cidade}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
 interface Props {
   inscricao: InscricaoSalva;
@@ -35,10 +51,10 @@ const Pagamento = ({ inscricao, onNovaInscricao }: Props) => {
             nome: CURSO.pix.nomeRecebedor,
             cidade: CURSO.pix.cidade,
             valor: valorPix,
-            txid: inscricao.codigo,
+            txid: "CURSONATAL",
           })
         : "",
-    [temPix, valorPix, inscricao.codigo],
+    [temPix, valorPix],
   );
 
   const copiar = async () => {
@@ -53,8 +69,8 @@ const Pagamento = ({ inscricao, onNovaInscricao }: Props) => {
   };
 
   const formaTexto = forma === "pix" ? "Pix" : "cartão (link de pagamento)";
-  const msgComprovante = `Olá! Fiz minha inscrição no Treinamento de Natal (${CURSO.titulo}).\nNome: ${inscricao.nome}\nCódigo da inscrição: ${inscricao.codigo}\nPagamento via ${formaTexto} — segue o comprovante.`;
-  const msgPagarWhats = `Olá! Fiz minha inscrição no Treinamento de Natal (${CURSO.titulo}).\nNome: ${inscricao.nome}\nCódigo da inscrição: ${inscricao.codigo}\nQuero pagar via ${formaTexto}. Pode me passar os dados?`;
+  const msgComprovante = `Olá! Fiz minha inscrição no Treinamento de Natal (${CURSO.titulo}).\n${resumo(inscricao)}\nPagamento via ${formaTexto}. Segue o comprovante.`;
+  const msgPagarWhats = `Olá! Fiz minha inscrição no Treinamento de Natal (${CURSO.titulo}).\n${resumo(inscricao)}\nQuero pagar via ${formaTexto}. Pode me passar os dados?`;
 
   return (
     <div className="space-y-6">
@@ -70,11 +86,6 @@ const Pagamento = ({ inscricao, onNovaInscricao }: Props) => {
             Sua vaga é confirmada assim que o pagamento for identificado.
           </p>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between rounded-xl border border-dashed border-curso-ink/25 bg-curso-cream px-4 py-3">
-        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-curso-muted">Código da inscrição</span>
-        <span className="font-mono text-lg font-bold tracking-wider text-curso-ink">{inscricao.codigo}</span>
       </div>
 
       {/* Seletor de forma de pagamento */}
@@ -162,7 +173,7 @@ const Pagamento = ({ inscricao, onNovaInscricao }: Props) => {
             <ExternalLink className="h-4 w-4 opacity-60" />
           </a>
           <p className="text-xs text-curso-muted">
-            Você será levado(a) para a página segura de pagamento. Informe o código <strong>{inscricao.codigo}</strong> se for pedido.
+            Você será levado(a) para a página segura de pagamento do Mercado Pago.
           </p>
         </div>
       ) : (

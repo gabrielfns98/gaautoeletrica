@@ -19,7 +19,7 @@ import { MultimeterIcon, WhatsAppIcon } from "@/components/curso/icons";
 import { CURSO, MODO_DEMO, formatBRL, whatsappLink } from "@/config/curso";
 import banner from "@/assets/curso-banner.jpg";
 
-const STORAGE_KEY = `ga-curso-${CURSO.turma}`;
+const STORAGE_KEY = `ga-curso-${CURSO.turma}-v2`;
 
 const CONTEUDO = [
   "Noções de eletricidade aplicada a veículos",

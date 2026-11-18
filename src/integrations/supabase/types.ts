@@ -14,63 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      course_registrations: {
-        Row: {
-          codigo: string
-          cpf: string | null
-          cidade: string | null
-          created_at: string
-          email: string | null
-          experiencia: string | null
-          forma_pagamento: string
-          id: string
-          nome: string
-          notificado_em: string | null
-          observacoes: string | null
-          status: string
-          turma: string
-          updated_at: string
-          valor: number | null
-          whatsapp: string
-        }
-        Insert: {
-          codigo: string
-          cpf?: string | null
-          cidade?: string | null
-          created_at?: string
-          email?: string | null
-          experiencia?: string | null
-          forma_pagamento: string
-          id?: string
-          nome: string
-          notificado_em?: string | null
-          observacoes?: string | null
-          status?: string
-          turma?: string
-          updated_at?: string
-          valor?: number | null
-          whatsapp: string
-        }
-        Update: {
-          codigo?: string
-          cpf?: string | null
-          cidade?: string | null
-          created_at?: string
-          email?: string | null
-          experiencia?: string | null
-          forma_pagamento?: string
-          id?: string
-          nome?: string
-          notificado_em?: string | null
-          observacoes?: string | null
-          status?: string
-          turma?: string
-          updated_at?: string
-          valor?: number | null
-          whatsapp?: string
-        }
-        Relationships: []
-      }
       inventory: {
         Row: {
           created_at: string
