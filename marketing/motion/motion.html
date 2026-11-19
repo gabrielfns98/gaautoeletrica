@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Bancada — vídeo promocional</title>
+<!--
+  Vídeo promocional do Bancada, com a marca da DSM, que distribui.
+
+  A identidade segue o material comercial que a DSM já mostra aos
+  clientes: fundo claro, azul-marinho e verde-água, o fluxo em setas
+  (recepção, etiquetas, bancada, revisão, laudo), as matrizes e o
+  fechamento com os contatos.
+
+  A página é uma linha do tempo determinística: renderizar(t) põe cada
+  elemento onde ele deve estar no instante t (segundos), sem animação
+  CSS e sem relógio. renderizar.mjs chama a função quadro a quadro e
+  entrega as imagens ao ffmpeg. O mesmo t sempre dá a mesma imagem, e
+  qualquer quadro pode ser conferido isolado.
+
+  No navegador: ?t=12.4 mostra o quadro daquele instante; ?tocar toca
+  em tempo real, para sentir o ritmo.
+
+  As telas vêm de capturar.mjs (assets/telas/); as logos e os contatos
+  da DSM ficam em assets/marca/. Nada disso vai para o repositório.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Lexend:wght@300;400;500;600;700&display=block">
+<script src="assets/telas/manifesto.js"></script>
+<script src="assets/marca/contatos.js"></script>
+<style>
+  :root {
+    --fundo: #f2f6f7;
+    --navy: #10293a;
+    --navy-texto: #253d4d;
+    --teal: #16b3a3;
+    --teal-escuro: #0f5566;
+    --cinza: #5b6f7c;
+    --cinza-claro: #8a9ca6;
+    --linha: #d8e4e7;
+    --serif: "Instrument Serif", Georgia, serif;
+    --sans: "Lexend", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--fundo); }
+  body { font-family: var(--sans); color: var(--navy); -webkit-font-smoothing: antialiased; }
+  #palco { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+  .abs { position: absolute; }
+  .centro { position: absolute; left: 0; right: 0; display: flex; justify-content: center; }
+  b { font-weight: inherit; color: var(--teal); }
+
+  /* ---------- fundo ---------- */
+  #fundo { position: absolute; inset: 0; overflow: hidden;
+           background: linear-gradient(180deg, #f5f9fa 0%, #eef4f5 100%); }
+  .brilho { position: absolute; border-radius: 50%; }
+  #b1 { left: -360px; top: -420px; width: 1400px; height: 1200px;
+        background: radial-gradient(closest-side, rgba(22, 179, 163, 0.12), rgba(22, 179, 163, 0)); }
+  #b2 { left: 1000px; top: 420px; width: 1500px; height: 1200px;
+        background: radial-gradient(closest-side, rgba(20, 136, 166, 0.11), rgba(20, 136, 166, 0)); }
+  #grade { position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(16, 41, 58, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16, 41, 58, 0.045) 1px, transparent 1px);
+    background-size: 56px 56px; background-position: 8px 4px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 62% at 50% 50%, #000 20%, transparent 100%);
+            mask-image: radial-gradient(ellipse 70% 62% at 50% 50%, #000 20%, transparent 100%); }
+  /* Ruído fixo: quebra as faixas que o H.264 faz em gradiente. */
+  #grao { position: absolute; inset: 0; opacity: 0.45; }
+
+  /* ---------- abertura ---------- */
+  #ab-frase { top: 560px; flex-direction: column; align-items: center; text-align: center;
+              font: 700 84px/1.12 var(--sans); letter-spacing: -0.02em; color: var(--navy); }
+  #ab-frase span { display: block; }
+
+  /* ---------- marca Bancada ---------- */
+  #marca { left: 0; top: 0; font: 400 230px/1 var(--serif); letter-spacing: -0.015em; color: var(--navy);
+           white-space: nowrap; transform-origin: 0 0; }
+  #marca span { display: inline-block; }
+  #marca-rotulo { top: 640px; font: 600 30px/1 var(--sans); text-transform: uppercase; color: var(--teal-escuro); }
+  #pilula { left: 120px; top: 0; padding: 12px 22px 11px; border: 2px solid var(--navy); border-radius: 999px;
+            font: 600 16px/1 var(--sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--navy); }
+  #slogan { left: 120px; top: 0; width: 540px; font: 400 31px/1.42 var(--sans); color: var(--navy-texto);
+            text-wrap: balance; }
+  #slogan strong { font-weight: 600; color: var(--teal-escuro); }
+  #rodape-rotulo { left: 0; top: 0; font: 600 11px/1 var(--sans); letter-spacing: 0.3em; text-transform: uppercase;
+                   color: var(--teal-escuro); white-space: nowrap; }
+  #dsm { left: 0; top: 0; height: 100px; width: auto; transform-origin: 0 0; }
+
+  /* ---------- fluxo em setas ---------- */
+  #setas { left: 0; top: 56px; overflow: visible; }
+  #setas text { font: 600 23px var(--sans); }
+
+  /* ---------- textos de cada passo ---------- */
+  .passo { position: absolute; left: 120px; top: 0; width: 560px; }
+  .barrinha { display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--teal); }
+  .titulo { margin-top: 30px; font: 700 60px/1.1 var(--sans); letter-spacing: -0.02em; color: var(--navy);
+            text-wrap: balance; }
+  .sub { margin-top: 26px; max-width: 520px; font: 400 25px/1.5 var(--sans); color: var(--cinza); text-wrap: pretty; }
+  #aviso { top: 1036px; font: 300 14px/1 var(--sans); color: var(--cinza-claro); letter-spacing: 0.02em; }
+
+  /* ---------- janela do sistema ---------- */
+  #janela { left: 730px; top: 186px; width: 1100px; height: 727.5px; border-radius: 16px; overflow: hidden;
+            background: #faf8f3; border: 1px solid #d3dee2; transform-origin: 50% 100%;
+            box-shadow: 0 50px 100px -30px rgba(16, 41, 58, 0.32), 0 18px 36px -18px rgba(16, 41, 58, 0.18); }
+  #barra { position: relative; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 16px;
+           background: #e9eef0; border-bottom: 1px solid #d6e0e3; }
+  #barra i { width: 12px; height: 12px; border-radius: 50%; }
+  #barra i:nth-child(1) { background: #ff5f57; }
+  #barra i:nth-child(2) { background: #febc2e; }
+  #barra i:nth-child(3) { background: #28c840; }
+  #barra-titulo { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); padding: 5px 16px 5px;
+                  border-radius: 6px; background: rgba(255, 255, 255, 0.7); font: 500 12.5px/1 var(--sans);
+                  color: var(--cinza); white-space: nowrap; }
+  #tela { position: relative; width: 1100px; height: 687.5px; overflow: hidden; background: #f7f4ee; }
+  #camera { position: absolute; left: 0; top: 0; width: 1100px; height: 687.5px; transform-origin: 0 0; }
+  .quadro { position: absolute; inset: 0; }
+  .quadro img { position: absolute; left: 0; top: 0; }
+  .quadro.pdf { background: #d5dde0; }
+  .quadro.pdf img { box-shadow: 0 12px 34px rgba(16, 41, 58, 0.22); }
+  #foco { position: absolute; border-radius: 12px; box-shadow: 0 0 0 4000px rgba(16, 41, 58, 0.38); }
+  #anel { position: absolute; left: 0; top: 0; overflow: visible;
+          filter: drop-shadow(0 0 10px rgba(22, 179, 163, 0.55)); }
+
+  /* ---------- arquivo do laudo ---------- */
+  #arquivo { left: 676px; top: 846px; display: flex; align-items: center; gap: 18px; padding: 16px 26px 16px 18px;
+             border-radius: 18px; background: #fff; border: 1px solid var(--linha);
+             box-shadow: 0 30px 60px -18px rgba(16, 41, 58, 0.35); }
+  .doc { position: relative; width: 42px; height: 52px; border-radius: 6px; background: #eef3f4; border: 1px solid #d9e2e5; }
+  .doc::before { content: ""; position: absolute; left: 9px; right: 9px; top: 11px; height: 3px; border-radius: 2px;
+                 background: #c4d0d4; box-shadow: 0 7px 0 #c4d0d4, 0 14px 0 #c4d0d4; }
+  .doc em { position: absolute; left: -7px; bottom: 7px; padding: 3px 5px 2px; border-radius: 3px; background: #d6453d;
+            font: 700 10px/1 var(--sans); font-style: normal; letter-spacing: 0.04em; color: #fff; }
+  .arquivo-texto { display: flex; flex-direction: column; gap: 7px; }
+  .arquivo-texto strong { font: 600 20px/1 var(--sans); color: var(--navy); }
+  .arquivo-texto span { font: 400 15px/1 var(--sans); color: var(--cinza); }
+  #arquivo svg { width: 30px; height: 30px; margin-left: 6px; }
+
+  /* ---------- matrizes ---------- */
+  #mat-titulo { top: 330px; font: 700 76px/1 var(--sans); letter-spacing: -0.02em; color: var(--navy); }
+  .mat-linha { display: flex; justify-content: center; gap: 22px; }
+  #mat-l1 { top: 500px; }
+  #mat-l2 { top: 600px; }
+  .chip { display: flex; align-items: center; gap: 16px; padding: 22px 34px; border-radius: 999px; background: #fff;
+          border: 1px solid var(--linha); box-shadow: 0 10px 24px -14px rgba(16, 41, 58, 0.25);
+          font: 500 30px/1 var(--sans); color: var(--navy); white-space: nowrap; }
+  .chip::before { content: ""; width: 13px; height: 13px; border-radius: 50%; background: var(--teal); }
+  .chip.mais { background: transparent; box-shadow: none; border-style: dashed; color: var(--cinza); }
+  .chip.mais::before { background: transparent; border: 2px solid var(--teal); width: 9px; height: 9px; }
+
+  /* ---------- encerramento ---------- */
+  #fim-anel { left: 1390px; top: -330px; width: 760px; height: 760px; border-radius: 50%;
+              border: 110px solid #dcefed; }
+  #fim-pilula { left: 120px; top: 104px; padding: 13px 24px 12px; border: 2px solid var(--navy); border-radius: 999px;
+                font: 600 17px/1 var(--sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--navy); }
+  .fim-linha { left: 120px; font: 700 104px/1.12 var(--sans); letter-spacing: -0.025em; color: var(--navy); white-space: nowrap; }
+  #fim-l1 { top: 196px; }
+  #fim-l2 { top: 312px; }
+  #fim-sub { left: 120px; top: 478px; width: 1180px; font: 400 31px/1.45 var(--sans); color: var(--cinza); }
+  #fim-cta { left: 120px; top: 606px; display: flex; align-items: center; gap: 18px; padding: 28px 50px 28px 52px;
+             border-radius: 999px; background: var(--teal); font: 600 33px/1 var(--sans); color: #fff;
+             box-shadow: 0 22px 44px -18px rgba(22, 179, 163, 0.75); }
+  #fim-cta svg { width: 34px; height: 34px; }
+  #fim-cartao { left: 120px; top: 800px; width: 1680px; height: 196px; border-radius: 30px; background: #0f2a3d;
+                display: flex; align-items: center; justify-content: space-between; padding: 0 64px; }
+  #fim-cartao img { height: 92px; width: auto; }
+  .contatos { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+  .contatos strong { font: 600 42px/1 var(--sans); color: #2fd1bf; letter-spacing: -0.01em; }
+  .contatos span { font: 400 27px/1 var(--sans); color: #fff; }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div id="fundo">
+    <div class="brilho" id="b1"></div>
+    <div class="brilho" id="b2"></div>
+    <div id="grade"></div>
+    <div id="grao"></div>
+  </div>
+
+  <!-- abertura -->
+  <h1 class="centro" id="ab-frase">
+    <span id="ab-l1">Da chegada da amostra</span>
+    <span id="ab-l2">ao <b>laudo assinado</b>.</span>
+  </h1>
+
+  <!-- marca e apresentação -->
+  <div class="abs" id="marca" aria-label="Bancada"><span>B</span><span>a</span><span>n</span><span>c</span><span>a</span><span>d</span><span>a</span></div>
+  <p class="centro" id="marca-rotulo"><span>Gestão laboratorial</span></p>
+  <p class="abs" id="pilula">Sistema web · LIMS</p>
+  <p class="abs" id="slogan">Gestão completa do laboratório de <strong>solos, plantas e demais análises</strong>.</p>
+  <p class="abs" id="rodape-rotulo">Gestão laboratorial</p>
+
+  <!-- fluxo em setas: preenchido pelo script -->
+  <svg class="abs" id="setas" width="1920" height="80"></svg>
+
+  <!-- textos dos passos: preenchidos pelo script -->
+  <div id="passos"></div>
+  <p class="centro" id="aviso"><span>Telas reais do sistema · dados fictícios de demonstração</span></p>
+
+  <!-- janela do sistema -->
+  <div class="abs" id="janela">
+    <div id="barra"><i></i><i></i><i></i><span id="barra-titulo">Bancada — Painel</span></div>
+    <div id="tela">
+      <div id="camera"></div>
+      <div class="abs" id="foco"></div>
+      <svg id="anel" width="1100" height="687.5">
+        <rect id="anel-r" pathLength="1" rx="12" ry="12" fill="none" stroke="#16b3a3" stroke-width="3.5"
+              stroke-dasharray="1 1" stroke-dashoffset="1"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="abs" id="arquivo">
+    <div class="doc"><em>PDF</em></div>
+    <div class="arquivo-texto">
+      <strong id="arquivo-nome">laudo.pdf</strong>
+      <span>Tecido vegetal (foliar) · emitido</span>
+    </div>
+    <svg viewBox="0 0 30 30" aria-hidden="true">
+      <circle cx="15" cy="15" r="14" fill="#e1f4f1" stroke="#16b3a3" stroke-width="1.5"/>
+      <path d="M9.5 15.5l3.8 3.8L21 11.5" fill="none" stroke="#0f8f82" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <!-- matrizes -->
+  <h2 class="centro" id="mat-titulo"><span>Pronto para as <b>principais matrizes</b></span></h2>
+  <div class="centro mat-linha" id="mat-l1"></div>
+  <div class="centro mat-linha" id="mat-l2"></div>
+
+  <!-- encerramento -->
+  <div class="abs" id="fim-anel"></div>
+  <p class="abs" id="fim-pilula">Bancada · Gestão laboratorial</p>
+  <h2 class="abs fim-linha" id="fim-l1">Leve o Bancada</h2>
+  <h2 class="abs fim-linha" id="fim-l2">para o <b>seu laboratório</b></h2>
+  <p class="abs" id="fim-sub">Agende uma demonstração on-line e veja o sistema funcionando com a rotina do seu laboratório.</p>
+  <div class="abs" id="fim-cta">Agende sua demonstração
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="abs" id="fim-cartao">
+    <img src="assets/marca/logo-dsm-branco-recorte.svg" alt="DSM Tecnologia Científica">
+    <div class="contatos">
+      <strong id="contato-telefone"></strong>
+      <span id="contato-email"></span>
+      <span id="contato-site"></span>
+    </div>
+  </div>
+
+  <!-- a logo colorida da DSM é um elemento só: abertura e rodapé -->
+  <img class="abs" id="dsm" src="assets/marca/logo-dsm-cor-recorte.svg" alt="DSM Tecnologia Científica">
+</div>
+
+<script>
+'use strict';
+
+const FPS = 30;
+const DURACAO = 29.5;            // limite pedido: 30 s
+const M = window.MANIFESTO;
+
+/* ============================================================
+   Roteiro — os textos seguem o material comercial da DSM
+   ============================================================ */
+
+const PASSOS = [
+  { tela: 'recepcao', dur: 3.15, seta: 'Recepção', barra: 'Bancada — Recepção', zoom: 2.0,
+    titulo: 'Protocolo por <b>lote</b>.',
+    sub: 'Abertura automática dos ensaios e conferência na entrada.' },
+  { tela: 'etiquetas', dur: 3.15, seta: 'Etiquetas', barra: 'Bancada — Etiquetas', zoom: 2.4,
+    titulo: 'Código de barras em <b>cada amostra</b>.',
+    sub: 'Etiquetas em A4 ou térmica; o leitor acha a amostra.' },
+  { tela: 'bancada', dur: 3.15, seta: 'Bancada', barra: 'Bancada — Aquisição', zoom: 2.0,
+    titulo: 'O aparelho <b>envia</b> o valor.',
+    sub: 'pHmetro integrado; calibração vencida bloqueia a leitura.' },
+  { tela: 'revisao', dur: 3.15, seta: 'Revisão', barra: 'Bancada — Revisão', zoom: 2.0,
+    titulo: 'Ninguém aprova o <b>próprio</b> resultado.',
+    sub: 'Segregação de funções e trilha de auditoria, no padrão ISO/IEC 17025.' },
+  { tela: 'laudo', dur: 3.35, seta: 'Laudo', barra: `${M.laudo.numero}.pdf`, zoom: 2.2,
+    titulo: 'Laudo <b>assinado</b>, em PDF.',
+    sub: 'Assinatura do RT, envio por e-mail e código de verificação.' },
+];
+
+const MATRIZES = [
+  ['Solo', 'Foliar', 'Fertilizantes', 'Corretivos', 'Biológicos'],
+  ['Água e efluentes', 'Seiva', 'Bromatologia', 'Nematoides'],
+];
+
+/* Cor de cada seta já percorrida: do azul-marinho ao verde-água,
+   como no material da DSM. A seta em cena fica verde-água. */
+const COR_SETA = ['#10293a', '#0f394b', '#0f4a5c', '#0e5a6b', '#13a091'];
+
+/* Abertura e apresentação, antes dos passos. */
+const T = {
+  fraseSai: 2.0,              // a frase de abertura começa a sair
+  letras: 2.45,               // a marca entra, letra por letra
+  rotulo: [3.0, 3.6, 4.1, 4.35],
+  marcaHeroi: [4.15, 4.95],   // a marca vai para a esquerda...
+  janela: [4.7, 5.85],        // ...e só então a janela sobe
+  pilula: [4.9, 5.35, 6.65, 6.95],
+  slogan: [5.0, 5.55, 6.7, 7.0],
+  marcaRodape: [6.75, 7.4],
+};
+const INICIO_PASSOS = 7.0;
+{
+  let t = INICIO_PASSOS;
+  for (const p of PASSOS) { p.ini = t; p.fim = t + p.dur; t = p.fim; }
+}
+const MAT = PASSOS[PASSOS.length - 1].fim;   // matrizes
+const FIM = MAT + 2.45;                       // encerramento
+
+/* ============================================================
+   Tempo e curvas
+   ============================================================ */
+
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const mix = (a, b, k) => a + (b - a) * k;
+const desacelera = (k) => 1 - Math.pow(1 - k, 3);
+const acelera = (k) => k * k * k;
+const suave = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const assenta = (k) => (k >= 1 ? 1 : 1 - Math.pow(2, -10 * k));
+/** Passa um pouco do ponto e volta: para o que "salta" na tela. */
+const mola = (k) => { const c = 1.6; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
+
+function estilo(el, { o = 1, x = 0, y = 0, s = 1, b = 0 } = {}) {
+  el.style.opacity = o.toFixed(4);
+  el.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
+  el.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${s.toFixed(5)})`;
+  el.style.filter = b > 0.05 ? `blur(${b.toFixed(2)}px)` : 'none';
+}
+
+/** Entra entre a e b, sai entre c e d: sobe enquanto aparece, desfoca ao sair. */
+function ciclo(el, t, a, b, c, d, { dy = 26, dySai = -14, desfoque = 8, escala = 0 } = {}) {
+  const ki = desacelera(seg(t, a, b));
+  const ko = acelera(seg(t, c, d));
+  estilo(el, {
+    o: ki * (1 - ko),
+    y: (1 - ki) * dy + ko * dySai,
+    s: 1 - escala * (1 - ki),
+    b: (1 - ki) * desfoque + ko * desfoque * 0.7,
+  });
+}
+
+function hex(c) { const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function mixCor(a, b, k) {
+  const [r1, g1, b1] = hex(a); const [r2, g2, b2] = hex(b);
+  return `rgb(${Math.round(mix(r1, r2, k))}, ${Math.round(mix(g1, g2, k))}, ${Math.round(mix(b1, b2, k))})`;
+}
+
+/* ============================================================
+   Montagem
+   ============================================================ */
+
+const W_TELA = 1100;
+const H_TELA = 687.5;
+const QUADROS = ['painel', ...PASSOS.map((p) => p.tela)];
+
+/** Onde a imagem de cada tela fica dentro da janela. */
+function geometria(nome) {
+  const m = M[nome];
+  if (nome === 'laudo') {
+    // O laudo é página impressa: aparece num visualizador de PDF.
+    const margem = 24;
+    const f = (H_TELA - 2 * margem) / m.altura;
+    return { f, x: (W_TELA - m.largura * f) / 2, y: margem, w: m.largura * f, h: m.altura * f };
+  }
+  const f = W_TELA / m.largura;
+  return { f, x: 0, y: 0, w: W_TELA, h: m.altura * f };
+}
+
+const CHEIA = { x: 0, y: 0, w: W_TELA, h: H_TELA };
+
+/** Recorte da câmera que enquadra o destaque sem sair dos limites
+    (a tela inteira, ou só a folha, no caso do PDF). */
+function vistaPara(d, zoomMax, lim = CHEIA) {
+  const cabe = Math.min((0.78 * W_TELA) / d.w, (0.72 * H_TELA) / d.h);
+  const s = Math.max(1, Math.min(zoomMax, cabe));
+  const w = W_TELA / s;
+  const h = H_TELA / s;
+  const cx = clamp(d.x + d.w / 2, lim.x + w / 2, lim.x + lim.w - w / 2);
+  const cy = clamp(d.y + d.h / 2, lim.y + h / 2, lim.y + lim.h - h / 2);
+  return { x: cx - w / 2, y: cy - h / 2, w, h };
+}
+const entreVistas = (a, b, k) => ({ x: mix(a.x, b.x, k), y: mix(a.y, b.y, k), w: mix(a.w, b.w, k), h: mix(a.h, b.h, k) });
+function aproxima(v, fator) {
+  const w = v.w / fator;
+  const h = v.h / fator;
+  return { x: v.x + (v.w - w) / 2, y: v.y + (v.h - h) / 2, w, h };
+}
+
+const el = {};
+
+function montar() {
+  for (const no of document.querySelectorAll('[id]')) el[no.id] = no;
+  el.letras = [...el.marca.children];
+  el['arquivo-nome'].textContent = `${M.laudo.numero}.pdf`;
+
+  // Quadros da janela, na ordem em que aparecem: o mais novo fica por cima.
+  el.quadros = QUADROS.map((nome) => {
+    const g = geometria(nome);
+    const q = document.createElement('div');
+    q.className = nome === 'laudo' ? 'quadro pdf' : 'quadro';
+    const img = document.createElement('img');
+    img.src = `assets/telas/${nome}.png`;
+    img.alt = '';
+    Object.assign(img.style, { left: `${g.x}px`, top: `${g.y}px`, width: `${g.w}px`, height: `${g.h}px` });
+    q.appendChild(img);
+    el.camera.appendChild(q);
+    return q;
+  });
+
+  // Destaque de cada passo, em coordenadas da janela, sem sair da página.
+  for (const p of PASSOS) {
+    const g = geometria(p.tela);
+    const m = M[p.tela];
+    const d = m.destaque;
+    const x = Math.max(0, d.x);
+    const y = Math.max(0, d.y);
+    const x2 = Math.min(m.largura, d.x + d.w);
+    const y2 = Math.min(m.altura, d.y + d.h);
+    p.destaque = { x: g.x + x * g.f, y: g.y + y * g.f, w: (x2 - x) * g.f, h: (y2 - y) * g.f };
+    // No PDF, a câmera fica na folha: a margem cinza do visualizador não interessa.
+    const folha = { x: g.x - 12, y: g.y - 12, w: g.w + 24, h: g.h + 24 };
+    p.vista = vistaPara(p.destaque, p.zoom, p.tela === 'laudo' ? folha : CHEIA);
+  }
+
+  // Textos de cada passo.
+  const caixaPassos = document.getElementById('passos');
+  el.passos = PASSOS.map((p) => {
+    const a = document.createElement('article');
+    a.className = 'passo';
+    a.innerHTML = `<i class="barrinha"></i><h2 class="titulo">${p.titulo}</h2><p class="sub">${p.sub}</p>`;
+    caixaPassos.appendChild(a);
+    return { caixa: a, partes: [...a.children] };
+  });
+
+  montarSetas();
+
+  // Matrizes.
+  el.chips = [];
+  MATRIZES.forEach((linha, i) => {
+    const alvo = el[`mat-l${i + 1}`];
+    for (const nome of linha) {
+      const c = document.createElement('span');
+      c.className = 'chip';
+      c.textContent = nome;
+      alvo.appendChild(c);
+      el.chips.push(c);
+    }
+  });
+  const mais = document.createElement('span');
+  mais.className = 'chip mais';
+  mais.textContent = 'e outras';
+  el['mat-l2'].appendChild(mais);
+  el.chips.push(mais);
+
+  granular();
+}
+
+/* As cinco setas do fluxo, desenhadas em SVG: cada uma tem a base
+   clara, a cor de "já percorrida" e a cor de "em cena". */
+const SETA = { x0: 120, largura: 347, altura: 62, ponta: 26, folga: 12 };
+function montarSetas() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const { x0, largura: w, altura: h, ponta: p, folga } = SETA;
+  el.setas.innerHTML = '';
+  el.seta = PASSOS.map((passo, i) => {
+    const x = x0 + i * (w - p + folga);
+    const r = 12;
+    const d = i === 0
+      ? `M${x + r},0 H${x + w - p} L${x + w},${h / 2} L${x + w - p},${h} H${x + r} Q${x},${h} ${x},${h - r} V${r} Q${x},0 ${x + r},0 Z`
+      : `M${x},0 H${x + w - p} L${x + w},${h / 2} L${x + w - p},${h} H${x} L${x + p},${h / 2} Z`;
+    const g = document.createElementNS(NS, 'g');
+    const camada = (cor) => {
+      const c = document.createElementNS(NS, 'path');
+      c.setAttribute('d', d);
+      c.setAttribute('fill', cor);
+      g.appendChild(c);
+      return c;
+    };
+    const base = camada('#e1eaed');
+    const feita = camada(COR_SETA[i]);
+    const ativa = camada('#16b3a3');
+    const texto = document.createElementNS(NS, 'text');
+    texto.setAttribute('x', String(x + (i === 0 ? (w - p) / 2 : w / 2)));
+    texto.setAttribute('y', String(h / 2 + 8));
+    texto.setAttribute('text-anchor', 'middle');
+    texto.textContent = passo.seta;
+    g.appendChild(texto);
+    el.setas.appendChild(g);
+    return { g, base, feita, ativa, texto };
+  });
+}
+
+/** Ruído fixo, gerado com semente: o mesmo em todo quadro. */
+function granular() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  const img = ctx.createImageData(256, 256);
+  let s = 0x2f6b9d1;
+  const rnd = () => {
+    s |= 0; s = (s + 0x6d2b79f5) | 0;
+    let r = Math.imul(s ^ (s >>> 15), 1 | s);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = rnd() < 0.5 ? 0 : 255;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = Math.round(rnd() * 7);
+  }
+  ctx.putImageData(img, 0, 0);
+  el.grao.style.backgroundImage = `url(${c.toDataURL()})`;
+}
+
+/* Medidas naturais (sem transformação) das marcas e dos textos. */
+const medida = {};
+function medir() {
+  el.marca.style.transform = 'none';
+  medida.marca = { w: el.marca.offsetWidth, h: el.marca.offsetHeight };
+  el.dsm.style.transform = 'none';
+  medida.dsm = { w: el.dsm.offsetWidth, h: el.dsm.offsetHeight };
+  // Cada bloco de passo fica centrado na altura da janela.
+  for (const p of el.passos) {
+    const h = p.caixa.offsetHeight;
+    p.caixa.style.top = `${(186 + 727.5 / 2 - h / 2 - 10).toFixed(1)}px`;
+  }
+}
+
+/* ============================================================
+   Quadro no instante t
+   ============================================================ */
+
+/** Caixa de uma marca: centrada em cx, alinhada à esquerda em lx ou à direita em rx. */
+function posicao(m, p) {
+  const w = m.w * p.s;
+  const h = m.h * p.s;
+  return { x: p.lx ?? (p.rx != null ? p.rx - w : p.cx - w / 2), y: p.cy - h / 2, s: p.s };
+}
+const entrePosicoes = (a, b, k) => ({ x: mix(a.x, b.x, k), y: mix(a.y, b.y, k), s: mix(a.s, b.s, k) });
+function colocar(no, p) {
+  no.style.transform = `translate(${p.x.toFixed(2)}px, ${p.y.toFixed(2)}px) scale(${p.s.toFixed(5)})`;
+}
+
+function fundo(t) {
+  el.b1.style.transform = `translate(${(Math.cos(t * 0.21) * 70).toFixed(2)}px, ${(Math.sin(t * 0.17) * 45).toFixed(2)}px)`;
+  el.b2.style.transform = `translate(${(Math.sin(t * 0.15) * -80).toFixed(2)}px, ${(Math.cos(t * 0.19) * 40).toFixed(2)}px)`;
+  // A grade some quando a cena é de texto puro e volta com as telas.
+  const g = mix(0.55, 1, desacelera(seg(t, 0, 2.5))) * (1 - 0.5 * suave(seg(t, FIM, FIM + 0.8)));
+  el.grade.style.opacity = g.toFixed(4);
+}
+
+function abertura(t) {
+  ciclo(el['ab-l1'], t, 0.45, 1.15, T.fraseSai, T.fraseSai + 0.4, { dy: 36, desfoque: 10, dySai: -22 });
+  ciclo(el['ab-l2'], t, 0.68, 1.38, T.fraseSai + 0.05, T.fraseSai + 0.45, { dy: 36, desfoque: 10, dySai: -22 });
+}
+
+const P_MARCA = {
+  centro: { cx: 960, cy: 480, s: 1 },
+  heroi: { lx: 116, cy: 470, s: 0.56 },
+  rodape: { lx: 120, cy: 1022, s: 0.16 },
+};
+
+function marca(t) {
+  const m = medida.marca;
+  const c = posicao(m, P_MARCA.centro);
+  const h = posicao(m, P_MARCA.heroi);
+  const r = posicao(m, P_MARCA.rodape);
+  const [a1, a2] = T.marcaHeroi;
+  const [b1, b2] = T.marcaRodape;
+  let p;
+  if (t < a1) p = c;
+  else if (t < a2) p = entrePosicoes(c, h, suave(seg(t, a1, a2)));
+  else if (t < b1) p = h;
+  else p = entrePosicoes(h, r, suave(seg(t, b1, b2)));
+  colocar(el.marca, p);
+  const sai = acelera(seg(t, FIM - 0.1, FIM + 0.3));
+  el.marca.style.opacity = (1 - sai).toFixed(4);
+  el.marca.style.visibility = t < T.letras || sai >= 1 ? 'hidden' : 'visible';
+
+  // Letra por letra, na primeira aparição.
+  el.letras.forEach((letra, i) => {
+    const ki = desacelera(seg(t, T.letras + i * 0.065, T.letras + i * 0.065 + 0.6));
+    estilo(letra, { o: ki, y: (1 - ki) * 50, b: (1 - ki) * 10 });
+  });
+
+  // "Gestão laboratorial" sob a marca, fechando o espaçamento ao entrar.
+  const kr = desacelera(seg(t, T.rotulo[0], T.rotulo[1]));
+  const ks = acelera(seg(t, T.rotulo[2], T.rotulo[3]));
+  el['marca-rotulo'].style.letterSpacing = `${mix(0.7, 0.42, kr).toFixed(4)}em`;
+  el['marca-rotulo'].style.paddingLeft = `${mix(0.7, 0.42, kr).toFixed(4)}em`;
+  estilo(el['marca-rotulo'], { o: kr * (1 - ks), y: (1 - kr) * 10 - ks * 10, b: ks * 4 });
+
+  // Herói: selo acima da marca, frase abaixo.
+  el.pilula.style.top = `${(P_MARCA.heroi.cy - (m.h * P_MARCA.heroi.s) / 2 - 44).toFixed(2)}px`;
+  ciclo(el.pilula, t, ...T.pilula, { dy: 12, desfoque: 4 });
+  el.slogan.style.top = `${(P_MARCA.heroi.cy + (m.h * P_MARCA.heroi.s) / 2 + 30).toFixed(2)}px`;
+  ciclo(el.slogan, t, ...T.slogan, { dy: 18, desfoque: 6 });
+
+  // Rótulo ao lado da marca no rodapé.
+  el['rodape-rotulo'].style.left = `${(P_MARCA.rodape.lx + m.w * P_MARCA.rodape.s + 16).toFixed(2)}px`;
+  el['rodape-rotulo'].style.top = `${(P_MARCA.rodape.cy - 4).toFixed(2)}px`;
+  ciclo(el['rodape-rotulo'], t, T.marcaRodape[1] - 0.3, T.marcaRodape[1] + 0.2, FIM - 0.1, FIM + 0.3, { dy: 0, desfoque: 3, dySai: 0 });
+}
+
+const P_DSM = {
+  abertura: { cx: 960, cy: 420, s: 1.05 },
+  rodape: { rx: 1800, cy: 1020, s: 0.36 },
+};
+
+function dsm(t) {
+  const m = medida.dsm;
+  let p;
+  let o;
+  let y = 0;
+  let b = 0;
+  if (t < 4) {
+    const ki = desacelera(seg(t, 0.1, 0.7));
+    const ko = acelera(seg(t, T.fraseSai, T.fraseSai + 0.4));
+    p = posicao(m, { ...P_DSM.abertura, s: P_DSM.abertura.s * mix(0.94, 1, ki) });
+    o = ki * (1 - ko);
+    y = (1 - ki) * 14 - ko * 16;
+    b = (1 - ki) * 6 + ko * 4;
+  } else {
+    p = posicao(m, P_DSM.rodape);
+    o = desacelera(seg(t, INICIO_PASSOS, INICIO_PASSOS + 0.5)) * (1 - acelera(seg(t, FIM - 0.1, FIM + 0.3)));
+  }
+  el.dsm.style.opacity = o.toFixed(4);
+  el.dsm.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
+  colocar(el.dsm, { ...p, y: p.y + y });
+  el.dsm.style.filter = b > 0.05 ? `blur(${b.toFixed(2)}px)` : 'none';
+}
+
+function janela(t) {
+  const kr = assenta(seg(t, T.janela[0], T.janela[1]));
+  const kq = acelera(seg(t, MAT, MAT + 0.55));
+  const o = seg(t, T.janela[0], T.janela[0] + 0.4) * (1 - kq);
+  el.janela.style.opacity = o.toFixed(4);
+  el.janela.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
+  const y = (1 - kr) * 560 + kq * 80;
+  const rx = (1 - kr) * 22;
+  const s = mix(0.86, 1, kr) * (1 - 0.05 * kq);
+  el.janela.style.transform = (y === 0 && rx === 0 && s === 1)
+    ? 'none'
+    : `perspective(2200px) translateY(${y.toFixed(2)}px) rotateX(${rx.toFixed(3)}deg) scale(${s.toFixed(5)})`;
+}
+
+/** Câmera dentro da janela, para o passo i no instante t. */
+function vistaPasso(i, t) {
+  const p = PASSOS[i];
+  const anterior = i === 0 ? vistaHeroi(p.ini) : vistaPasso(i - 1, PASSOS[i - 1].fim);
+  if (t < p.ini + 0.55) return entreVistas(anterior, CHEIA, suave(seg(t, p.ini, p.ini + 0.55)));
+  if (t < p.ini + 0.8) return CHEIA;
+  if (t < p.ini + 1.8) return entreVistas(CHEIA, p.vista, suave(seg(t, p.ini + 0.8, p.ini + 1.8)));
+  return aproxima(p.vista, 1 + 0.035 * seg(t, p.ini + 1.8, p.fim));
+}
+const vistaHeroi = (t) => aproxima(CHEIA, 1 + 0.03 * seg(t, T.janela[1], INICIO_PASSOS));
+
+function camera(t) {
+  let v;
+  if (t < INICIO_PASSOS) v = vistaHeroi(t);
+  else {
+    let i = PASSOS.findIndex((p) => t < p.fim);
+    if (i < 0) i = PASSOS.length - 1;
+    v = vistaPasso(i, t);
+  }
+  const s = W_TELA / v.w;
+  const tx = -v.x * s;
+  const ty = -v.y * s;
+  el.camera.style.transform = `translate(${tx.toFixed(3)}px, ${ty.toFixed(3)}px) scale(${s.toFixed(5)})`;
+
+  // Troca de tela: a câmera abre primeiro, e a nova tela entra por cima
+  // quando o enquadramento já está quase inteiro — barra e menu do
+  // sistema ficam no lugar, e só o conteúdo muda.
+  const entradas = [0, ...PASSOS.map((p) => p.ini)];
+  el.quadros.forEach((q, j) => {
+    const o = j === 0 ? 1 : suave(seg(t, entradas[j] + 0.25, entradas[j] + 0.65));
+    const coberto = j + 1 < entradas.length && t > entradas[j + 1] + 0.65;
+    q.style.opacity = o.toFixed(4);
+    q.style.visibility = o <= 0.001 || coberto ? 'hidden' : 'visible';
+  });
+
+  // Título da janela troca no meio da passagem.
+  const trocas = PASSOS.map((p) => p.ini + 0.45);
+  const atual = trocas.filter((x) => t >= x).length;
+  const texto = atual === 0 ? 'Bancada — Painel' : PASSOS[atual - 1].barra;
+  if (el['barra-titulo'].textContent !== texto) el['barra-titulo'].textContent = texto;
+  const perto = Math.min(...trocas.map((x) => Math.abs(t - x)));
+  el['barra-titulo'].style.opacity = clamp(perto / 0.2).toFixed(4);
+
+  // Foco e anel no destaque do passo em cena.
+  let melhor = null;
+  for (const p of PASSOS) {
+    const k = desacelera(seg(t, p.ini + 1.4, p.ini + 1.9)) * (1 - seg(t, p.fim - 0.1, p.fim + 0.2));
+    if (k > 0 && (!melhor || k > melhor.k)) melhor = { p, k };
+  }
+  if (!melhor) {
+    el.foco.style.visibility = 'hidden';
+    el.anel.style.visibility = 'hidden';
+    return;
+  }
+  const { p, k } = melhor;
+  const d = p.destaque;
+  const folga = 10;
+  const r = { x: tx + d.x * s - folga, y: ty + d.y * s - folga, w: d.w * s + 2 * folga, h: d.h * s + 2 * folga };
+  Object.assign(el.foco.style, {
+    left: `${r.x.toFixed(2)}px`, top: `${r.y.toFixed(2)}px`, width: `${r.w.toFixed(2)}px`, height: `${r.h.toFixed(2)}px`,
+    opacity: k.toFixed(4), visibility: 'visible',
+  });
+  const ka = suave(seg(t, p.ini + 1.5, p.ini + 2.1));
+  const anel = el['anel-r'];
+  anel.setAttribute('x', (r.x - 2).toFixed(2));
+  anel.setAttribute('y', (r.y - 2).toFixed(2));
+  anel.setAttribute('width', (r.w + 4).toFixed(2));
+  anel.setAttribute('height', (r.h + 4).toFixed(2));
+  anel.setAttribute('stroke-dashoffset', (1 - ka).toFixed(4));
+  el.anel.style.opacity = k.toFixed(4);
+  el.anel.style.visibility = ka > 0 ? 'visible' : 'hidden';
+}
+
+function setas(t) {
+  const sai = acelera(seg(t, MAT, MAT + 0.35));
+  PASSOS.forEach((p, i) => {
+    const s = el.seta[i];
+    const ki = desacelera(seg(t, INICIO_PASSOS + i * 0.06, INICIO_PASSOS + i * 0.06 + 0.5));
+    const o = ki * (1 - sai);
+    s.g.style.opacity = o.toFixed(4);
+    s.g.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
+    s.g.style.transform = `translateY(${((1 - ki) * -18 - sai * 12).toFixed(2)}px)`;
+    // Em cena: verde-água. Já percorrida: a cor dela. Depois do último
+    // passo, o fluxo fica inteiro como no material da DSM.
+    const entra = suave(seg(t, p.ini + 0.1, p.ini + 0.45));
+    const proximo = PASSOS[i + 1];
+    const passa = proximo ? suave(seg(t, proximo.ini + 0.1, proximo.ini + 0.45)) : 0;
+    s.ativa.style.opacity = (entra * (1 - passa)).toFixed(4);
+    s.feita.style.opacity = passa.toFixed(4);
+    const cheia = Math.max(entra, passa);
+    s.texto.setAttribute('fill', mixCor('#7d909b', '#ffffff', cheia));
+  });
+}
+
+function passos(t) {
+  PASSOS.forEach((p, i) => {
+    const [barrinha, titulo, sub] = el.passos[i].partes;
+    const a = p.ini + (i === 0 ? 0.3 : 0.12);
+    const c = p.fim - 0.38;
+    const d = p.fim - 0.02;
+    const kb = suave(seg(t, a, a + 0.45)) * (1 - acelera(seg(t, c, d)));
+    barrinha.style.transform = `scaleX(${kb.toFixed(4)})`;
+    barrinha.style.transformOrigin = '0 50%';
+    ciclo(titulo, t, a + 0.06, a + 0.7, c, d, { dy: 30, desfoque: 10 });
+    ciclo(sub, t, a + 0.2, a + 0.85, c, d, { dy: 22, desfoque: 6 });
+  });
+  ciclo(el.aviso, t, INICIO_PASSOS + 0.4, INICIO_PASSOS + 1.0, MAT - 0.3, MAT + 0.1, { dy: 0, desfoque: 0, dySai: 0 });
+
+  // O arquivo do laudo aparece quando o passo do PDF já está em foco.
+  const ultimo = PASSOS[PASSOS.length - 1];
+  ciclo(el.arquivo, t, ultimo.ini + 2.0, ultimo.ini + 2.55, MAT - 0.05, MAT + 0.3, { dy: 34, desfoque: 6, dySai: 24 });
+}
+
+function matrizes(t) {
+  ciclo(el['mat-titulo'], t, MAT + 0.25, MAT + 0.85, FIM - 0.15, FIM + 0.2, { dy: 30, desfoque: 10, dySai: -20 });
+  el.chips.forEach((c, i) => {
+    const a = MAT + 0.5 + i * 0.055;
+    const k = clamp(seg(t, a, a + 0.42));
+    const ki = mola(k);
+    const ko = acelera(seg(t, FIM - 0.15 + i * 0.01, FIM + 0.2 + i * 0.01));
+    estilo(c, { o: clamp(k * 2.2) * (1 - ko), y: (1 - ki) * 26 - ko * 16, s: mix(0.82, 1, ki), b: ko * 5 });
+  });
+}
+
+function encerramento(t) {
+  const ka = desacelera(seg(t, FIM, FIM + 1.1));
+  estilo(el['fim-anel'], { o: ka, s: mix(0.7, 1, ka) });
+  ciclo(el['fim-pilula'], t, FIM + 0.1, FIM + 0.55, 99, 100, { dy: 12, desfoque: 4 });
+  ciclo(el['fim-l1'], t, FIM + 0.15, FIM + 0.75, 99, 100, { dy: 40, desfoque: 10 });
+  ciclo(el['fim-l2'], t, FIM + 0.28, FIM + 0.88, 99, 100, { dy: 40, desfoque: 10 });
+  ciclo(el['fim-sub'], t, FIM + 0.5, FIM + 1.05, 99, 100, { dy: 20, desfoque: 6 });
+  const kc = clamp(seg(t, FIM + 0.7, FIM + 1.2));
+  estilo(el['fim-cta'], { o: clamp(kc * 2), y: (1 - desacelera(kc)) * 22, s: mix(0.9, 1, mola(kc)) });
+  const kk = assenta(seg(t, FIM + 0.85, FIM + 1.6));
+  estilo(el['fim-cartao'], { o: clamp(seg(t, FIM + 0.85, FIM + 1.15)), y: (1 - kk) * 120 });
+}
+
+function renderizar(t) {
+  t = clamp(t, 0, DURACAO);
+  fundo(t);
+  abertura(t);
+  marca(t);
+  dsm(t);
+  janela(t);
+  camera(t);
+  setas(t);
+  passos(t);
+  matrizes(t);
+  encerramento(t);
+}
+
+/* ============================================================
+   Preparação: fontes e imagens prontas antes do primeiro quadro
+   ============================================================ */
+
+const FONTES = [
+  ['Instrument Serif', '400 100px "Instrument Serif"'],
+  ['Lexend', '300 20px "Lexend"'],
+  ['Lexend', '400 20px "Lexend"'],
+  ['Lexend', '500 20px "Lexend"'],
+  ['Lexend', '600 20px "Lexend"'],
+  ['Lexend', '700 20px "Lexend"'],
+];
+
+async function preparar() {
+  // Sem os contatos o fechamento sairia vazio: melhor não gerar o vídeo.
+  const c = window.CONTATOS;
+  if (!c?.telefone || !c?.email || !c?.site) throw new Error('faltam os contatos em assets/marca/contatos.js');
+  document.getElementById('contato-telefone').textContent = c.telefone;
+  document.getElementById('contato-email').textContent = c.email;
+  document.getElementById('contato-site').textContent = c.site;
+  montar();
+  // Carrega os recortes de cada fonte que cobrem o texto de verdade.
+  const texto = `${document.body.innerText} ${PASSOS.map((p) => p.titulo + p.sub + p.seta + p.barra).join(' ')}`;
+  await Promise.all(FONTES.map(([, f]) => document.fonts.load(f, texto)));
+  await document.fonts.ready;
+  for (const [familia] of FONTES) {
+    const ok = [...document.fonts].some((f) => f.family.replace(/"/g, '') === familia && f.status === 'loaded');
+    if (!ok) throw new Error(`fonte não carregou: ${familia}`);
+  }
+  await Promise.all([...document.images].map((img) => img.decode()));
+  medir();
+  renderizar(0);
+}
+
+window.FPS = FPS;
+window.DURACAO = DURACAO;
+window.renderizar = renderizar;
+
+preparar().then(() => {
+  window.pronto = true;
+  const q = new URLSearchParams(location.search);
+  if (q.has('t')) renderizar(Number(q.get('t')));
+  if (q.has('tocar')) {
+    const t0 = performance.now();
+    const passo = () => {
+      renderizar(((performance.now() - t0) / 1000) % DURACAO);
+      requestAnimationFrame(passo);
+    };
+    requestAnimationFrame(passo);
+  }
+}).catch((e) => { window.erro = String(e && e.message ? e.message : e); console.error(e); });
+</script>
+</body>
+</html>
